@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"myblogx/flags"
+
 	"gopkg.in/yaml.v3"
 )
-
-var cfgPath = "settings.yaml"
 
 type System struct {
 	IP   string `yaml:"ip"`
@@ -18,7 +18,8 @@ type Config struct {
 }
 
 func ReadCfg() {
-	byteData, err := os.ReadFile(cfgPath)
+	settings := flags.FlagOptions.File
+	byteData, err := os.ReadFile(settings)
 	if err != nil {
 		panic(err)
 	}
@@ -31,5 +32,5 @@ func ReadCfg() {
 		panic(fmt.Errorf("yaml 配置文件解析失败: %s", err))
 	}
 
-	fmt.Printf("%+v\n", config)
+	fmt.Printf("读取配置文件 %s 成功", settings)
 }
