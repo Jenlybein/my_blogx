@@ -25,7 +25,7 @@ func ReadCfg() (c *conf.Config) {
 		panic(fmt.Errorf("yaml 配置文件解析失败: %s", err))
 	}
 
-	fmt.Println("读取配置文件 %s 成功", settings)
+	fmt.Printf("读取配置文件 %s 成功\n", settings)
 
 	return c
 }
