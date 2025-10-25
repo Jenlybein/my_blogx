@@ -17,10 +17,16 @@ type Options struct {
 
 var FlagOptions = new(Options)
 
-func Parse() *Options {
+func Parse() {
 	flag.StringVar(&FlagOptions.File, "f", "settings.yaml", "指定配置文件路径")
 	flag.BoolVar(&FlagOptions.DB, "db", false, "数据库迁移")
 	flag.BoolVar(&FlagOptions.Version, "version", false, "显示版本信息")
 	flag.Parse()
-	return FlagOptions
+}
+
+func Run() {
+	if FlagOptions.DB {
+		// 执行数据库迁移
+		FlagDB()
+	}
 }
