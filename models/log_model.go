@@ -5,11 +5,11 @@ import "myblogx/models/enum"
 // 日志表
 type LogModel struct {
 	Model
-	LogType     enum.LogType      `json:"log_type"`                // 日志类型
-	Title       string            `gorm:"size:64" json:"title"`    // 日志标题
-	Content     string            `gorm:"size:128" json:"content"` // 日志内容
-	Level       enum.LogLevelType `json:"level"`                   // 日志级别
-	UserID      uint              `json:"user_id"`                 // 用户ID
+	LogType     enum.LogType      `json:"log_type"`                     // 日志类型
+	Title       string            `gorm:"size:64" json:"title"`         // 日志标题
+	Content     string            `gorm:"type:longtext" json:"content"` // 日志内容
+	Level       enum.LogLevelType `json:"level"`                        // 日志级别
+	UserID      uint              `json:"user_id"`                      // 用户ID
 	UserModel   UserModel         `json:"user_model" gorm:"foreignKey:UserID;references:ID"`
 	IP          string            `gorm:"size:32" json:"ip"`       // 操作IP
 	Addr        string            `gorm:"size:64" json:"addr"`     // 操作地址
