@@ -4,6 +4,7 @@ import (
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/enum"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,9 +13,21 @@ type LogApi struct {
 }
 
 type LogListRequest struct {
-	Limit int    `form:"limit"`
-	Page  int    `form:"page"`
-	Key   string `form:"key"`
+	Limit       int               `form:"limit"`
+	Page        int               `form:"page"`
+	Key         string            `form:"key"`
+	LogType     enum.LogType      `form:"log_type"`     // 日志类型
+	Level       enum.LogLevelType `form:"level"`        // 日志级别
+	UserID      uint              `form:"user_id"`      // 用户ID
+	IP          string            `form:"ip"`           // 操作IP
+	LoginStatus bool              `form:"login_status"` // 登录状态
+	ServiceName string            `form:"service_name"` // 服务名称
+}
+
+type LogListResponse struct {
+	models.LogModel
+	UserNickname string `json:"user_nickname"`
+	UserAvatar   string `json:"user_avatar"`
 }
 
 func (l *LogApi) LogListView(c *gin.Context) {
@@ -26,7 +39,8 @@ func (l *LogApi) LogListView(c *gin.Context) {
 		return
 	}
 
-	var list []models.LogModel
+	var list []models.LogModel // 日志列表
+	var count int64            // 日志总数
 
 	if cr.Page > 20 {
 		cr.Page = 20
@@ -39,10 +53,30 @@ func (l *LogApi) LogListView(c *gin.Context) {
 	}
 
 	offset := (cr.Page - 1) * cr.Limit
-	global.DB.Debug().Offset(offset).Limit(cr.Limit).Find(&list)
 
-	var count int64
-	global.DB.Debug().Model(&models.LogModel{}).Count(&count)
+	model := models.LogModel{
+		LogType:     cr.LogType,
+		Level:       cr.Level,
+		UserID:      cr.UserID,
+		IP:          cr.IP,
+		LoginStatus: cr.LoginStatus,
+		ServiceName: cr.ServiceName,
+	}
 
-	res.OkWithList(list, int(count), c)
+	like := global.DB.Debug().Where("title like ?", "%"+cr.Key+"%")
+
+	global.DB.Preload("UserModel").Where(like).Where(model).Offset(offset).Limit(cr.Limit).Find(&list)
+
+	global.DB.Where(like).Where(model).Model(&models.LogModel{}).Count(&count)
+
+	var _list = make([]LogListResponse, 0)
+	for _, logModel := range list {
+		_list = append(_list, LogListResponse{
+			LogModel:     logModel,
+			UserNickname: logModel.UserModel.Nickname,
+			UserAvatar:   logModel.UserModel.Avatar,
+		})
+	}
+
+	res.OkWithList(_list, int(count), c)
 }
