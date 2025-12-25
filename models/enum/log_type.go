@@ -1,3 +1,5 @@
+// 日志类型枚举
+
 package enum
 
 type LogType int8

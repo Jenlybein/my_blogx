@@ -1,3 +1,5 @@
+// 收藏模型
+
 package models
 
 // 收藏表

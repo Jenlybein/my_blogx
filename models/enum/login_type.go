@@ -1,3 +1,5 @@
+// 登录类型枚举
+
 package enum
 
 type LoginType int8

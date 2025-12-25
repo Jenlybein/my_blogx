@@ -1,3 +1,5 @@
+// 数据库初始化
+
 package core
 
 import (

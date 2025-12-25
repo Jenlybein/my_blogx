@@ -1,3 +1,5 @@
+// 图片模型
+
 package models
 
 // 图片表

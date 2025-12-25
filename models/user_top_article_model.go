@@ -1,3 +1,5 @@
+// 用户置顶文章模型
+
 package models
 
 import "time"

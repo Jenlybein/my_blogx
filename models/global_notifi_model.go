@@ -1,3 +1,5 @@
+// 全局通知模型
+
 package models
 
 // 全局通知表

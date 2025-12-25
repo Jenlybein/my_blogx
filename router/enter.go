@@ -1,3 +1,5 @@
+// 路由模块入口
+
 package router
 
 import (
@@ -8,12 +10,16 @@ import (
 )
 
 func Run() {
+	gin.SetMode(global.Config.System.GinMode)
 	r := gin.Default()
+
+	r.Static("/static", "./uploads")
 
 	nr := r.Group("/api")
 	nr.Use(middleware.LogMiddleware)
 
 	SiteRouter(nr)
+	LogRouter(nr)
 
 	addr := global.Config.System.Addr()
 	r.Run(addr)

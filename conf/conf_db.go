@@ -1,3 +1,5 @@
+// 数据库配置
+
 package conf
 
 import (

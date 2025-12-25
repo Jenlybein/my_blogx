@@ -1,3 +1,5 @@
+// 全局变量定义
+
 package global
 
 import (

@@ -1,3 +1,5 @@
+// 配置初始化
+
 package core
 
 import (

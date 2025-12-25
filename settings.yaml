@@ -3,6 +3,7 @@ system:
   ip:
   port: 8080
   env: dev
+  gin_mode: release # debug/release/test
 
 # 日志配置
 log:

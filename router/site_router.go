@@ -1,3 +1,5 @@
+// 站点路由定义
+
 package router
 
 import (

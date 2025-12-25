@@ -1,3 +1,5 @@
+// 用户模型
+
 package models
 
 import (

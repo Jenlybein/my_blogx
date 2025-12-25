@@ -1,3 +1,5 @@
+// 模型模块基础定义
+
 package models
 
 import (

@@ -1,3 +1,5 @@
+// 文章模型
+
 package models
 
 // 文章表

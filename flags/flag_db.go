@@ -1,3 +1,5 @@
+// 数据库Flag处理
+
 package flags
 
 import (

@@ -1,3 +1,5 @@
+// 文章点赞模型
+
 package models
 
 import "time"

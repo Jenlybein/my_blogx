@@ -1,3 +1,5 @@
+// 配置模块入口
+
 package conf
 
 type Config struct {

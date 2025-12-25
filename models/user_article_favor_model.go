@@ -1,3 +1,5 @@
+// 用户文章收藏模型
+
 package models
 
 import "time"

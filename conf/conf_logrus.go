@@ -1,3 +1,5 @@
+// Logrus日志配置
+
 package conf
 
 type Logrus struct {

@@ -1,3 +1,5 @@
+// 轮播图模型
+
 package models
 
 // 轮播图表

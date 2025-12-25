@@ -1,3 +1,5 @@
+// 日志级别枚举
+
 package enum
 
 type LogLevelType int8

@@ -1,3 +1,5 @@
+// GORM配置
+
 package conf
 
 type GormConf struct {

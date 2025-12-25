@@ -1,3 +1,5 @@
+// 日志模型
+
 package models
 
 import "myblogx/models/enum"

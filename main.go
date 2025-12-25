@@ -1,3 +1,5 @@
+// 主程序入口
+
 package main
 
 import (
