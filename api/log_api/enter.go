@@ -3,6 +3,7 @@ package log_api
 import (
 	"myblogx/common"
 	"myblogx/common/res"
+	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
 
@@ -31,6 +32,8 @@ type LogListResponse struct {
 func (l *LogApi) LogListView(c *gin.Context) {
 	// 分页 查询(精确匹配，模糊查询)
 	var cr LogListRequest
+
+	// 绑定查询参数
 	err := c.ShouldBindQuery(&cr)
 	if err != nil {
 		res.FailWithError(err, c)
@@ -62,4 +65,29 @@ func (l *LogApi) LogListView(c *gin.Context) {
 	}
 
 	res.OkWithList(_list, int(count), c)
+}
+
+func (l *LogApi) LogReadView(c *gin.Context) {
+	var cr models.IDRequest
+
+	// 绑定查询参数
+	err := c.ShouldBindUri(&cr)
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
+
+	var log models.LogModel
+	err = global.DB.Take(&log, cr.ID).Error
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
+
+	// 如果日志已读，则返回错误
+	if !log.IsRead {
+		global.DB.Model(&log).Update("is_read", true)
+	}
+
+	res.OkWithData("日志读取成功", c)
 }

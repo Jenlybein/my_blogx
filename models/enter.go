@@ -13,3 +13,8 @@ type Model struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`
 }
+
+// ID请求参数
+type IDRequest struct {
+	ID uint `json:"id" form:"id" uri:"id"`
+}
