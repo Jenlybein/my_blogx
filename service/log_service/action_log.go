@@ -11,6 +11,7 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/utils/jwts"
 	"net/http"
 	"reflect"
 	"strings"
@@ -132,7 +133,7 @@ func (ac *ActionLog) MiddlewareSave() {
 		ac.Save()
 		return
 	}
-	// 在试图里 Save 过，更新
+	// 在视图里 Save 过，更新
 	// 响应头
 	if ac.showResponseHeader {
 		byteData, _ := json.Marshal(ac.responseHeader)
@@ -171,12 +172,33 @@ func (ac *ActionLog) Save() (id uint) {
 		newItemList = append(newItemList, "请求体: "+string(ac.requestBody))
 	}
 
+	if ac.isMiddleware {
+		// 响应头
+		if ac.showResponseHeader {
+			byteData, _ := json.Marshal(ac.responseHeader)
+			ac.itemList = append(ac.itemList, "响应头: "+string(byteData))
+		}
+
+		// 设置响应
+		if ac.showResponse {
+			ac.itemList = append(ac.itemList, "响应体: "+string(ac.responseBody))
+		}
+	}
+
 	// 中间的一些 content
 	newItemList = append(newItemList, ac.itemList...)
 
 	ip := ac.c.ClientIP()
 	addr := core.GetIpAddr(ip)
-	userID := uint(1)
+
+	// 解析 jwt token 中的 userID
+	userID := uint(0)
+	claims, err := jwts.ParseTokenByGin(ac.c)
+	if err != nil {
+		logrus.Errorf("解析 token 失败: %v", err)
+	} else {
+		userID = uint(claims.UserID)
+	}
 
 	log := models.LogModel{
 		LogType: enum.ActionLogType,
@@ -188,7 +210,7 @@ func (ac *ActionLog) Save() (id uint) {
 		Addr:    addr,
 	}
 
-	err := global.DB.Create(&log).Error
+	err = global.DB.Create(&log).Error
 	if err != nil {
 		logrus.Errorf("日志创建失败: %v", err)
 		return

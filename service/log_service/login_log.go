@@ -8,8 +8,10 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 func NewLoginSuccess(c *gin.Context, loginType enum.LoginType) {
@@ -19,9 +21,16 @@ func NewLoginSuccess(c *gin.Context, loginType enum.LoginType) {
 	token := c.Request.Header.Get("token")
 	fmt.Println(token)
 
-	// TODO: 从jwt中获取用户ID
-	userID := uint(1)
+	// 解析 jwt token 中的 userID
+	userID := uint(0)
 	username := ""
+	claims, err := jwts.ParseTokenByGin(c)
+	if err != nil {
+		logrus.Errorf("解析 token 失败: %v", err)
+	} else {
+		username = claims.Username
+		userID = uint(claims.UserID)
+	}
 
 	global.DB.Create(&models.LogModel{
 		LogType:     enum.LoginLogType,

@@ -10,6 +10,12 @@ log:
   app: blogx_server
   dir: ./logs
 
+# jwt 配置
+jwt:
+  secret: 123456 # jwt 加密密钥
+  expire: 3 # 过期时间(单位：小时)
+  issuer: blogx_server # jwt 签发者
+
 # 数据库配置
 db:
   host: 127.0.0.1

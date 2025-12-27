@@ -8,7 +8,7 @@ import (
 
 // 基础模型
 type Model struct {
-	ID        uint       `gorm:"primaryKey"`
+	ID        uint       `gorm:"primaryKey" json:"id"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`
@@ -17,4 +17,8 @@ type Model struct {
 // ID请求参数
 type IDRequest struct {
 	ID uint `json:"id" form:"id" uri:"id"`
+}
+
+type RemoveRequest struct {
+	IDList []uint `json:"id_list"`
 }

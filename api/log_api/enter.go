@@ -1,11 +1,13 @@
 package log_api
 
 import (
+	"fmt"
 	"myblogx/common"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/log_service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -68,6 +70,7 @@ func (l *LogApi) LogListView(c *gin.Context) {
 }
 
 func (l *LogApi) LogReadView(c *gin.Context) {
+	// 已读状态修改
 	var cr models.IDRequest
 
 	// 绑定查询参数
@@ -90,4 +93,29 @@ func (l *LogApi) LogReadView(c *gin.Context) {
 	}
 
 	res.OkWithData("日志读取成功", c)
+}
+
+func (l *LogApi) LogRemoveView(c *gin.Context) {
+	var cr models.RemoveRequest
+
+	// 绑定查询参数
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
+
+	log := log_service.GetLog(c)
+	log.SetShowRequest()
+	log.SetShowResponse()
+
+	var logList []models.LogModel
+	global.DB.Find(&logList, "id IN ?", cr.IDList)
+
+	if len(logList) > 0 {
+		global.DB.Delete(&logList)
+	}
+
+	msg := fmt.Sprintf("删除了 %d 条日志", len(logList))
+	res.OkWithData(msg, c)
 }
