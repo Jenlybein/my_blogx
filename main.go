@@ -14,6 +14,7 @@ func main() {
 	global.Config = core.ReadCfg()
 	core.InitLogrus()
 	global.DB = core.InitDB()
+	global.Redis = core.InitRedis()
 
 	flags.Run()
 

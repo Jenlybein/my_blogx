@@ -1,42 +1,93 @@
-# 系统配置
 system:
-  ip:
-  port: 8080
-  env: dev
-  gin_mode: release # debug/release/test
-
-# 日志配置
-log:
-  app: blogx_server
-  dir: ./logs
-
-# jwt 配置
+    ip: ""
+    port: 8080
+    env: dev
+    gin_mode: release
 jwt:
-  secret: 123456 # jwt 加密密钥
-  expire: 3 # 过期时间(单位：小时)
-  issuer: blogx_server # jwt 签发者
-
-# 数据库配置
+    expire: 3
+    secret: "123456"
+    issuer: blogx_server
+log:
+    app: blogx_server
+    dir: ./logs
 db:
-  host: 127.0.0.1
-  port: 3308
-  user: root
-  password: root
-  dbname: blogx_db
-  debug: false
-  source: mysql
-
+    host: 127.0.0.1
+    port: 3308
+    user: root
+    password: root
+    dbname: blogx_db
+    debug: false
+    source: mysql
 db1:
-  host: 127.0.0.1
-  port: 3308
-  user: root
-  password: root
-  dbname: blogx_db
-  debug: false
-  source: mysql
-
-# gorm 配置
+    host: 127.0.0.1
+    port: 3308
+    user: root
+    password: root
+    dbname: blogx_db
+    debug: false
+    source: mysql
 gorm:
-  max_idle_conns: 100 # 空闲连接池中连接的最大数量
-  max_open_conns: 100 # 打开数据库连接的最大数量
-  conn_max_lifetime: 1 # 可重新使用连接的最大时间(单位：小时)
+    max_idle_conns: 100
+    max_open_conns: 100
+    conn_max_lifetime: 1
+redis:
+    addr: 127.0.0.1
+    port: 6378
+    username: default
+    password: "123456"
+    db: 0
+site:
+    site_info:
+        title: 技术博客
+        logo: ""
+        beian: ""
+        mode: 1
+    project:
+        title: ""
+        icon: ""
+        web_path: ""
+    seo:
+        keywords: ""
+        description: ""
+    about:
+        site_date: ""
+        qq: ""
+        wechat: ""
+        gitee: ""
+        bilibili: ""
+        github: ""
+    login:
+        qq_login: false
+        username_pwd_login: false
+        email_login: false
+        captcha: false
+    index_right:
+        list: []
+    article:
+        skip_audit: true
+email:
+    domain: ""
+    port: 0
+    send_email: ""
+    auth_code: ""
+    send_nickname: ""
+    ssl: false
+    tls: false
+qq:
+    app_id: "123456"
+    app_key: ""
+    redirect: "123456"
+qiniu:
+    enable: false
+    access_key: ""
+    secret_key: ""
+    bucket: ""
+    uri: ""
+    region: ""
+    prefix: ""
+    size: 0
+ai:
+    enable: false
+    secret: ""
+    nickname: ""
+    avatar: ""

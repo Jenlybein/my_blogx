@@ -5,22 +5,20 @@ import (
 	"time"
 
 	"myblogx/global"
+	"myblogx/models/enum"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
 
 var (
-	TokenExpireDuration = time.Duration(global.Config.Jwt.Expire) * time.Hour // 令牌过期时间
-	Secret              = []byte(global.Config.Jwt.Secret)                    // 密钥
-	Method              = jwt.SigningMethodHS256                              // 签名算法
-	Issuer              = global.Config.Jwt.Issuer                            // jwt 签发者
+	Method = jwt.SigningMethodHS256 // 签名算法
 )
 
 type Claims struct {
-	UserID   int64  `json:"user_id"`
-	Role     int8   `json:"role"`
-	Username string `json:"username"`
+	UserID   int64         `json:"user_id"`
+	Role     enum.RoleType `json:"role"`
+	Username string        `json:"username"`
 }
 
 type MyClaims struct {
@@ -30,6 +28,13 @@ type MyClaims struct {
 
 // 生成 token 的工具函数
 func GetToken(claims Claims) (string, error) {
+	// 从配置文件中获取 jwt 相关配置
+	var (
+		TokenExpireDuration = time.Duration(global.Config.Jwt.Expire) * time.Hour // 令牌过期时间
+		Secret              = []byte(global.Config.Jwt.Secret)                    // 密钥
+		Issuer              = global.Config.Jwt.Issuer                            // jwt 签发者
+	)
+
 	// 构造自定义的Claims（JWT的载荷部分）
 	myclaims := MyClaims{
 		Claims: claims,
@@ -54,6 +59,11 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 	if tokenString == "" {
 		return nil, errors.New("请登录：token 为空")
 	}
+
+	// 从配置文件中获取 jwt 相关配置
+	var (
+		Secret = []byte(global.Config.Jwt.Secret) // 密钥
+	)
 
 	// 解析 tokenString 字符串到指定的 MyClaims 结构体
 	token, err := jwt.ParseWithClaims(tokenString, &MyClaims{}, func(token *jwt.Token) (any, error) {

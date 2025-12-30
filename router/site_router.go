@@ -10,6 +10,7 @@ import (
 
 func SiteRouter(r *gin.RouterGroup) {
 	app := api.App.SiteApi
-	r.GET("site", app.SiteInfoView)
-	r.PUT("site", app.SiteUpdateView)
+	r.GET("site/:name", app.SiteInfoView)
+	r.GET("site/qq_url", app.SiteInfoQQView)
+	r.PUT("site/:name", app.SiteUpdateView)
 }

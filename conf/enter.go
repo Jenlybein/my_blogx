@@ -9,4 +9,10 @@ type Config struct {
 	DB     DB       `yaml:"db"`
 	DB1    DB       `yaml:"db1"`
 	GORM   GormConf `yaml:"gorm"`
+	Redis  Redis    `yaml:"redis"`
+	Site   Site     `yaml:"site"`
+	Email  Email    `yaml:"email"`
+	QQ     QQ       `yaml:"qq"`
+	QiNiu  QiNiu    `yaml:"qiniu"`
+	AI     AI       `yaml:"ai"`
 }

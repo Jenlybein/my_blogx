@@ -3,23 +3,24 @@
 package models
 
 import (
+	"myblogx/models/enum"
 	"time"
 )
 
 // 用户表
 type UserModel struct {
 	Model
-	Username       string `gorm:"size:32" json:"username"`
-	Password       string `gorm:"size:64" json:"password"`
-	Nickname       string `gorm:"size:32" json:"nickname"`
-	Avatar         string `gorm:"size:256" json:"avatar"`
-	Abstract       string `gorm:"size:256" json:"abstract"`
-	RegisterSource string `json:"register_source"`
-	CodeAge        int    `json:"code_age"`
-	LikeTags       string `gorm:"type:longtext;serializer:json" json:"like_tags"`
-	Email          string `gorm:"size:256" json:"email"`
-	OpenID         string `gorm:"size:64" json:"open_id"`
-	Role           int    `gorm:"default:0" json:"role"` // 角色 0:管理员 1:普通用户 2:访客
+	Username       string        `gorm:"size:32" json:"username"`
+	Password       string        `gorm:"size:64" json:"password"`
+	Nickname       string        `gorm:"size:32" json:"nickname"`
+	Avatar         string        `gorm:"size:256" json:"avatar"`
+	Abstract       string        `gorm:"size:256" json:"abstract"`
+	RegisterSource string        `json:"register_source"`
+	CodeAge        int           `json:"code_age"`
+	LikeTags       string        `gorm:"type:longtext;serializer:json" json:"like_tags"`
+	Email          string        `gorm:"size:256" json:"email"`
+	OpenID         string        `gorm:"size:64" json:"open_id"`
+	Role           enum.RoleType `gorm:"default:0" json:"role"` // 角色 0:管理员 1:普通用户 2:访客
 }
 
 type UserConfModel struct {
