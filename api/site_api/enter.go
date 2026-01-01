@@ -3,13 +3,18 @@
 package site_api
 
 import (
+	"errors"
+	"fmt"
 	"myblogx/common/res"
 	"myblogx/conf"
 	"myblogx/core"
 	"myblogx/global"
 	"myblogx/middleware"
+	"os"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type SiteApi struct {
@@ -148,6 +153,76 @@ func (SiteApi) SiteInfoQQView(c *gin.Context) {
 	res.OkWithData(global.Config.QQ.Url(), c)
 }
 
+// TODO：此处原项目直接修改了前端页面的index.html来更新[标题]和[icon]等，后续需要考虑通过API接口来更新这些配置。
 func UpdateSite(site conf.Site) error {
+	if site.Project.Icon == "" && site.Project.Title == "" &&
+		site.Seo.Keywords == "" && site.Seo.Description == "" &&
+		site.Project.WebPath == "" {
+		return nil
+	}
+
+	if site.Project.WebPath == "" {
+		return errors.New("请配置前端地址")
+	}
+
+	file, err := os.Open(site.Project.WebPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	doc, err := goquery.NewDocumentFromReader(file)
+	if err != nil {
+		logrus.Errorf("goquery解析失败: %v", err)
+		return err
+	}
+
+	if site.Project.Title != "" {
+		selection := doc.Find("title")
+		selection.SetText(site.Project.Title)
+	}
+
+	if site.Project.Icon != "" {
+		if doc.Is("link[rel='icon']") {
+			selection := doc.Find("link[rel='icon']")
+			selection.SetAttr("href", site.Project.Icon)
+		} else {
+			selection := doc.Find("head")
+			selection.AppendHtml(fmt.Sprintf("<link rel='icon' href='%s' />", site.Project.Icon))
+		}
+	}
+
+	if site.Seo.Keywords != "" {
+		if doc.Is("meta[name='keywords']") {
+			selection := doc.Find("meta[name='keywords']")
+			selection.SetAttr("content", site.Seo.Keywords)
+		} else {
+			selection := doc.Find("head")
+			selection.AppendHtml(fmt.Sprintf("<meta name='keywords' content='%s' />", site.Seo.Keywords))
+		}
+	}
+
+	if site.Seo.Description != "" {
+		if doc.Is("meta[name='description']") {
+			selection := doc.Find("meta[name='description']")
+			selection.SetAttr("content", site.Seo.Description)
+		} else {
+			selection := doc.Find("head")
+			selection.AppendHtml(fmt.Sprintf("<meta name='description' content='%s' />", site.Seo.Description))
+		}
+	}
+
+	html, err := doc.Html()
+	if err != nil {
+		logrus.Errorf("生成 html 失败: %v", err)
+		return err
+	}
+
+	err = os.WriteFile(site.Project.WebPath, []byte(html), 0666)
+	if err != nil {
+		logrus.Errorf("写入 html 失败: %v", err)
+		return err
+	}
+
 	return nil
 }
