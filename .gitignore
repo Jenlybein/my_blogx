@@ -1,4 +1,6 @@
 .vscode
-logs/*
-test/*
+logs
+test
+uploads
+
 .readmd

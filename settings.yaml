@@ -1,28 +1,28 @@
 system:
   ip: ""
-  port: 8080
+  port: ******_port1
   env: dev
   gin_mode: release
 jwt:
   expire: 3600
-  secret: "123456"
-  issuer: blogx_server
+  secret: "******_secret1
+  issuer: ******_issuer1
 log:
   app: blogx_server
   dir: ./logs
 db:
-  host: 127.0.0.1
-  port: 3308
-  user: root
-  password: root
+  host: ******_addr1
+  port: ******_port2
+  user: ******_password1
+  password: ******_password1
   dbname: blogx_db
   debug: false
   source: mysql
 db1:
-  host: 127.0.0.1
-  port: 3308
-  user: root
-  password: root
+  host: ******_addr1
+  port: ******_port2
+  user: ******_password1
+  password: ******_password1
   dbname: blogx_db
   debug: false
   source: mysql
@@ -31,10 +31,10 @@ gorm:
   max_open_conns: 100
   conn_max_lifetime: 1
 redis:
-  addr: 127.0.0.1
-  port: 6378
+  addr: ******_addr1
+  port: ******_port3
   username: default
-  password: "123456"
+  password: "******_password2
   db: 0
 upload:
   size: 3
@@ -76,21 +76,21 @@ site:
   article:
     skip_audit: true
 email:
-  domain: ""
-  port: 0
-  send_email: ""
+  domain: "******_domain1
+  port: ******_port4
+  send_email: "******_send_email1
   auth_code: ""
-  send_nickname: ""
+  send_nickname: "我的博客"
   ssl: false
   tls: false
 qq:
-  app_id: "123456"
+  app_id: "******_password2
   app_key: ""
-  redirect: "123456"
+  redirect: "******_password2
 qiniu:
   enable: true
-  access_key: a90i-5wKNCmylJ_zr1PGYWbsp4OOASqs5COV61fE
-  secret_key: qEBptT8ZiPPypSYlBYqmQ3r2CTknIZDQFgAgqcjy
+  access_key: ******_access_key1
+  secret_key: ******_secret_key1
   bucket: myblogx
   uri: ""
   region: z2
