@@ -3,14 +3,13 @@
 package log_service
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"myblogx/core"
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
+	io_utils "myblogx/utils/io_util"
 	"myblogx/utils/jwts"
 	"net/http"
 	"reflect"
@@ -102,18 +101,16 @@ func (ac *ActionLog) SetError(label string, err error) {
 	ac.itemList = append(ac.itemList, fmt.Sprintf("[%s:%T]%s: %+v", label, err, err, msg))
 }
 
-func (ac *ActionLog) SetResponseHeader(header http.Header) {
-	ac.responseHeader = header
+func (ac *ActionLog) SetResponseHeader(c *gin.Context) {
+	ac.responseHeader = c.Writer.Header()
 }
 
 func (ac *ActionLog) SetRequest(c *gin.Context) {
-	byteData, err := io.ReadAll(c.Request.Body)
+	byteData, err := io_utils.GetBody(&c.Request.Body)
 	if err != nil {
 		logrus.Errorf("读取请求体失败: %v", err)
 	}
 	ac.requestBody = byteData
-	// 请求内容阅后即焚，所以需要恢复请求体内容
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(byteData))
 }
 
 func (ac *ActionLog) SetResponse(data []byte) {

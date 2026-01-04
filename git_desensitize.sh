@@ -2,7 +2,7 @@
 # ==============================================================
 # Git 配置文件全自动脱敏脚本
 # 使用说明：1.修改顶部【配置区】的files和fields 
-#          2.执行脚本：bash git_auto_desensitize.sh
+#          2.执行脚本：bash git_desensitize.sh
 # 核心特性：一键生成clean/smudge过滤器 + 绑定.gitattributes
 # ==============================================================
 
@@ -37,9 +37,9 @@ BASE_PLACEHOLDER="******"                    # 占位符基础前缀
 
 # ========== 【0.前置一键校验】 ==========
 check_env(){
-  [ ! -d ".git" ] && echo -e "\033[31m❌ 请在Git项目根目录执行！\033[0m" && exit 1
-  [ ! $(command -v git) ] && echo -e "\033[31m❌ 未检测到Git环境！\033[0m" && exit 1
-  [ ! $(command -v sed) ] && echo -e "\033[31m❌ 未检测到sed命令！\033[0m" && exit 1
+  [ ! -d ".git" ] && echo -e "\033[31m请在Git项目根目录执行！\033[0m" && exit 1
+  [ ! $(command -v git) ] && echo -e "\033[31m未检测到Git环境！\033[0m" && exit 1
+  [ ! $(command -v sed) ] && echo -e "\033[31m未检测到sed命令！\033[0m" && exit 1
 } && check_env
 
 # ========== 【1.扫描提取敏感值+去重+生成映射】 ==========
@@ -56,7 +56,7 @@ done
 # 遍历所有目标文件
 for file in "${files[@]}"; do
   if [ ! -f "$file" ]; then
-    echo -e "\033[33m⚠️  文件 $file 不存在，跳过\033[0m"
+    echo -e "\033[33m文件 $file 不存在，跳过\033[0m"
     continue
   fi
 
@@ -73,7 +73,7 @@ for file in "${files[@]}"; do
       # 去重：字段名+原始值 作为KEY，完全一致则判定为重复
       unique_check_key="${field}_${origin_value}"
       if [[ -n "${DUPLICATE_CHECK_MAP[$unique_check_key]}" ]]; then
-        echo -e "\033[33m⚠️  重复：$file -> $field = $origin_value\033[0m"
+        echo -e "\033[33m重复：$file -> $field = $origin_value\033[0m"
         continue
       fi
 
@@ -82,14 +82,14 @@ for file in "${files[@]}"; do
       seq_num=${FIELD_COUNTER[$field]}
       DUPLICATE_CHECK_MAP[$unique_check_key]=1
       VALUE_MAPPING+=("$origin_value|$field|$seq_num")
-      echo -e "\033[32m✅ 提取：$file -> $field$seq_num = $origin_value\033[0m"
+      echo -e "\033[32m提取：$file -> $field$seq_num = $origin_value\033[0m"
     done <<< "$all_origin_values"
   done
 done
 
 # 校验是否成功获取到原始值
 if [ ${#VALUE_MAPPING[@]} -eq 0 ]; then
-  echo -e "\033[31m❌ 错误：未扫描到任何有效字段值\033[0m"
+  echo -e "\033[31m错误：未扫描到任何有效字段值\033[0m"
   exit 1
 fi
 
@@ -114,7 +114,7 @@ for item in "${VALUE_MAPPING[@]}"; do
   SMUDGE_RULE+=" -e 's/${ph_esc}/${val_esc}/g'"
 done
 
-echo -e "\033[32m✅ 生成${#VALUE_MAPPING[@]}条\033[0m"
+echo -e "\033[32m生成${#VALUE_MAPPING[@]}条\033[0m"
 
 # ========== 【3.配置Git全局过滤器】 ==========
 echo -e "\n\033[36m===== 配置Git全局过滤器 =====\033[0m"
@@ -128,9 +128,9 @@ filter_check=$(git config --get filter.$FILTER_NAME.clean)
 smudge_check=$(git config --get filter.$FILTER_NAME.smudge)
 required_check=$(git config --get filter.$FILTER_NAME.required)
 if [ -n "$filter_check" ] && [ -n "$smudge_check" ] && [ "$required_check" = "true" ]; then
-  echo -e "\033[32m✅ 配置成功\033[0m"
+  echo -e "\033[32m配置成功\033[0m"
 else
-  echo -e "\033[31m❌ 过滤器配置失败，请手动执行脚本内命令\033[0m"
+  echo -e "\033[31m过滤器配置失败，请手动执行脚本内命令\033[0m"
   exit 1
 fi
 
@@ -139,26 +139,26 @@ echo -e "\n\033[36m===== 绑定文件过滤规则 =====\033[0m"
 for file in "${files[@]}"; do
   if ! grep -q "^${file}[[:space:]]*filter=${FILTER_NAME}$" $GIT_ATTRIBUTES 2>/dev/null; then
     echo "${file} filter=${FILTER_NAME}" >> $GIT_ATTRIBUTES
-    echo -e "\033[32m✅ 绑定：$file -> $FILTER_NAME\033[0m"
+    echo -e "\033[32m绑定：$file -> $FILTER_NAME\033[0m"
   else
-    echo -e "\033[33m⚠️  提示：$file 已存在过滤规则\033[0m"
+    echo -e "\033[33m提示：$file 已存在过滤规则\033[0m"
   fi
 done
 
 git add $GIT_ATTRIBUTES
-echo -e "\033[32m✅ 修改成功：$GIT_ATTRIBUTES\033[0m"
+echo -e "\033[32m修改成功：$GIT_ATTRIBUTES\033[0m"
 
 
 # ========== 【5.重新追踪应用】 ==========
 echo -e "\n\033[36m===== 重新追踪文件 =====\033[0m"
 for file in "${files[@]}"; do
   if [ -f "$file" ]; then
-  if git diff --cached --quiet "$file" >/dev/null 2>&1; then
-     git rm -r --cached "$file"
-  fi
+    if git diff --cached --quiet "$file" >/dev/null 2>&1; then
+      git rm -r --cached "$file"
+    fi
     git add "$file"
   fi
 done
 
-echo -e "\033[32m✅ 完成\033[0m"
+echo -e "\033[32m完成\033[0m"
 exit 0

@@ -52,6 +52,8 @@ func (ImageApi) ImageRemoveView(c *gin.Context) {
 	log := log_service.GetLog(c)
 	log.SetShowRequest()
 	log.SetShowResponse()
+	log.ShowRequestHeader()
+	log.ShowResponseHeader()
 
 	var list []models.ImageModel
 	global.DB.Find(&list, "id IN ?", cr.IDList)

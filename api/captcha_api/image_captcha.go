@@ -33,7 +33,7 @@ func (i *ImageCaptchaApi) CaptchaView(c *gin.Context) {
 	var driver base64Captcha.Driver = driverString.ConvertFonts()
 
 	//生成验证码
-	captcha := base64Captcha.NewCaptcha(driver, global.ImageCaptchaApi)
+	captcha := base64Captcha.NewCaptcha(driver, global.ImageCaptchaStore)
 	if id, b64s, _, err := captcha.Generate(); err == nil {
 		res.OkWithData(&ImageCaptchaResponse{
 			CaptchaId: id,

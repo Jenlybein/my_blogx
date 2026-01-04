@@ -44,4 +44,6 @@ func SetCfg() {
 	if err != nil {
 		logrus.Errorf("yaml 配置文件写入失败: %s", err)
 	}
+
+	global.Config = ReadCfg()
 }

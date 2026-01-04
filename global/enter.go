@@ -4,6 +4,7 @@ package global
 
 import (
 	"myblogx/conf"
+	"sync"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/mojocn/base64Captcha"
@@ -13,8 +14,9 @@ import (
 const Version = "1.0.0"
 
 var (
-	Config          *conf.Config
-	DB              *gorm.DB
-	Redis           *redis.Client
-	ImageCaptchaApi = base64Captcha.DefaultMemStore
+	Config            *conf.Config
+	DB                *gorm.DB
+	Redis             *redis.Client
+	ImageCaptchaStore = base64Captcha.DefaultMemStore
+	EmailVerifyStore  = sync.Map{}
 )

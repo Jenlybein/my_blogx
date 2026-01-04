@@ -2,6 +2,7 @@ package jwts
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"myblogx/global"
@@ -16,7 +17,7 @@ var (
 )
 
 type Claims struct {
-	UserID   int64         `json:"user_id"`
+	UserID   uint          `json:"user_id"`
 	Role     enum.RoleType `json:"role"`
 	Username string        `json:"username"`
 }
@@ -70,12 +71,12 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 		// 密钥回调函数：返回签名时使用的密钥（必须和生成Token时的Secret一致）
 		if token.Method != Method {
 			// 验证签名算法是否对应得上
-			return nil, jwt.ErrSignatureInvalid
+			return nil, fmt.Errorf("token 签名算法错误: %w", jwt.ErrSignatureInvalid)
 		}
 		return Secret, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("token 解析错误: %w", err)
 	}
 
 	// 验证Token的有效性，并类型断言提取自定义Claims
@@ -83,7 +84,7 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 		return claims, nil
 	}
 
-	return nil, errors.New("invalid token")
+	return nil, errors.New("token 无效")
 }
 
 func ParseTokenByGin(c *gin.Context) (*MyClaims, error) {
