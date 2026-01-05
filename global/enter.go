@@ -4,7 +4,7 @@ package global
 
 import (
 	"myblogx/conf"
-	"sync"
+	"myblogx/store/email_store"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/mojocn/base64Captcha"
@@ -18,5 +18,5 @@ var (
 	DB                *gorm.DB
 	Redis             *redis.Client
 	ImageCaptchaStore = base64Captcha.DefaultMemStore
-	EmailVerifyStore  = sync.Map{}
+	EmailVerifyStore  = email_store.NewEmailVerifyStore(3, 5)
 )

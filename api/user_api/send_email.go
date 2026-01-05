@@ -6,7 +6,6 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/service/email_service"
-	"myblogx/store/email_store"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mojocn/base64Captcha"
@@ -62,11 +61,7 @@ func (u *UserApi) SendEmailView(c *gin.Context) {
 	}
 
 	id := base64Captcha.RandomId()
-	global.EmailVerifyStore.Store(id, &email_store.EmailStoreInfo{
-		Email:     cr.Email,
-		Code:      code,
-		FailCount: 0,
-	})
+	global.EmailVerifyStore.Store(id, cr.Email, code)
 
 	res.OkWithData(SendEmailResponse{ID: id}, c)
 }

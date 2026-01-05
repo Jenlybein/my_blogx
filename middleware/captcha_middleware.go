@@ -1,13 +1,12 @@
 package middleware
 
 import (
-	"bytes"
-	"io"
 	"myblogx/common/res"
 	"myblogx/global"
-	io_utils "myblogx/utils/io_util"
+	"myblogx/utils/io_util"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type CaptchaMiddlewareRequest struct {
@@ -20,17 +19,10 @@ func CaptchaMiddleware(c *gin.Context) {
 		return
 	}
 
-	byteData, err := io_utils.GetBody(&c.Request.Body)
-	if err != nil {
-		res.FailWithMsg("获取请求体失败", c)
-		c.Abort()
-		return
-	}
-
 	var cr CaptchaMiddlewareRequest
-	err = c.ShouldBindJSON(&cr)
-	if err != nil {
-		res.FailWithMsg("图形验证码参数错误", c)
+	if err := io_util.ShouldBindJSONWithRecover(c, &cr); err != nil {
+		logrus.Errorf("图形验证失败：请求体绑定失败：%v", err)
+		res.FailWithMsg("图形验证失败：请求体绑定失败", c)
 		c.Abort()
 		return
 	}
@@ -40,7 +32,4 @@ func CaptchaMiddleware(c *gin.Context) {
 		c.Abort()
 		return
 	}
-
-	// ShouldBindJSON 绑定参数后，请求体内容会被消耗，所以需要恢复
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(byteData))
 }

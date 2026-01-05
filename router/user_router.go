@@ -10,5 +10,5 @@ import (
 func UserRouter(r *gin.RouterGroup) {
 	app := api.App.UserApi
 	r.POST("user/email/verify", middleware.CaptchaMiddleware, app.SendEmailView)
-	r.POST("user/email/register", app.RegisterEmailView)
+	r.POST("user/email/register", middleware.EmailVerifyMiddleware, app.RegisterEmailView)
 }
