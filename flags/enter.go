@@ -1,9 +1,6 @@
 // flags/enter.go
 package flags
 
-//
-//
-
 import (
 	"flag"
 	"fmt"

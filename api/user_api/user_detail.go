@@ -1,0 +1,56 @@
+package user_api
+
+import (
+	"myblogx/common/res"
+	"myblogx/global"
+	"myblogx/models"
+	"myblogx/models/enum"
+	"myblogx/utils/jwts"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+type UserDetailResponse struct {
+	ID             uint                    `gorm:"primaryKey" json:"id"`
+	CreatedAt      time.Time               `json:"created_at"`
+	Username       string                  `gorm:"size:32" json:"username"`
+	Nickname       string                  `gorm:"size:32" json:"nickname"`
+	Avatar         string                  `gorm:"size:256" json:"avatar"`
+	Abstract       string                  `gorm:"size:256" json:"abstract"`
+	RegisterSource enum.RegisterSourceType `json:"register_source"`
+	CodeAge        int                     `json:"code_age"`
+	models.UserConfModel
+}
+
+func (app *UserApi) UserDetailView(c *gin.Context) {
+	claims, err := jwts.GetClaimsByGin(c)
+	if err != nil {
+		res.FailWithError(err, c)
+		c.Abort()
+		return
+	}
+
+	var user models.UserModel
+	if err := global.DB.Preload("UserConfModel").Take(&user, "username = ?", claims.Username).Error; err != nil {
+		res.FailWithMsg("用户不存在", c)
+		c.Abort()
+		return
+	}
+
+	var data = UserDetailResponse{
+		ID:             user.ID,
+		CreatedAt:      user.CreatedAt,
+		Username:       user.Username,
+		Nickname:       user.Nickname,
+		Avatar:         user.Avatar,
+		Abstract:       user.Abstract,
+		RegisterSource: user.RegisterSource,
+		CodeAge:        user.CodeAge(),
+	}
+	if user.UserConfModel != nil {
+		data.UserConfModel = *user.UserConfModel
+	}
+
+	res.OkWithData(data, c)
+}

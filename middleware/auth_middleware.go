@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"myblogx/common/res"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service"
@@ -25,7 +26,7 @@ func AuthMiddleware(c *gin.Context) {
 		c.Abort()
 		return
 	}
-
+	fmt.Println(claims)
 	c.Set("claims", claims)
 }
 

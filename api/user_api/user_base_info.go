@@ -1,0 +1,50 @@
+package user_api
+
+import (
+	"myblogx/common/res"
+	"myblogx/global"
+	"myblogx/models"
+
+	"github.com/gin-gonic/gin"
+)
+
+type UserBaseInfoResponse struct {
+	ID          uint   `gorm:"primaryKey" json:"id"`
+	CodeAge     int    `json:"code_age"`
+	Avatar      string `gorm:"size:256" json:"avatar"`
+	Nickname    string `gorm:"size:32" json:"nickname"`
+	ViewCount   int    `json:"view_count"`
+	FansCount   int    `json:"fans_count"`
+	FollowCount int    `json:"follow_count"`
+	Place       string `json:"place"`
+}
+
+func (UserApi) UserBaseInfoView(c *gin.Context) {
+	var cr models.IDRequest
+	if err := c.ShouldBindQuery(&cr); err != nil {
+		res.FailWithError(err, c)
+		return
+	}
+
+	var user models.UserModel
+	if err := global.DB.Take(&user, cr.ID).Error; err != nil {
+		res.FailWithError(err, c)
+		return
+	}
+
+	data := UserBaseInfoResponse{
+		ID:          user.ID,
+		CodeAge:     user.CodeAge(),
+		Avatar:      user.Avatar,
+		Nickname:    user.Nickname,
+		ViewCount:   1,
+		FansCount:   1,
+		FollowCount: 1,
+		// ViewCount:   user.UserConfModel.ViewCount,
+		// FansCount:   user.UserConfModel.FansCount,
+		// FollowCount: user.UserConfModel.FollowCount,
+		Place: user.Addr,
+	}
+
+	res.OkWithData(data, c)
+}

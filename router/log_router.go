@@ -9,8 +9,9 @@ import (
 
 func LogRouter(r *gin.RouterGroup) {
 	app := api.App.LogApi
-	r.Use(middleware.AdminMiddleware)
-	r.GET("logs", app.LogListView)
-	r.GET("logs/:id", app.LogReadView)
-	r.DELETE("logs", app.LogRemoveView)
+	logGroup := r.Group("logs")
+	logGroup.Use(middleware.AdminMiddleware)
+	logGroup.GET("", app.LogListView)
+	logGroup.GET(":id", app.LogReadView)
+	logGroup.DELETE("", app.LogRemoveView)
 }
