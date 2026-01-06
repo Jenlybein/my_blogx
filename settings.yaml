@@ -68,9 +68,9 @@ site:
         github: ""
     login:
         qq_login: false
-        username_pwd_login: false
-        email_login: false
-        captcha: true
+        username_pwd_login: true
+        email_login: true
+        captcha: false
     index_right:
         list: []
     article:

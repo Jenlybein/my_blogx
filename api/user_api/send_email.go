@@ -22,6 +22,11 @@ type SendEmailResponse struct {
 }
 
 func (u *UserApi) SendEmailView(c *gin.Context) {
+	if !global.Config.Site.Login.EmailLogin {
+		res.FailWithMsg("站点未启用邮箱功能", c)
+		return
+	}
+
 	var cr SendEmailRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {

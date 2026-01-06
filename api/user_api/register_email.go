@@ -18,6 +18,11 @@ type RegisterEmailRequest struct {
 }
 
 func (u *UserApi) RegisterEmailView(c *gin.Context) {
+	if !global.Config.Site.Login.EmailLogin {
+		res.FailWithMsg("站点未启用邮箱注册功能", c)
+		return
+	}
+
 	var cr RegisterEmailRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {

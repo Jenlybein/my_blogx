@@ -17,6 +17,11 @@ type QQLoginRequest struct {
 }
 
 func (u *UserApi) QQLoginView(c *gin.Context) {
+	if !global.Config.Site.Login.QQLogin {
+		res.FailWithMsg("站点未启用qq登录功能", c)
+		return
+	}
+
 	var cr QQLoginRequest
 	if err := c.ShouldBindJSON(&cr); err != nil {
 		res.FailWithError(err, c)
