@@ -3,7 +3,7 @@ package enum
 type RegisterSourceType int8
 
 const (
-	RegisterEmailSourceType    RegisterSourceType = 1
-	RegisterQQSourceType       RegisterSourceType = 2
-	RegisterTerminalSourceType RegisterSourceType = 3
+	RegisterEmailSourceType    RegisterSourceType = 1 // 邮箱注册
+	RegisterQQSourceType       RegisterSourceType = 2 // qq 登录
+	RegisterTerminalSourceType RegisterSourceType = 3 // 终端注册
 )

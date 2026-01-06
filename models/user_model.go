@@ -19,7 +19,7 @@ type UserModel struct {
 	CodeAge        int                     `json:"code_age"`
 	LikeTags       string                  `gorm:"type:longtext;serializer:json" json:"like_tags"`
 	Email          string                  `gorm:"size:256" json:"email"`
-	OpenID         string                  `gorm:"size:64" json:"open_id"`
+	OpenID         string                  `gorm:"size:64" json:"open_id"` // qq 登录的 openid
 	Role           enum.RoleType           `gorm:"default:0" json:"role"`
 }
 
