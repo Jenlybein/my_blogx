@@ -21,9 +21,10 @@ func GetBody(body *io.ReadCloser) ([]byte, error) {
 	return byteData, nil
 }
 
-func ShouldBindJSONWithRecover(c *gin.Context, structPtr interface{}) error {
+func ShouldBindJSONWithRecover(c *gin.Context, structPtr any) error {
 	// 读取 body
 	body, err := io.ReadAll(c.Request.Body)
+	fmt.Println(string(body))
 	if err != nil {
 		return fmt.Errorf("请求体读取失败: %w", err)
 	}

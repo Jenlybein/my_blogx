@@ -13,7 +13,7 @@ import (
 )
 
 type SendEmailRequest struct {
-	Type  int8   `json:"type" oneof:"1,2"` // 1:注册 2:重置密码
+	Type  int8   `json:"type" oneof:"1,2,3"` // 1:注册 2:重置密码 3:绑定邮箱
 	Email string `json:"email" binding:"required,email"`
 }
 
@@ -54,11 +54,18 @@ func (UserApi) SendEmailView(c *gin.Context) {
 			return
 		}
 		err = email_service.SendResetPwdCode(cr.Email, code, timeout)
+	case 3:
+		// 绑定邮箱逻辑
+		if isEmailExist {
+			res.FailWithMsg("绑定邮箱失败：邮箱已被使用", c)
+			return
+		}
+		err = email_service.SendBindEmailCode(cr.Email, code, timeout)
 	default:
 		res.FailWithMsg("邮件发送失败：不存在的操作类型", c)
 		return
 	}
-	
+
 	if err != nil {
 		fmt.Println(err)
 		logrus.Errorf("邮件发送失败: %v", err)
