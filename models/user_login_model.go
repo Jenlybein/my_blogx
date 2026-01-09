@@ -9,5 +9,5 @@ type UserLoginModel struct {
 	UserModel UserModel `gorm:"foreignKey:UserID" json:"user_model"`
 	IP        string    `gorm:"size:32" json:"ip"`
 	Addr      string    `gorm:"size:64" json:"addr"`
-	UA        string    `gorm:"size:128" json:"ua"`
+	UA        string    `gorm:"size:128" json:"ua"` // 用户代理
 }

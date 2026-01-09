@@ -4,6 +4,7 @@ import (
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 	"myblogx/utils/pwd"
 
@@ -54,6 +55,8 @@ func (u *UserApi) PwdLoginView(c *gin.Context) {
 		res.FailWithError(err, c)
 		return
 	}
+	// 登录日志
+	user_service.NewUserService(user).UserLogin(c)
 
 	res.OkWithData(token, c)
 }

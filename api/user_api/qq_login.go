@@ -7,6 +7,7 @@ import (
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/service/qq_service"
+	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -60,8 +61,11 @@ func (u *UserApi) QQLoginView(c *gin.Context) {
 		Role:     user.Role,
 	})
 	if err != nil {
-		res.FailWithError(err, c)
+		res.FailWithMsg("qq登录失败 "+err.Error(), c)
 		return
 	}
+	// 登录日志
+	user_service.NewUserService(user).UserLogin(c)
+
 	res.OkWithData(token, c)
 }
