@@ -21,7 +21,7 @@ type SendEmailResponse struct {
 	ID string `json:"id"`
 }
 
-func (u *UserApi) SendEmailView(c *gin.Context) {
+func (UserApi) SendEmailView(c *gin.Context) {
 	if !global.Config.Site.Login.EmailLogin {
 		res.FailWithMsg("站点未启用邮箱功能", c)
 		return
@@ -58,6 +58,7 @@ func (u *UserApi) SendEmailView(c *gin.Context) {
 		res.FailWithMsg("邮件发送失败：不存在的操作类型", c)
 		return
 	}
+	
 	if err != nil {
 		fmt.Println(err)
 		logrus.Errorf("邮件发送失败: %v", err)

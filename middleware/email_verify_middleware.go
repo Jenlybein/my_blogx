@@ -32,5 +32,6 @@ func EmailVerifyMiddleware(c *gin.Context) {
 		c.Abort()
 		return
 	}
+
 	c.Set("email", info.Email)
 }

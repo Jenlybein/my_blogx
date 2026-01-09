@@ -17,8 +17,8 @@ type UserLoginListRequest struct {
 	UserID  uint   `form:"user_id"`
 	IP      string `form:"ip"`
 	Addr    string `form:"addr"`
-	StartAt int64  `form:"start_at"` // 起止时间戳，10位，单位秒
-	EndAt   int64  `form:"end_at"`
+	StartAt string `form:"start_at"` // 起止时间，年月日分秒格式
+	EndAt   string `form:"end_at"`
 	Type    int8   `form:"type" binding:"required,oneof=1 2"` // 查询类型，1：用户查询，2：管理员查询
 	// Device  string `form:"device"` // 设备类型，pc、mobile、tablet
 }
@@ -29,7 +29,7 @@ type UserLoginListResponse struct {
 	UserAvatar   string `json:"user_avatar"`
 }
 
-func (u *UserApi) UserLoginLogList(c *gin.Context) {
+func (UserApi) UserLoginLogList(c *gin.Context) {
 	var cr UserLoginListRequest
 	if err := c.ShouldBindQuery(&cr); err != nil {
 		res.FailWithError(err, c)
@@ -57,12 +57,20 @@ func (u *UserApi) UserLoginLogList(c *gin.Context) {
 
 	// 条件附加：起止时间
 	var query = global.DB.Where("")
-	if cr.StartAt > 0 {
-		startTime := time.Unix(cr.StartAt, 0).Format("2006-01-02 15:04:05")
+	if cr.StartAt != "" {
+		startTime, err := time.Parse("2006-01-02 15:04:05", cr.StartAt)
+		if err != nil {
+			res.FailWithMsg("开始时间格式错误", c)
+			return
+		}
 		query = query.Where("created_at >= ?", startTime)
 	}
-	if cr.EndAt > 0 {
-		endTime := time.Unix(cr.EndAt, 0).Format("2006-01-02 15:04:05")
+	if cr.EndAt != "" {
+		endTime, err := time.Parse("2006-01-02 15:04:05", cr.EndAt)
+		if err != nil {
+			res.FailWithMsg("结束时间格式错误", c)
+			return
+		}
 		query = query.Where("created_at <= ?", endTime)
 	}
 

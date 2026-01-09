@@ -17,7 +17,7 @@ type QQLoginRequest struct {
 	Code string `json:"code" binding:"required"`
 }
 
-func (u *UserApi) QQLoginView(c *gin.Context) {
+func (UserApi) QQLoginView(c *gin.Context) {
 	if !global.Config.Site.Login.QQLogin {
 		res.FailWithMsg("站点未启用qq登录功能", c)
 		return

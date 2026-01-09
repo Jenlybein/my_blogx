@@ -23,7 +23,7 @@ type UserDetailResponse struct {
 	models.UserConfModel
 }
 
-func (app *UserApi) UserDetailView(c *gin.Context) {
+func (UserApi) UserDetailView(c *gin.Context) {
 	claims, err := jwts.GetClaimsByGin(c)
 	if err != nil {
 		res.FailWithError(err, c)

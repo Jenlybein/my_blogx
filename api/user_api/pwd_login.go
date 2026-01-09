@@ -16,7 +16,7 @@ type PwdLoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func (u *UserApi) PwdLoginView(c *gin.Context) {
+func (UserApi) PwdLoginView(c *gin.Context) {
 	if !global.Config.Site.Login.UsernamePwdLogin {
 		res.FailWithMsg("站点未启用密码登录功能", c)
 		return

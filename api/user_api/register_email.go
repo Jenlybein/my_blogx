@@ -18,7 +18,7 @@ type RegisterEmailRequest struct {
 	Pwd string `json:"pwd" binding:"required"`
 }
 
-func (u *UserApi) RegisterEmailView(c *gin.Context) {
+func (UserApi) RegisterEmailView(c *gin.Context) {
 	if !global.Config.Site.Login.EmailLogin {
 		res.FailWithMsg("站点未启用邮箱注册功能", c)
 		return
