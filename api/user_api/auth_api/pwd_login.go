@@ -1,4 +1,4 @@
-package user_api
+package auth_api
 
 import (
 	"myblogx/common/res"
@@ -16,7 +16,7 @@ type PwdLoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func (UserApi) PwdLoginView(c *gin.Context) {
+func (AuthApi) PwdLoginView(c *gin.Context) {
 	if !global.Config.Site.Login.UsernamePwdLogin {
 		res.FailWithMsg("站点未启用密码登录功能", c)
 		return

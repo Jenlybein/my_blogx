@@ -1,4 +1,4 @@
-package user_api
+package auth_api
 
 import (
 	"myblogx/common/res"
@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (UserApi) BindEmailView(c *gin.Context) {
+func (AuthApi) BindEmailView(c *gin.Context) {
 	email := c.GetString("email")
 	if email == "" {
 		res.FailWithMsg("邮箱验证失败：邮箱不存在", c)

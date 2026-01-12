@@ -1,4 +1,4 @@
-package user_api
+package auth_api
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ type QQLoginRequest struct {
 	Code string `json:"code" binding:"required"`
 }
 
-func (UserApi) QQLoginView(c *gin.Context) {
+func (AuthApi) QQLoginView(c *gin.Context) {
 	if !global.Config.Site.Login.QQLogin {
 		res.FailWithMsg("站点未启用qq登录功能", c)
 		return

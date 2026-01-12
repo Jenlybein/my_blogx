@@ -1,4 +1,4 @@
-package user_api
+package profile_api
 
 import (
 	"myblogx/common/res"
@@ -19,7 +19,7 @@ type UserBaseInfoResponse struct {
 	Place       string `json:"place"`
 }
 
-func (UserApi) UserBaseInfoView(c *gin.Context) {
+func (ProfileApi) UserBaseInfoView(c *gin.Context) {
 	var cr models.IDRequest
 	if err := c.ShouldBindQuery(&cr); err != nil {
 		res.FailWithError(err, c)

@@ -1,4 +1,4 @@
-package user_api
+package log_api
 
 import (
 	"myblogx/common"
@@ -29,7 +29,7 @@ type UserLoginListResponse struct {
 	UserAvatar   string `json:"user_avatar"`
 }
 
-func (UserApi) UserLoginLogList(c *gin.Context) {
+func (LogApi) UserLoginLogList(c *gin.Context) {
 	var cr UserLoginListRequest
 	if err := c.ShouldBindQuery(&cr); err != nil {
 		res.FailWithError(err, c)

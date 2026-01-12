@@ -1,4 +1,4 @@
-package user_api
+package auth_api
 
 import (
 	"myblogx/common/res"
@@ -13,7 +13,7 @@ type ResetPasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required"`
 }
 
-func (UserApi) ResetPwdByEmailView(c *gin.Context) {
+func (AuthApi) ResetPwdByEmailView(c *gin.Context) {
 	var cr ResetPasswordRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {

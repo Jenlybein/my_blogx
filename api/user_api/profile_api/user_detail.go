@@ -1,4 +1,4 @@
-package user_api
+package profile_api
 
 import (
 	"myblogx/common/res"
@@ -23,7 +23,7 @@ type UserDetailResponse struct {
 	models.UserConfModel
 }
 
-func (UserApi) UserDetailView(c *gin.Context) {
+func (ProfileApi) UserDetailView(c *gin.Context) {
 	claims, err := jwts.GetClaimsByGin(c)
 	if err != nil {
 		res.FailWithError(err, c)

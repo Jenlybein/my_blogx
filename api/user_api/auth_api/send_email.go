@@ -1,4 +1,4 @@
-package user_api
+package auth_api
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ type SendEmailResponse struct {
 	ID string `json:"id"`
 }
 
-func (UserApi) SendEmailView(c *gin.Context) {
+func (AuthApi) SendEmailView(c *gin.Context) {
 	if !global.Config.Site.Login.EmailLogin {
 		res.FailWithMsg("站点未启用邮箱功能", c)
 		return
