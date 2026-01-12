@@ -22,6 +22,7 @@ func UserRouter(r *gin.RouterGroup) {
 	profile := api.App.UserApi.ProfileApi
 	userGroup.GET("detail", middleware.AuthMiddleware, profile.UserDetailView)
 	userGroup.GET("base", profile.UserBaseInfoView)
+	userGroup.PUT("info", middleware.AuthMiddleware, profile.UserInfoUpdateView)
 
 	log := api.App.UserApi.LogApi
 	userGroup.GET("login/log", middleware.AuthMiddleware, log.UserLoginLogList)

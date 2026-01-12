@@ -32,7 +32,7 @@ func (ProfileApi) UserDetailView(c *gin.Context) {
 	}
 
 	var user models.UserModel
-	if err := global.DB.Preload("UserConfModel").Take(&user, "username = ?", claims.Username).Error; err != nil {
+	if err := global.DB.Preload("UserConfModel").Take(&user, claims.UserID).Error; err != nil {
 		res.FailWithMsg("用户不存在", c)
 		c.Abort()
 		return

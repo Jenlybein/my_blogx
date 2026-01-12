@@ -66,10 +66,11 @@ func (FlagUser) Create() {
 
 	// 创建用户
 	if err := global.DB.Create(&models.UserModel{
-		Username: username,
-		Nickname: "命令用户",
-		Password: hashedPassword,
-		Role:     role,
+		Username:       username,
+		Nickname:       "命令用户",
+		Password:       hashedPassword,
+		Role:           role,
+		RegisterSource: enum.RegisterTerminalSourceType,
 	}).Error; err != nil {
 		fmt.Printf("创建用户错误 %s\n", err.Error())
 		return

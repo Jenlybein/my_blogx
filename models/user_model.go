@@ -26,14 +26,18 @@ type UserModel struct {
 	UserConfModel  *UserConfModel          `gorm:"foreignKey:UserID;" json:"-"`
 }
 
+// 创建用户配置表
 func (u *UserModel) AfterCreate(tx *gorm.DB) (err error) {
-	// 创建用户配置表
 	u.UserConfModel = &UserConfModel{
 		UserID: u.ID,
+	}
+	if err = tx.Create(u.UserConfModel).Error; err != nil {
+		return err
 	}
 	return nil
 }
 
+// CodeAge 计算用户注册年龄（单位：年）
 func (u *UserModel) CodeAge() int {
 	return int(time.Since(u.CreatedAt).Hours() / 24 / 365)
 }
