@@ -2,17 +2,23 @@ package router
 
 import (
 	"myblogx/api"
+	"myblogx/common"
 	"myblogx/middleware"
+	"myblogx/models"
 
 	"github.com/gin-gonic/gin"
 )
 
 func ImageRouter(r *gin.RouterGroup) {
+	Group := r.Group("images")
+	authGroup := Group.Group("", middleware.AuthMiddleware)
+	adminGroup := authGroup.Group("", middleware.AdminMiddleware)
+
 	app := api.App.ImageApi
 
-	r.POST("images", middleware.AuthMiddleware, app.ImageUploadView)
-	r.POST("images/qiniu", middleware.AuthMiddleware, app.GenUpToken)
+	authGroup.POST("", app.ImageUploadView)
+	authGroup.POST("qiniu", app.GenUpToken)
 
-	r.GET("images", middleware.AdminMiddleware, app.ImageListView)
-	r.DELETE("images", middleware.AdminMiddleware, app.ImageRemoveView)
+	adminGroup.GET("", middleware.BindQueryMiddleware[common.PageInfo], app.ImageListView)
+	adminGroup.DELETE("", middleware.BindJsonMiddleware[models.RemoveRequest], app.ImageRemoveView)
 }

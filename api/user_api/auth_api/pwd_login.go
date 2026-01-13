@@ -3,6 +3,7 @@ package auth_api
 import (
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
@@ -22,15 +23,10 @@ func (AuthApi) PwdLoginView(c *gin.Context) {
 		return
 	}
 
-	var cr PwdLoginRequest
-	err := c.ShouldBindJSON(&cr)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindJson[PwdLoginRequest](c)
 
 	var user models.UserModel
-	if err = global.DB.Take(
+	if err := global.DB.Take(
 		&user,
 		"(username = ? OR email = ?) and (password <> '')",
 		cr.Username, cr.Username,

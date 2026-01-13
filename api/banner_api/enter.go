@@ -5,8 +5,8 @@ import (
 	"myblogx/common"
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,11 +20,7 @@ type BannerCreateRequest struct {
 }
 
 func (BannerApi) BannerCreateView(c *gin.Context) {
-	var cr BannerCreateRequest
-	if err := c.ShouldBindJSON(&cr); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	cr := middleware.GetBindJson[BannerCreateRequest](c)
 
 	// 创建轮播图
 	if err := global.DB.Create(&models.BannerModel{
@@ -41,15 +37,11 @@ func (BannerApi) BannerCreateView(c *gin.Context) {
 
 type BannerListRequest struct {
 	common.PageInfo
-	Show bool `json:"show"`
+	Show bool `form:"show"`
 }
 
 func (BannerApi) BannerListView(c *gin.Context) {
-	var cr BannerListRequest
-	if err := c.ShouldBindJSON(&cr); err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindQuery[BannerListRequest](c)
 
 	list, count, _ := common.ListQuery(models.BannerModel{
 		Show: cr.Show,
@@ -61,11 +53,7 @@ func (BannerApi) BannerListView(c *gin.Context) {
 }
 
 func (BannerApi) BannerRemoveView(c *gin.Context) {
-	var cr models.RemoveRequest
-	if err := c.ShouldBindJSON(&cr); err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindJson[models.RemoveRequest](c)
 
 	var list []models.BannerModel
 	if err := global.DB.Find(&list, "id IN ?", cr.IDList).Error; err != nil {
@@ -83,17 +71,9 @@ func (BannerApi) BannerRemoveView(c *gin.Context) {
 }
 
 func (BannerApi) BannerUpdateView(c *gin.Context) {
-	var id models.IDRequest
-	if err := c.ShouldBindUri(&id); err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	id := middleware.GetBindUri[models.IDRequest](c)
 
-	var cr BannerCreateRequest
-	if err := c.ShouldBindJSON(&cr); err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindJson[BannerCreateRequest](c)
 
 	var model models.BannerModel
 	if err := global.DB.Take(&model, id.ID).Error; err != nil {

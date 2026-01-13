@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/service/user_service"
@@ -24,12 +25,7 @@ func (AuthApi) RegisterEmailView(c *gin.Context) {
 		return
 	}
 
-	var cr RegisterEmailRequest
-	err := c.ShouldBindJSON(&cr)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindJson[RegisterEmailRequest](c)
 
 	email := c.GetString("email")
 	if email == "" {

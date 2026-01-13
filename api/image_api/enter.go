@@ -5,6 +5,7 @@ import (
 	"myblogx/common"
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/service/log_service"
 
@@ -20,8 +21,7 @@ type ImageListResponse struct {
 }
 
 func (ImageApi) ImageListView(c *gin.Context) {
-	var cr common.PageInfo
-	c.ShouldBindQuery(&cr)
+	cr := middleware.GetBindQuery[common.PageInfo](c)
 
 	_list, count, _ := common.ListQuery(models.ImageModel{}, common.Options{
 		PageInfo: cr,
@@ -40,14 +40,7 @@ func (ImageApi) ImageListView(c *gin.Context) {
 }
 
 func (ImageApi) ImageRemoveView(c *gin.Context) {
-	var cr models.RemoveRequest
-
-	// 绑定查询参数
-	err := c.ShouldBindJSON(&cr)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindJson[models.RemoveRequest](c)
 
 	log := log_service.GetLog(c)
 	log.SetShowRequest()

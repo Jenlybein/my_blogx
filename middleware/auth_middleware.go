@@ -29,25 +29,11 @@ func AuthMiddleware(c *gin.Context) {
 }
 
 func AdminMiddleware(c *gin.Context) {
-	claims, err := jwts.ParseTokenByGin(c)
-	if err != nil {
-		res.FailWithError(err, c)
-		c.Abort()
-		return
-	}
-
-	// 判断 token 是否在黑名单中
-	blackMsg, ok := redis_service.HasTokenBlackByGin(c)
-	if !ok {
-		res.FailWithMsg(blackMsg, c)
-		c.Abort()
-		return
-	}
+	claims := jwts.GetClaimsByGin(c)
 
 	if claims.Role != enum.RoleAdmin {
 		res.FailWithMsg("权限错误", c)
 		c.Abort()
 		return
 	}
-	c.Set("claims", claims)
 }

@@ -2,29 +2,35 @@ package router
 
 import (
 	"myblogx/api"
+	"myblogx/api/user_api/auth_api"
+	"myblogx/api/user_api/log_api"
+	"myblogx/api/user_api/profile_api"
 	"myblogx/middleware"
+	"myblogx/models"
 
 	"github.com/gin-gonic/gin"
 )
 
 func UserRouter(r *gin.RouterGroup) {
-	userGroup := r.Group("user")
+	Group := r.Group("users")
+	authGroup := Group.Group("", middleware.AuthMiddleware)
+	adminGroup := authGroup.Group("", middleware.AdminMiddleware)
 
 	auth := api.App.UserApi.AuthApi
-	userGroup.POST("email/verify", middleware.CaptchaMiddleware, auth.SendEmailView)
-	userGroup.POST("email/register", middleware.EmailVerifyMiddleware, auth.RegisterEmailView)
-	userGroup.POST("qq", auth.QQLoginView)
-	userGroup.POST("login", middleware.CaptchaMiddleware, auth.PwdLoginView)
-	userGroup.PUT("password/renewal/email", middleware.AuthMiddleware, auth.UpdatePwdByEmailView)
-	userGroup.PUT("password/recovery/email", middleware.EmailVerifyMiddleware, auth.ResetPwdByEmailView)
-	userGroup.PUT("email/bind", middleware.EmailVerifyMiddleware, middleware.AuthMiddleware, auth.BindEmailView)
+	Group.POST("email/verify", middleware.CaptchaMiddleware, middleware.BindJsonMiddleware[auth_api.SendEmailRequest], auth.SendEmailView)
+	Group.POST("email/register", middleware.EmailVerifyMiddleware, middleware.BindJsonMiddleware[auth_api.RegisterEmailRequest], auth.RegisterEmailView)
+	Group.POST("qq", middleware.BindJsonMiddleware[auth_api.QQLoginRequest], auth.QQLoginView)
+	Group.POST("login", middleware.CaptchaMiddleware, middleware.BindJsonMiddleware[auth_api.PwdLoginRequest], auth.PwdLoginView)
+	Group.PUT("password/recovery/email", middleware.EmailVerifyMiddleware, middleware.BindJsonMiddleware[auth_api.ResetPasswordRequest], auth.ResetPwdByEmailView)
+	authGroup.PUT("password/renewal/email", middleware.BindJsonMiddleware[auth_api.UpdatePasswordRequest], auth.UpdatePwdByEmailView)
+	authGroup.PUT("email/bind", middleware.EmailVerifyMiddleware, auth.BindEmailView)
 
 	profile := api.App.UserApi.ProfileApi
-	userGroup.GET("detail", middleware.AuthMiddleware, profile.UserDetailView)
-	userGroup.GET("base", profile.UserBaseInfoView)
-	userGroup.PUT("info", middleware.AuthMiddleware, profile.UserInfoUpdateView)
-	userGroup.PUT("admin/info", middleware.AdminMiddleware, profile.AdminUserInfoUpdateView)
+	authGroup.GET("detail", profile.UserDetailView)
+	authGroup.GET("base", middleware.BindQueryMiddleware[models.IDRequest], profile.UserBaseInfoView)
+	authGroup.PUT("info", middleware.BindJsonMiddleware[profile_api.UserInfoUpdateRequest], profile.UserInfoUpdateView)
+	adminGroup.PUT("admin/info", middleware.BindJsonMiddleware[profile_api.AdminUserInfoUpdateRequest], profile.AdminUserInfoUpdateView)
 
 	log := api.App.UserApi.LogApi
-	userGroup.GET("login/log", middleware.AuthMiddleware, log.UserLoginLogList)
+	authGroup.GET("login/log", middleware.BindQueryMiddleware[log_api.UserLoginListRequest], log.UserLoginLogList)
 }

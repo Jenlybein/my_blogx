@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/service/email_service"
 
@@ -27,18 +28,14 @@ func (AuthApi) SendEmailView(c *gin.Context) {
 		return
 	}
 
-	var cr SendEmailRequest
-	err := c.ShouldBindJSON(&cr)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindJson[SendEmailRequest](c)
 
 	var user models.UserModel
 	code := base64Captcha.RandText(4, "0123456789")
 	timeout := 5 // 验证码有效期5分钟
 	isEmailExist := global.DB.Take(&user, "email = ?", cr.Email).Error == nil
 
+	var err error
 	switch cr.Type {
 	case 1:
 		// 注册逻辑

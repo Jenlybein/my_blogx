@@ -3,6 +3,7 @@ package auth_api
 import (
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/utils/jwts"
 	"myblogx/utils/pwd"
@@ -16,21 +17,12 @@ type UpdatePasswordRequest struct {
 }
 
 func (AuthApi) UpdatePwdByEmailView(c *gin.Context) {
-	var cr UpdatePasswordRequest
-	err := c.ShouldBindJSON(&cr)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindJson[UpdatePasswordRequest](c)
 
-	claims, err := jwts.GetClaimsByGin(c)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	claims := jwts.GetClaimsByGin(c)
 
 	var user models.UserModel
-	if err = global.DB.Take(&user, claims.UserID).Error; err != nil {
+	if err := global.DB.Take(&user, claims.UserID).Error; err != nil {
 		res.FailWithMsg("用户不存在", c)
 		return
 	}

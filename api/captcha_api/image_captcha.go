@@ -18,6 +18,11 @@ type ImageCaptchaResponse struct {
 }
 
 func (i *ImageCaptchaApi) CaptchaView(c *gin.Context) {
+	if !global.Config.Site.Login.Captcha {
+		res.FailWithMsg("站点未启用验证码功能", c)
+		return
+	}
+
 	//配置验证码
 	driverString := base64Captcha.DriverString{
 		Height:          60,

@@ -24,12 +24,7 @@ type UserDetailResponse struct {
 }
 
 func (ProfileApi) UserDetailView(c *gin.Context) {
-	claims, err := jwts.GetClaimsByGin(c)
-	if err != nil {
-		res.FailWithError(err, c)
-		c.Abort()
-		return
-	}
+	claims := jwts.GetClaimsByGin(c)
 
 	var user models.UserModel
 	if err := global.DB.Preload("UserConfModel").Take(&user, claims.UserID).Error; err != nil {

@@ -57,8 +57,8 @@ func (i *ImageApi) ImageUploadView(c *gin.Context) {
 
 	// 文件文件信息
 	var username string
-	claims, err := jwts.GetClaimsByGin(c)
-	if err == nil && claims != nil {
+	claims := jwts.GetClaimsByGin(c)
+	if claims != nil {
 		username = claims.Username
 	} else {
 		username = "default"

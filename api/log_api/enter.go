@@ -5,6 +5,7 @@ import (
 	"myblogx/common"
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/service/log_service"
@@ -33,16 +34,9 @@ type LogListResponse struct {
 
 func (l *LogApi) LogListView(c *gin.Context) {
 	// 分页 查询(精确匹配，模糊查询)
-	var cr LogListRequest
+	cr := middleware.GetBindQuery[LogListRequest](c)
 
-	// 绑定查询参数
-	err := c.ShouldBindQuery(&cr)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
-
-	list, count, err := common.ListQuery(models.LogModel{
+	list, count, _ := common.ListQuery(models.LogModel{
 		LogType:     cr.LogType,
 		Level:       cr.Level,
 		UserID:      cr.UserID,
@@ -71,17 +65,10 @@ func (l *LogApi) LogListView(c *gin.Context) {
 
 func (l *LogApi) LogReadView(c *gin.Context) {
 	// 已读状态修改
-	var cr models.IDRequest
-
-	// 绑定查询参数
-	err := c.ShouldBindUri(&cr)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindUri[models.IDRequest](c)
 
 	var log models.LogModel
-	err = global.DB.Take(&log, cr.ID).Error
+	err := global.DB.Take(&log, cr.ID).Error
 	if err != nil {
 		res.FailWithError(err, c)
 		return
@@ -96,14 +83,7 @@ func (l *LogApi) LogReadView(c *gin.Context) {
 }
 
 func (l *LogApi) LogRemoveView(c *gin.Context) {
-	var cr models.RemoveRequest
-
-	// 绑定查询参数
-	err := c.ShouldBindJSON(&cr)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindJson[models.RemoveRequest](c)
 
 	log := log_service.GetLog(c)
 	log.SetShowRequest()

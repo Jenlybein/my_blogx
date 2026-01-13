@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/utils/info_check"
 	"myblogx/utils/jwts"
@@ -26,11 +27,7 @@ type UserInfoUpdateRequest struct {
 }
 
 func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
-	var cr UserInfoUpdateRequest
-	if err := c.ShouldBindJSON(&cr); err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindJson[UserInfoUpdateRequest](c)
 
 	userMap, err := maps.FieldsStructToMap(&cr, &models.UserModel{})
 	if err != nil {
@@ -43,11 +40,7 @@ func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
 		return
 	}
 
-	claims, err := jwts.GetClaimsByGin(c)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	claims := jwts.GetClaimsByGin(c)
 
 	// 处理用户基本表的更新
 	if len(userMap) > 0 {

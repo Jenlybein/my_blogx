@@ -4,6 +4,7 @@ import (
 	"myblogx/common"
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/utils/jwts"
@@ -30,17 +31,9 @@ type UserLoginListResponse struct {
 }
 
 func (LogApi) UserLoginLogList(c *gin.Context) {
-	var cr UserLoginListRequest
-	if err := c.ShouldBindQuery(&cr); err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindQuery[UserLoginListRequest](c)
 
-	claims, err := jwts.GetClaimsByGin(c)
-	if err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	claims := jwts.GetClaimsByGin(c)
 
 	// 权限判断
 	if (cr.Type == 1 && claims.UserID != cr.UserID) ||

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/service/qq_service"
@@ -23,12 +24,8 @@ func (AuthApi) QQLoginView(c *gin.Context) {
 		return
 	}
 
-	var cr QQLoginRequest
-	if err := c.ShouldBindJSON(&cr); err != nil {
-		res.FailWithError(err, c)
-		return
-	}
-
+	cr := middleware.GetBindJson[QQLoginRequest](c)
+	
 	userInfoResp, err := qq_service.GetUserInfo(cr.Code)
 	if err != nil {
 		res.FailWithError(err, c)

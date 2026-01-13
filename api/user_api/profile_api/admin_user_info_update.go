@@ -3,6 +3,7 @@ package profile_api
 import (
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/utils/maps"
@@ -20,11 +21,7 @@ type AdminUserInfoUpdateRequest struct {
 }
 
 func (ProfileApi) AdminUserInfoUpdateView(c *gin.Context) {
-	var cr AdminUserInfoUpdateRequest
-	if err := c.ShouldBindJSON(&cr); err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindJson[AdminUserInfoUpdateRequest](c)
 
 	userMap, err := maps.FieldsStructToMap(&cr, &models.UserModel{})
 	if err != nil {

@@ -3,6 +3,7 @@ package profile_api
 import (
 	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/middleware"
 	"myblogx/models"
 
 	"github.com/gin-gonic/gin"
@@ -20,11 +21,7 @@ type UserBaseInfoResponse struct {
 }
 
 func (ProfileApi) UserBaseInfoView(c *gin.Context) {
-	var cr models.IDRequest
-	if err := c.ShouldBindQuery(&cr); err != nil {
-		res.FailWithError(err, c)
-		return
-	}
+	cr := middleware.GetBindQuery[models.IDRequest](c)
 
 	var user models.UserModel
 	if err := global.DB.Take(&user, cr.ID).Error; err != nil {

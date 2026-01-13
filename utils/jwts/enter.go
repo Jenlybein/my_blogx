@@ -97,14 +97,6 @@ func ParseTokenByGin(c *gin.Context) (*MyClaims, error) {
 	return ParseToken(tokenString)
 }
 
-func GetClaimsByGin(c *gin.Context) (claims *MyClaims, err error) {
-	info, ok := c.Get("claims")
-	if !ok {
-		return nil, errors.New("claims 不存在")
-	}
-	claims, ok = info.(*MyClaims)
-	if !ok {
-		return nil, errors.New("claims 类型错误")
-	}
-	return claims, nil
+func GetClaimsByGin(c *gin.Context) (claims *MyClaims) {
+	return c.MustGet("claims").(*MyClaims)
 }
