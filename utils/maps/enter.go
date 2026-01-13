@@ -104,6 +104,8 @@ func FieldsStructToMap(src, dest any) (res map[string]any, err error) {
 		// 使用JSON Tag作为map的key
 		if jsonTag := destFieldType.Tag.Get("json"); jsonTag != "" && jsonTag != "-" {
 			destFieldName = jsonTag
+		} else {
+			continue
 		}
 
 		// 处理src字段
@@ -117,39 +119,5 @@ func FieldsStructToMap(src, dest any) (res map[string]any, err error) {
 		}
 	}
 
-	return
-}
-
-func StructToMap(data any, t string) (mp map[string]any) {
-	mp = make(map[string]any)
-	v := reflect.ValueOf(data)
-	// 若传入的是指针，先取其指向的元素
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	// 确保是结构体类型
-	if v.Kind() != reflect.Struct {
-		return
-	}
-
-	for i := 0; i < v.NumField(); i++ {
-		val := v.Field(i)
-		tag := v.Type().Field(i).Tag.Get(t)
-		// 跳过无Tag或Tag为"-"的字段
-		if tag == "" || tag == "-" {
-			continue
-		}
-		// 跳过空指针字段
-		if val.Kind() == reflect.Ptr && val.IsNil() {
-			continue
-		}
-		// 若字段是指针，取其指向的值
-		if val.Kind() == reflect.Ptr {
-			mp[tag] = val.Elem().Interface()
-			continue
-		}
-		// 非指针字段直接取值
-		mp[tag] = val.Interface()
-	}
 	return
 }

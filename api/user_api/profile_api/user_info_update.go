@@ -5,6 +5,7 @@ import (
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/utils/info_check"
 	"myblogx/utils/jwts"
 	"myblogx/utils/maps"
 	"time"
@@ -57,6 +58,13 @@ func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
 		}
 
 		if cr.Username != nil && *cr.Username != userModel.Username {
+			// 校验用户名格式
+			if err = info_check.CheckUsername(*cr.Username); err != nil {
+				res.FailWithError(err, c)
+				return
+			}
+
+			// 校验用户名是否已被使用
 			var nameCount int64
 			if err = global.DB.Model(&models.UserModel{}).Where("username = ?", *cr.Username).Count(&nameCount).Error; err != nil {
 				res.FailWithError(err, c)
@@ -67,6 +75,7 @@ func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
 				return
 			}
 
+			// 校验用户名更新频率
 			uud := userModel.UserConfModel.UpdatedUsernameDate
 			updateLimit := time.Hour * 720
 			if time.Since(uud) < updateLimit {
