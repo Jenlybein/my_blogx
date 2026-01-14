@@ -18,8 +18,8 @@ var (
 )
 
 func InitIPDB() {
-	var dbIPv4 = "init/ip2region_v4.xdb"
-	var dbIPv6 = "init/ip2region_v6.xdb"
+	var dbIPv4 = "init/ipbase/ip2region_v4.xdb"
+	var dbIPv6 = "init/ipbase/ip2region_v6.xdb"
 
 	// 初始化 IPv4 数据库
 	ipv4, err := xdb.NewWithFileOnly(xdb.IPv4, dbIPv4)
