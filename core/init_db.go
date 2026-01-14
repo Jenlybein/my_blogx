@@ -16,11 +16,11 @@ import (
 
 func InitDB() *gorm.DB {
 	// 从配置文件中读取数据库配置
-	dbConf := global.Config.DB   // 读库
-	dbConf1 := global.Config.DB1 // 写库
-	dsn := dbConf.DSN()
+	masterDB := global.Config.DB.Master // 写库
+	slaveDB := global.Config.DB.Slave   // 读库
+	dsn := masterDB.DSN()
 
-	// 连接数据库
+	// 连接数据库（使用主库初始化）
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true, // 禁用外键约束
 	})
@@ -37,11 +37,11 @@ func InitDB() *gorm.DB {
 	sqlDB.SetMaxOpenConns(gormConf.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Hour * time.Duration(gormConf.ConnMaxLifetime))
 
-	if !dbConf1.Empty() {
-		// 写库不为空，则注册读写分离的配置
+	if !slaveDB.Empty() {
+		// 读库不为空，则注册读写分离的配置
 		err := db.Use(dbresolver.Register(dbresolver.Config{
-			Sources:  []gorm.Dialector{mysql.Open(dbConf1.DSN())}, // 写
-			Replicas: []gorm.Dialector{mysql.Open(dbConf.DSN())},  // 读
+			Sources:  []gorm.Dialector{mysql.Open(masterDB.DSN())}, // 写库（主库）
+			Replicas: []gorm.Dialector{mysql.Open(slaveDB.DSN())},  // 读库（从库）
 			// sources/replicas load balancing policy
 			Policy: dbresolver.RandomPolicy{},
 		}))

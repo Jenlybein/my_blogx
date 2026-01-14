@@ -6,6 +6,11 @@ import (
 	"fmt"
 )
 
+type DBConfig struct {
+	Master DB `yaml:"master"`
+	Slave  DB `yaml:"slave"`
+}
+
 type DB struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`

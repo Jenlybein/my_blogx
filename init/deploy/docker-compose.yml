@@ -4,7 +4,7 @@ services:
     image: "mysql:5.7"
     container_name: mysql-master
     restart: always
-    privileged: true
+    privileged: true # 容器内的root用户与宿主机root用户权限相同
     environment:
       MYSQL_ROOT_PASSWORD: 123456 #主库root用户的密码
     command: --default-authentication-plugin=mysql_native_password
@@ -12,7 +12,7 @@ services:
       --collation-server=utf8mb4_general_ci
       --explicit_defaults_for_timestamp=true
       --lower_case_table_names=1
-      --max_allowed_packet=128M;
+      --max_allowed_packet=128M
     ports:
       - 3306:3306 #映射宿主机端口：容器端口
     volumes: #宿主机配置目录或文件挂载到容器
@@ -35,7 +35,7 @@ services:
       --collation-server=utf8mb4_general_ci
       --explicit_defaults_for_timestamp=true
       --lower_case_table_names=1
-      --max_allowed_packet=128M;
+      --max_allowed_packet=128M
     ports:
       - 3307:3306 #映射宿主机端口：容器端口
     volumes: #宿主机配置目录或文件挂载到容器

@@ -70,10 +70,13 @@ func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
 
 			// 校验用户名更新频率
 			uud := userModel.UserConfModel.UpdatedUsernameDate
-			updateLimit := time.Hour * 720
-			if time.Since(uud) < updateLimit {
-				res.FailWithMsg(fmt.Sprintf("用户名每 %d 天内只能更新 1 次", int(updateLimit.Hours()/24)), c)
-				return
+
+			if uud != nil {
+				updateLimit := time.Hour * 720
+				if time.Since(*uud) < updateLimit {
+					res.FailWithMsg(fmt.Sprintf("用户名每 %d 天内只能更新 1 次", int(updateLimit.Hours()/24)), c)
+					return
+				}
 			}
 
 			confMap["updated_username_date"] = time.Now()
