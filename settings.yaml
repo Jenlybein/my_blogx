@@ -34,8 +34,8 @@ gorm:
   max_open_conns: 100
   conn_max_lifetime: 1
 redis:
-  addr: ******_addr1
-  port: ******_port3
+  addr: REDACTED_SERVER_IP
+  port: 6379
   username: default
   password: "******_password2
   db: 0

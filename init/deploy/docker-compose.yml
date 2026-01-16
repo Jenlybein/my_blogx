@@ -46,6 +46,31 @@ services:
     networks:
       blogx_network:
         ipv4_address: 10.2.0.3
+  es:
+    image: "elasticsearch:7.12.0"
+    restart: always
+    privileged: true
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - 9200:9200
+    volumes:
+      - ./es/data:/usr/share/elasticsearch/data
+    networks:
+      blogx_network:
+        ipv4_address: 10.2.0.4
+  redis:
+    image: "redis:7.4.7"
+    container_name: redis
+    restart: always
+    privileged: true
+    command: redis-server /etc/redis/redis.conf
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis/data:/data
+      - ./redis/conf/redis.conf:/etc/redis/redis.conf
 networks: #定义容器连接网络
   blogx_network:
     driver: bridge
