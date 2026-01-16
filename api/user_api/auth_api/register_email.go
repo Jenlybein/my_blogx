@@ -12,7 +12,6 @@ import (
 	"myblogx/utils/pwd"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 type RegisterEmailRequest struct {
@@ -53,7 +52,7 @@ func (AuthApi) RegisterEmailView(c *gin.Context) {
 	}
 	if err = global.DB.Create(&user).Error; err != nil {
 		res.FailWithMsg("邮箱注册失败", c)
-		logrus.Errorf("邮箱注册失败 %v", err)
+		global.Logger.Errorf("邮箱注册失败 %v", err)
 		return
 	}
 

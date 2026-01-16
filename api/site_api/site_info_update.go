@@ -12,7 +12,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 // 数据结构映射表
@@ -76,7 +75,8 @@ func (s SiteApi) SiteUpdateView(c *gin.Context) {
 		global.Config.AI = *s
 	}
 
-	core.SetCfg()
+	core.SetCfg(global.Config, &global.Flags.File)
+	// global.Config = core.ReadCfg(global.FlagOptions.File)
 
 	res.OkWithMsg("站点配置更新成功", c)
 }
@@ -101,7 +101,7 @@ func UpdateSite(site conf.Site) error {
 
 	doc, err := goquery.NewDocumentFromReader(file)
 	if err != nil {
-		logrus.Errorf("goquery解析失败: %v", err)
+		global.Logger.Errorf("goquery解析失败: %v", err)
 		return err
 	}
 
@@ -142,13 +142,13 @@ func UpdateSite(site conf.Site) error {
 
 	html, err := doc.Html()
 	if err != nil {
-		logrus.Errorf("生成 html 失败: %v", err)
+		global.Logger.Errorf("生成 html 失败: %v", err)
 		return err
 	}
 
 	err = os.WriteFile(site.Project.WebPath, []byte(html), 0666)
 	if err != nil {
-		logrus.Errorf("写入 html 失败: %v", err)
+		global.Logger.Errorf("写入 html 失败: %v", err)
 		return err
 	}
 

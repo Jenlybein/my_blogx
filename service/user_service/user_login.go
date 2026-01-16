@@ -6,7 +6,6 @@ import (
 	"myblogx/models"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 func (u *UserService) UserLogin(c *gin.Context) {
@@ -20,6 +19,6 @@ func (u *UserService) UserLogin(c *gin.Context) {
 		Addr:   addr,
 		UA:     ua,
 	}).Error; err != nil {
-		logrus.Errorf("用户登录日志创建失败: %v", err)
+		global.Logger.Errorf("用户登录日志创建失败: %v", err)
 	}
 }

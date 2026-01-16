@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 type RuntimeLog struct {
@@ -51,7 +50,7 @@ func (ac *RuntimeLog) Save() {
 		ServiceName: ac.serviceName,
 	}).Error
 	if err != nil {
-		logrus.Errorf("保存运行时日志失败: %v", err)
+		global.Logger.Errorf("保存运行时日志失败: %v", err)
 		return
 	}
 	ac.itemList = []string{}
@@ -80,7 +79,7 @@ func (ac *RuntimeLog) setItem(label string, value any, LogLevelType enum.LogLeve
 	case reflect.Struct, reflect.Map, reflect.Slice:
 		byteData, err := json.Marshal(value)
 		if err != nil {
-			logrus.Errorf("JSON 序列化失败: %v", err)
+			global.Logger.Errorf("JSON 序列化失败: %v", err)
 		}
 		v = string(byteData)
 	default:
@@ -105,7 +104,7 @@ func (ac *RuntimeLog) SetItemError(label string, value any) {
 
 func (ac *RuntimeLog) SetError(label string, err error) {
 	msg := errors.WithStack(err)
-	logrus.Errorf("%s: %v", label, err.Error())
+	global.Logger.Errorf("%s: %v", label, err.Error())
 	ac.itemList = append(ac.itemList, fmt.Sprintf("[%s:%T]%s: %+v", label, err, err, msg))
 }
 

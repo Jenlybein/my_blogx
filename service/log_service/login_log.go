@@ -11,7 +11,6 @@ import (
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 func NewLoginSuccess(c *gin.Context, loginType enum.LoginType) {
@@ -26,7 +25,7 @@ func NewLoginSuccess(c *gin.Context, loginType enum.LoginType) {
 	username := ""
 	claims, err := jwts.ParseTokenByGin(c)
 	if err != nil {
-		logrus.Errorf("解析 token 失败: %v", err)
+		global.Logger.Errorf("解析 token 失败: %v", err)
 	} else {
 		username = claims.Username
 		userID = uint(claims.UserID)

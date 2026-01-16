@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
-	"github.com/sirupsen/logrus"
 )
 
 type BlackType int8
@@ -51,20 +50,20 @@ func TokenBlackList(token string, blackType BlackType) {
 	// 获取 token 原本的过期时间
 	claims, err := jwts.ParseToken(token)
 	if err != nil || claims == nil {
-		logrus.Errorf("将Token放入黑名单时解析失败 err: %v", err)
+		global.Logger.Errorf("将Token放入黑名单时解析失败 err: %v", err)
 		return
 	}
 
 	// 计算 token 剩余过期时间
 	expire := claims.ExpiresAt - time.Now().Unix()
 	if expire <= 0 {
-		logrus.Errorf("token 已过期，无法放入黑名单")
+		global.Logger.Errorf("token 已过期，无法放入黑名单")
 		return
 	}
 
 	_, err = global.Redis.Set(context.Background(), key, blackType.String(), time.Duration(expire)*time.Second).Result()
 	if err != nil {
-		logrus.Errorf("将Token放入黑名单时出错 err: %v", err)
+		global.Logger.Errorf("将Token放入黑名单时出错 err: %v", err)
 		return
 	}
 }
@@ -76,13 +75,13 @@ func HasTokenBlack(token string) (BlackMsg string, ok bool) {
 		if err == redis.Nil {
 			return "Token 不在黑名单中", true
 		}
-		logrus.Errorf("检查Token是否在黑名单时出错 err: %v", err)
+		global.Logger.Errorf("检查Token是否在黑名单时出错 err: %v", err)
 		return BlackTypeMsg(0), false
 	}
 
 	blackType, err := BlackTypeFromString(has)
 	if err != nil {
-		logrus.Errorf("string 转换 BlackType 失败: %v", err)
+		global.Logger.Errorf("string 转换 BlackType 失败: %v", err)
 		return BlackTypeMsg(0), false
 	}
 

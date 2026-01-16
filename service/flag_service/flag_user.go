@@ -1,4 +1,4 @@
-package flag_user
+package flag_service
 
 import (
 	"fmt"
@@ -8,14 +8,13 @@ import (
 	"myblogx/utils/pwd"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
+	"gorm.io/gorm"
 )
 
-type FlagUser struct {
-}
+type FlagUser struct{}
 
-func (FlagUser) Create() {
+func (u *FlagUser) Create(db *gorm.DB) {
 	var role enum.RoleType
 	fmt.Println("请输入数字选择用户角色: ")
 	for r := 1; r <= enum.RoleTypeCount; r++ {
@@ -35,7 +34,7 @@ func (FlagUser) Create() {
 	fmt.Scanln(&username)
 
 	var model models.UserModel
-	if global.DB.Take(&model, "username = ?", username).Error == nil {
+	if db.Take(&model, "username = ?", username).Error == nil {
 		fmt.Printf("用户名 %s 已存在\n", username)
 		return
 	}
@@ -65,7 +64,7 @@ func (FlagUser) Create() {
 	}
 
 	// 创建用户
-	if err := global.DB.Create(&models.UserModel{
+	if err := db.Create(&models.UserModel{
 		Username:       username,
 		Nickname:       "命令用户",
 		Password:       hashedPassword,
@@ -76,5 +75,5 @@ func (FlagUser) Create() {
 		return
 	}
 	msg := fmt.Sprintf("用户 %s 创建成功\n", username)
-	logrus.Info(msg)
+	global.Logger.Info(msg)
 }

@@ -17,7 +17,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 type ActionLog struct {
@@ -75,7 +74,7 @@ func (ac *ActionLog) setItem(label string, value any, LogLevelType enum.LogLevel
 	case reflect.Struct, reflect.Map, reflect.Slice:
 		byteData, err := json.Marshal(value)
 		if err != nil {
-			logrus.Errorf("JSON 序列化失败: %v", err)
+			global.Logger.Errorf("JSON 序列化失败: %v", err)
 		}
 		v = string(byteData)
 	default:
@@ -97,7 +96,7 @@ func (ac *ActionLog) SetItemError(label string, value any) {
 
 func (ac *ActionLog) SetError(label string, err error) {
 	msg := errors.WithStack(err)
-	logrus.Errorf("%s: %v", label, err.Error())
+	global.Logger.Errorf("%s: %v", label, err.Error())
 	ac.itemList = append(ac.itemList, fmt.Sprintf("[%s:%T]%s: %+v", label, err, err, msg))
 }
 
@@ -108,7 +107,7 @@ func (ac *ActionLog) SetResponseHeader(c *gin.Context) {
 func (ac *ActionLog) SetRequest(c *gin.Context) {
 	byteData, err := io_utils.GetBody(&c.Request.Body)
 	if err != nil {
-		logrus.Errorf("读取请求体失败: %v", err)
+		global.Logger.Errorf("读取请求体失败: %v", err)
 	}
 	ac.requestBody = byteData
 }
@@ -192,7 +191,7 @@ func (ac *ActionLog) Save() (id uint) {
 	userID := uint(0)
 	claims, err := jwts.ParseTokenByGin(ac.c)
 	if err != nil {
-		logrus.Errorf("解析 token 失败: %v", err)
+		global.Logger.Errorf("解析 token 失败: %v", err)
 	} else {
 		userID = uint(claims.UserID)
 	}
@@ -209,7 +208,7 @@ func (ac *ActionLog) Save() (id uint) {
 
 	err = global.DB.Create(&log).Error
 	if err != nil {
-		logrus.Errorf("日志创建失败: %v", err)
+		global.Logger.Errorf("日志创建失败: %v", err)
 		return
 	}
 	ac.log = &log

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
+	"myblogx/global"
 	ipUtils "myblogx/utils/ip"
 
 	"github.com/lionsoul2014/ip2region/binding/golang/xdb"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -24,14 +24,14 @@ func InitIPDB() {
 	// 初始化 IPv4 数据库
 	ipv4, err := xdb.NewWithFileOnly(xdb.IPv4, dbIPv4)
 	if err != nil {
-		logrus.Fatalf("ip2region_v4.xdb 加载失败: %s", err)
+		global.Logger.Fatalf("ip2region_v4.xdb 加载失败: %s", err)
 	}
 	ipv4Searcher = ipv4
 
 	// 初始化 IPv6 数据库
 	ipv6, err := xdb.NewWithFileOnly(xdb.IPv6, dbIPv6)
 	if err != nil {
-		logrus.Fatalf("ip2region_v6.xdb 加载失败: %s", err)
+		global.Logger.Fatalf("ip2region_v6.xdb 加载失败: %s", err)
 	}
 	ipv6Searcher = ipv6
 }
@@ -59,13 +59,13 @@ func GetIpAddr(ip string) (addr string) {
 	}
 
 	if err != nil || region == "" {
-		logrus.Warnf("IP 地址 %s 区域查询失败", ip)
+		global.Logger.Warnf("IP 地址 %s 区域查询失败", ip)
 		return "未知地址"
 	}
 
 	_addrList := strings.Split(region, "|")
 	if len(_addrList) < 4 {
-		logrus.Warnf("IP 地址 %s 区域查询结果格式错误", ip)
+		global.Logger.Warnf("IP 地址 %s 区域查询结果格式错误", ip)
 		return "未知地址"
 	}
 

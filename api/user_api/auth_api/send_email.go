@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mojocn/base64Captcha"
-	"github.com/sirupsen/logrus"
 )
 
 type SendEmailRequest struct {
@@ -65,7 +64,7 @@ func (AuthApi) SendEmailView(c *gin.Context) {
 
 	if err != nil {
 		fmt.Println(err)
-		logrus.Errorf("邮件发送失败: %v", err)
+		global.Logger.Errorf("邮件发送失败: %v", err)
 		res.FailWithMsg("邮件发送失败", c)
 		return
 	}

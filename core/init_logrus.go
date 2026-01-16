@@ -8,7 +8,7 @@ import (
 	"path"
 	"time"
 
-	"myblogx/global"
+	"myblogx/conf"
 
 	"github.com/sirupsen/logrus"
 )
@@ -105,7 +105,9 @@ func (hook *FileDateHook) Fire(entry *logrus.Entry) error {
 	}
 
 	// 时间不相等，关闭当前文件，创建新文件夹和新日志文件
-	hook.file.Close()
+	if hook.file != nil {
+		hook.file.Close()
+	}
 	newFile, err := createLogFile(hook.logPath, timer, hook.appName)
 	if err != nil {
 		return fmt.Errorf("切换日志文件失败: %w", err)
@@ -123,26 +125,29 @@ func (hook *FileDateHook) Fire(entry *logrus.Entry) error {
 	return nil
 }
 
-func InitFile(logPath, appName string) {
+func InitFile(logger *logrus.Logger, logPath, appName string) {
 	fileDate := time.Now().Format("2006-01-02")
 
 	//创建目录和文件
 	file, err := createLogFile(logPath, fileDate, appName)
 	if err != nil {
-		logrus.Error(err)
+		logger.Error(err)
 		return
 	}
 
 	fileHook := FileDateHook{file, logPath, fileDate, appName}
-	logrus.AddHook(&fileHook)
+	logger.AddHook(&fileHook)
 }
 
-func InitLogrus() {
-	logrus.SetOutput(os.Stdout)          // 设置输出位置
-	logrus.SetReportCaller(true)         // 日志显示函数名和行号
-	logrus.SetFormatter(&LogFormatter{}) // 设置自己定义的Formatter
-	logrus.SetLevel(logrus.DebugLevel)   // 设置最低的Level
+func InitLogrus(l *conf.Logrus) *logrus.Logger {
+	logger := logrus.New()
 
-	l := global.Config.Log
-	InitFile(l.Dir, l.App)
+	logger.SetOutput(os.Stdout)          // 设置输出位置
+	logger.SetReportCaller(true)         // 日志显示函数名和行号
+	logger.SetFormatter(&LogFormatter{}) // 设置自己定义的Formatter
+	logger.SetLevel(logrus.DebugLevel)   // 设置最低的Level
+
+	InitFile(logger, l.Dir, l.App)
+
+	return logger
 }

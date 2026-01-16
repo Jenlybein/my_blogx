@@ -7,7 +7,6 @@ import (
 	"myblogx/utils/io_util"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 type EmailVerifyMiddlewareRequest struct {
@@ -19,7 +18,7 @@ func EmailVerifyMiddleware(c *gin.Context) {
 	// 读取并恢复请求体
 	var cr EmailVerifyMiddlewareRequest
 	if err := io_util.ShouldBindJSONWithRecover(c, &cr); err != nil {
-		logrus.Errorf("邮箱验证失败：请求体绑定失败：%v", err)
+		global.Logger.Errorf("邮箱验证失败：请求体绑定失败：%v", err)
 		res.FailWithMsg("邮箱验证失败：请求体读取失败", c)
 		c.Abort()
 		return

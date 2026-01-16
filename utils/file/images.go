@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"myblogx/global"
 	"path/filepath"
 	"strings"
 
@@ -19,7 +20,6 @@ import (
 	"gorm.io/gorm/utils"
 
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/sirupsen/logrus"
 )
 
 // 获取图片后缀（不包含前缀点）
@@ -46,7 +46,7 @@ func VerifyImageFormat(whitelist []string, fileHeader *multipart.FileHeader) err
 	file, err := fileHeader.Open()
 	if err != nil {
 		serr := fmt.Errorf("图片格式验证时，创建文件读取器失败：%w", err)
-		logrus.Error(serr)
+		global.Logger.Error(serr)
 		return serr
 	}
 	defer file.Close()

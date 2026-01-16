@@ -4,9 +4,9 @@ package models
 
 import (
 	"fmt"
+	"myblogx/global"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -26,7 +26,7 @@ func (i ImageModel) WebPath() string {
 // Gorm 固定命名的 Hook，调用 Delete 会自动调用该方法
 func (i *ImageModel) BeforeDelete(tx *gorm.DB) error {
 	if err := os.Remove(i.Path); err != nil {
-		logrus.Warnf("删除图片文件失败: %v", err)
+		global.Logger.Warnf("删除图片文件失败: %v", err)
 	}
 	return nil
 }

@@ -5,19 +5,18 @@ package core
 import (
 	"time"
 
+	"myblogx/conf"
 	"myblogx/global"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/plugin/dbresolver"
-
-	"github.com/sirupsen/logrus"
 )
 
-func InitDB() *gorm.DB {
+func InitDB(dbCfg *conf.DBConfig) *gorm.DB {
 	// 从配置文件中读取数据库配置
-	masterDB := global.Config.DB.Master // 写库
-	slaveDB := global.Config.DB.Slave   // 读库
+	masterDB := dbCfg.Master // 写库
+	slaveDB := dbCfg.Slave   // 读库
 	dsn := masterDB.DSN()
 
 	// 连接数据库（使用主库初始化）
@@ -25,10 +24,10 @@ func InitDB() *gorm.DB {
 		DisableForeignKeyConstraintWhenMigrating: true, // 禁用外键约束
 	})
 	if err != nil {
-		logrus.Fatalf("数据库连接失败: %s", err)
+		global.Logger.Fatalf("数据库连接失败: %s", err)
 	}
 
-	logrus.Infof("数据库连接成功 %s", dsn)
+	global.Logger.Infof("数据库连接成功 %s", dsn)
 
 	// 从配置文件中读取 gorm 配置
 	gormConf := global.Config.GORM
@@ -46,9 +45,9 @@ func InitDB() *gorm.DB {
 			Policy: dbresolver.RandomPolicy{},
 		}))
 		if err != nil {
-			logrus.Fatalf("数据库读写分离配置失败: %s", err)
+			global.Logger.Fatalf("数据库读写分离配置失败: %s", err)
 		}
-		logrus.Infof("数据库读写分离配置成功 %s -> %s", masterDB.DSN(), slaveDB.DSN())
+		global.Logger.Infof("数据库读写分离配置成功 %s -> %s", masterDB.DSN(), slaveDB.DSN())
 	}
 
 	return db
