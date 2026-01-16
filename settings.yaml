@@ -1,11 +1,11 @@
 system:
-  ip: ""
+  ip:
   port: ******_port1
   env: dev
   gin_mode: release
 jwt:
   expire: 3600
-  secret: REDACTED_JWT_SECRET
+  secret: ******_secret1
   issuer: ******_issuer1
 log:
   app: blogx_server
@@ -13,19 +13,19 @@ log:
 db:
   # 写库
   master:
-    host: REDACTED_SERVER_IP
-    port: 3306
-    user: ******_password1
-    password: 123456
+    host: ******_addr1
+    port: ******_port2
+    user: admin
+    password: ******_password1
     dbname: blogx
     debug: false
     source: mysql
   # 读库
   slave:
-    host: REDACTED_SERVER_IP
-    port: 3307
-    user: ******_password1
-    password: 123456
+    host: ******_addr1
+    port: ******_port3
+    user: admin
+    password: ******_password1
     dbname: blogx
     debug: false
     source: mysql
@@ -34,11 +34,17 @@ gorm:
   max_open_conns: 100
   conn_max_lifetime: 1
 redis:
-  addr: REDACTED_SERVER_IP
-  port: 6379
+  addr: ******_addr1
+  port: ******_port4
   username: default
-  password: "******_password2
+  password: ******_password1
   db: 0
+es:
+  addresses:
+    - http://******_addr1:9200
+  username: elastic
+  password: ******_password1
+  index: blogx
 upload:
   size: 3
   whitelist:
@@ -52,8 +58,8 @@ upload:
 site:
   site_info:
     title: 技术博客
-    logo: ""
-    beian: ""
+    logo:
+    beian:
     mode: 1
   project:
     title: 技术博客
@@ -79,29 +85,27 @@ site:
   article:
     skip_audit: true
 email:
-  domain: smtp.qq.com
-  port: ******_port4
-  send_email: REDACTED_SMTP_USERNAME
+  domain: ******_domain1
+  port: ******_port5
+  send_email: ******_send_email1
   auth_code: REDACTED_SMTP_AUTH_CODE
   send_nickname: 我的博客
   ssl: false
   tls: false
 qq:
-  app_id: "******_password2
-  app_key: ""
-  redirect: "******_password2
+  app_id: 123456
+  app_key:
+  redirect: 123456
 qiniu:
   enable: true
   access_key: ******_access_key1
   secret_key: ******_secret_key1
   bucket: myblogx
-  uri: ""
+  uri:
   region: z2
   prefix: myblogx
-  size: 3
-  expiry: 3600
 ai:
   enable: false
-  secret: ""
-  nickname: ""
-  avatar: ""
+  secret:
+  nickname:
+  avatar:

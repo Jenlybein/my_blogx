@@ -4,6 +4,7 @@ go 1.25.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
+	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/gabriel-vasile/mimetype v1.4.12
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-playground/locales v0.14.1

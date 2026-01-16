@@ -9,6 +9,7 @@ type Config struct {
 	DB     DBConfig `yaml:"db"`
 	GORM   GormConf `yaml:"gorm"`
 	Redis  Redis    `yaml:"redis"`
+	ES     ES       `yaml:"es"`
 	Upload Upload   `yaml:"upload"`
 	Site   Site     `yaml:"site"`
 	Email  Email    `yaml:"email"`

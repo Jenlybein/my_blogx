@@ -15,6 +15,7 @@ func main() {
 	core.InitLogrus()
 	global.DB = core.InitDB()
 	global.Redis = core.InitRedis()
+	global.ESClient = core.EsConnect()
 
 	flags.Run()
 

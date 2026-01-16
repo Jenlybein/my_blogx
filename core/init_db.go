@@ -48,6 +48,7 @@ func InitDB() *gorm.DB {
 		if err != nil {
 			logrus.Fatalf("数据库读写分离配置失败: %s", err)
 		}
+		logrus.Infof("数据库读写分离配置成功 %s -> %s", masterDB.DSN(), slaveDB.DSN())
 	}
 
 	return db

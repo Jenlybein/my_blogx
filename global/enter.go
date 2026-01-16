@@ -6,6 +6,7 @@ import (
 	"myblogx/conf"
 	"myblogx/store/email_store"
 
+	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/go-redis/redis/v8"
 	"github.com/mojocn/base64Captcha"
 	"gorm.io/gorm"
@@ -17,6 +18,7 @@ var (
 	Config            *conf.Config
 	DB                *gorm.DB
 	Redis             *redis.Client
+	ESClient          *elasticsearch.Client
 	ImageCaptchaStore = base64Captcha.DefaultMemStore
 	EmailVerifyStore  = email_store.NewEmailVerifyStore(3, 5)
 )

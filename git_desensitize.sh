@@ -28,6 +28,7 @@ fields=(
   "app_key"
   "access_key"
   "secret_key"
+  "addresses"
 )
 
 # ========== 【常量定义】 ==========
