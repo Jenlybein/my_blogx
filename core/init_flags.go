@@ -19,6 +19,7 @@ func Parse() {
 	flag.BoolVar(&Flags.Version, "version", false, "显示版本信息")
 	flag.StringVar(&Flags.Type, "t", "", "操作类型")
 	flag.StringVar(&Flags.Sub, "s", "", "子操作类型")
+	flag.BoolVar(&Flags.ES, "es", false, "初始化ES索引")
 
 	flag.Parse()
 
@@ -28,7 +29,12 @@ func Parse() {
 func Run(op *global.FlagOptions, db *gorm.DB) {
 	if op.DB {
 		// 执行数据库迁移
-		flag_service.FlagDB(db)
+		flag_service.FlagDB()
+		os.Exit(0)
+	}
+
+	if op.ES {
+		flag_service.FlagESIndex()
 		os.Exit(0)
 	}
 

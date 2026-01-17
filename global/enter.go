@@ -22,6 +22,7 @@ type FlagOptions struct {
 	Version bool
 	Type    string
 	Sub     string
+	ES      bool
 }
 
 var (

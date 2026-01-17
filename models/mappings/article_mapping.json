@@ -1,0 +1,63 @@
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "created_at": {
+        "type": "date",
+        "null_value": "null",
+        "format": "yyyy-MM-dd HH:mm:ss||strict_date_time||epoch_millis"
+      },
+      "updated_at": {
+        "type": "date",
+        "null_value": "null",
+        "format": "yyyy-MM-dd HH:mm:ss||strict_date_time||epoch_millis"
+      },
+      "title": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      },
+      "abstract": {
+        "type": "text"
+      },
+      "content": {
+        "type": "text"
+      },
+      "category_id": {
+        "type": "integer"
+      },
+      "tag_list": {
+        "type": "keyword"
+      },
+      "cover": {
+        "type": "keyword"
+      },
+      "author_id": {
+        "type": "integer"
+      },
+      "view_count": {
+        "type": "integer"
+      },
+      "digg_count": {
+        "type": "integer"
+      },
+      "comment_count": {
+        "type": "integer"
+      },
+      "favor_count": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "integer"
+      },
+      "comments_toggle": {
+        "type": "boolean"
+      }
+    }
+  }
+}

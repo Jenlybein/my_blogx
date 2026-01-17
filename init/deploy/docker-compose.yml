@@ -78,6 +78,10 @@ services:
       # 启用ES安全功能
       xpack.security.enabled: "true"
       xpack.security.transport.ssl.enabled: "true"
+      # 跨域配置（前端工具如 elasticvue 访问需要）
+      http.cors.enabled: true
+      http.cors.allow-origin: "*"
+      http.cors.allow-headers: "X-Requested-With,Content-Type,Authorization"
       # 设置内置用户的初始密码（可选，也可以后续手动设置）
       ELASTIC_PASSWORD: "REDACTED_SHARED_PASSWORD" # elastic用户的初始密码
     ports:

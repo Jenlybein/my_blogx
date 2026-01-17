@@ -1,111 +1,111 @@
 system:
-    ip: ""
-    port: ******_port1
-    env: dev
-    gin_mode: release
+  ip: ""
+  port: ******_port1
+  env: dev
+  gin_mode: release
 jwt:
-    expire: 3600
-    secret: ******_secret1
-    issuer: ******_issuer1
+  expire: 3600
+  secret: ******_secret1
+  issuer: ******_issuer1
 log:
-    app: blogx_server
-    dir: ./logs
+  app: blogx_server
+  dir: ./logs
 db:
-    master:
-        host: ******_addr1
-        port: ******_port2
-        user: admin
-        password: ******_password1
-        dbname: blogx
-        debug: false
-        source: mysql
-    slave:
-        host: ******_addr1
-        port: ******_port3
-        user: admin
-        password: ******_password1
-        dbname: blogx
-        debug: false
-        source: mysql
+  master:
+    host: ******_addr1
+    port: ******_port2
+    user: admin
+    password: ******_password1
+    dbname: blogx
+    debug: false
+    source: mysql
+  slave:
+    host: ******_addr1
+    port: ******_port3
+    user: admin
+    password: ******_password1
+    dbname: blogx
+    debug: false
+    source: mysql
 gorm:
-    max_idle_conns: 100
-    max_open_conns: 100
-    conn_max_lifetime: 1
+  max_idle_conns: 100
+  max_open_conns: 100
+  conn_max_lifetime: 1
 redis:
-    addr: ******_addr1
-    port: ******_port4
-    username: default
-    password: ******_password1
-    db: 0
+  addr: ******_addr1
+  port: ******_port4
+  username: default
+  password: ******_password1
+  db: 0
 es:
-    addresses:
-        - http://******_addr1:9200
-    username: elastic
-    password: ******_password1
-    index: blogx
+  addresses:
+    - http://******_addr1:9200
+  username: elastic
+  password: ******_password1
+  index: blogx
 upload:
-    size: 3
-    whitelist:
-        - bmp
-        - jpg
-        - jpeg
-        - png
-        - gif
-        - webp
-    upload_dir: images001
+  size: 3
+  whitelist:
+    - bmp
+    - jpg
+    - jpeg
+    - png
+    - gif
+    - webp
+  upload_dir: images001
 site:
-    site_info:
-        title: 技术博客
-        logo: ""
-        beian: ""
-        mode: 1
-    project:
-        title: 技术博客
-        icon: /xxx.png
-        web_path: uploads/index.html
-    seo:
-        keywords: ""
-        description: ""
-    about:
-        site_date: ""
-        qq: ""
-        wechat: ""
-        gitee: ""
-        bilibili: ""
-        github: ""
-    login:
-        qq_login: false
-        username_pwd_login: true
-        email_login: true
-        captcha: false
-    index_right:
-        list: []
-    article:
-        skip_audit: true
+  site_info:
+    title: 技术博客
+    logo: ""
+    beian: ""
+    mode: 1
+  project:
+    title: 技术博客
+    icon: /xxx.png
+    web_path: uploads/index.html
+  seo:
+    keywords: ""
+    description: ""
+  about:
+    site_date: ""
+    qq: ""
+    wechat: ""
+    gitee: ""
+    bilibili: ""
+    github: ""
+  login:
+    qq_login: false
+    username_pwd_login: true
+    email_login: true
+    captcha: false
+  index_right:
+    list: []
+  article:
+    skip_audit: true
 email:
-    domain: ******_domain1
-    port: ******_port5
-    send_email: ******_send_email1
-    auth_code: REDACTED_SMTP_AUTH_CODE
-    send_nickname: 我的博客
-    ssl: false
-    tls: false
+  domain: ******_domain1
+  port: ******_port5
+  send_email: ******_send_email1
+  auth_code: REDACTED_SMTP_AUTH_CODE
+  send_nickname: 我的博客
+  ssl: false
+  tls: false
 qq:
-    app_id: "123456"
-    app_key: ""
-    redirect: "123456"
+  app_id: "123456"
+  app_key: ""
+  redirect: "123456"
 qiniu:
-    enable: true
-    access_key: ******_access_key1
-    secret_key: ******_secret_key1
-    bucket: myblogx
-    uri: ""
-    region: z2
-    prefix: myblogx
-    size: 0
-    expiry: 0
+  enable: true
+  access_key: ******_access_key1
+  secret_key: ******_secret_key1
+  bucket: myblogx
+  uri: ""
+  region: z2
+  prefix: myblogx
+  size: 0
+  expiry: 0
 ai:
-    enable: false
-    secret: ""
-    nickname: ""
-    avatar: ""
+  enable: false
+  secret: ""
+  nickname: ""
+  avatar: ""
