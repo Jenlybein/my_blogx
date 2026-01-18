@@ -13,7 +13,7 @@ func main() {
 
 	global.Config = core.ReadCfg(&global.Flags.File)
 	global.Logger = core.InitLogrus(&global.Config.Log)
-	global.DB = core.InitDB(&global.Config.DB)
+	global.DB = core.InitDB(global.Config.DB)
 	global.Redis = core.InitRedis(&global.Config.Redis)
 	global.ESClient = core.EsConnect(&global.Config.ES)
 

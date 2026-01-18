@@ -6,7 +6,7 @@ type Config struct {
 	System System   `yaml:"system"`
 	Jwt    Jwt      `yaml:"jwt"`
 	Log    Logrus   `yaml:"log"`
-	DB     DBConfig `yaml:"db"`
+	DB     []DB     `yaml:"db"`
 	GORM   GormConf `yaml:"gorm"`
 	Redis  Redis    `yaml:"redis"`
 	ES     ES       `yaml:"es"`

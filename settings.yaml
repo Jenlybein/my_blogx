@@ -11,16 +11,14 @@ log:
   app: blogx_server
   dir: ./logs
 db:
-  master:
-    host: ******_addr1
+  - host: ******_addr1
     port: ******_port2
     user: admin
     password: ******_password1
     dbname: blogx
     debug: false
     source: mysql
-  slave:
-    host: ******_addr1
+  - host: ******_addr1
     port: ******_port3
     user: admin
     password: ******_password1

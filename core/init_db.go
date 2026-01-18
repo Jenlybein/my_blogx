@@ -13,11 +13,14 @@ import (
 	"gorm.io/plugin/dbresolver"
 )
 
-func InitDB(dbCfg *conf.DBConfig) *gorm.DB {
+func InitDB(dbCfg []conf.DB) *gorm.DB {
+	if len(dbCfg) == 0 {
+		global.Logger.Fatalf("数据库配置错误：未配置数据库")
+	}
+
 	// 从配置文件中读取数据库配置
-	masterDB := dbCfg.Master // 写库
-	slaveDB := dbCfg.Slave   // 读库
-	dsn := masterDB.DSN()
+	DB := dbCfg[0] // 写库
+	dsn := DB.DSN()
 
 	// 连接数据库（使用主库初始化）
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
@@ -36,18 +39,21 @@ func InitDB(dbCfg *conf.DBConfig) *gorm.DB {
 	sqlDB.SetMaxOpenConns(gormConf.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Hour * time.Duration(gormConf.ConnMaxLifetime))
 
-	if !slaveDB.Empty() {
+	if len(dbCfg) > 1 {
+		var readList []gorm.Dialector
+		for _, d := range dbCfg[1:] {
+			readList = append(readList, mysql.Open(d.DSN()))
+		}
 		// 读库不为空，则注册读写分离的配置
 		err := db.Use(dbresolver.Register(dbresolver.Config{
-			Sources:  []gorm.Dialector{mysql.Open(masterDB.DSN())}, // 写库（主库）
-			Replicas: []gorm.Dialector{mysql.Open(slaveDB.DSN())},  // 读库（从库）
-			// sources/replicas load balancing policy
-			Policy: dbresolver.RandomPolicy{},
+			Sources:  []gorm.Dialector{mysql.Open(DB.DSN())}, // 写库（主库）
+			Replicas: readList,                               // 读库（从库）
+			Policy:   dbresolver.RandomPolicy{},
 		}))
 		if err != nil {
 			global.Logger.Fatalf("数据库读写分离配置失败: %s", err)
 		}
-		global.Logger.Infof("数据库读写分离配置成功 %s -> %s", masterDB.DSN(), slaveDB.DSN())
+		global.Logger.Infof("数据库读写分离配置成功 %d 个读库", len(readList))
 	}
 
 	return db
