@@ -1,23 +1,25 @@
-package flag_service
+package flags
 
 import (
 	"myblogx/global"
 	"myblogx/models"
+
+	"gorm.io/gorm"
 )
 
-func FlagDB() {
+func FlagDB(db *gorm.DB) {
 	// 确保数据库使用 utf8mb4 字符集
-	global.DB.Exec("SET character_set_client = utf8mb4")
-	global.DB.Exec("SET character_set_connection = utf8mb4")
-	global.DB.Exec("SET character_set_database = utf8mb4")
-	global.DB.Exec("SET character_set_results = utf8mb4")
-	global.DB.Exec("SET character_set_server = utf8mb4")
-	global.DB.Exec("SET collation_connection = utf8mb4_unicode_ci")
-	global.DB.Exec("SET collation_database = utf8mb4_unicode_ci")
-	global.DB.Exec("SET collation_server = utf8mb4_unicode_ci")
+	db.Exec("SET character_set_client = utf8mb4")
+	db.Exec("SET character_set_connection = utf8mb4")
+	db.Exec("SET character_set_database = utf8mb4")
+	db.Exec("SET character_set_results = utf8mb4")
+	db.Exec("SET character_set_server = utf8mb4")
+	db.Exec("SET collation_connection = utf8mb4_unicode_ci")
+	db.Exec("SET collation_database = utf8mb4_unicode_ci")
+	db.Exec("SET collation_server = utf8mb4_unicode_ci")
 
 	// 自动建表
-	err := global.DB.AutoMigrate(
+	err := db.AutoMigrate(
 		&models.UserModel{},
 		&models.UserConfModel{},
 		&models.ArticleModel{},

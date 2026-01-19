@@ -15,18 +15,12 @@ import (
 
 const Version = "1.0.0"
 
-type FlagOptions struct {
-	/* 定义命令行参数选项结构体,用于存储和处理命令行传入的各种标志参数 */
-	File    string
-	DB      bool
-	Version bool
-	Type    string
-	Sub     string
-	ES      bool
+type FlagRecord struct {
+	File string
 }
 
 var (
-	Flags             *FlagOptions
+	Flags             *FlagRecord
 	Config            *conf.Config
 	Logger            *logrus.Logger
 	DB                *gorm.DB

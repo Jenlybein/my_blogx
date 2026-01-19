@@ -41,13 +41,16 @@ es:
   username: elastic
   password: ******_password1
   index: blogx
+  addr: ******_addr1:9200
+  is_https: false
 river:
+  enabled: true
   server_id: 1001
   flavor: mysql
   data_dir: ./var
   source:
     - schema: blogx
-      table:
+      tables:
         - article_models
   rule:
     - schema: blogx
@@ -56,7 +59,11 @@ river:
       type: _doc
       field:
         tag_list: tag_list,list
+  charset: "utf8mb4"
+  mysqldump: ""
+  skip_master_data: true
   bulk_size: 128
+  flush_bulk_time: 200
 upload:
   size: 3
   whitelist:

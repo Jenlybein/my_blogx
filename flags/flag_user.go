@@ -1,4 +1,4 @@
-package flag_service
+package flags
 
 import (
 	"fmt"

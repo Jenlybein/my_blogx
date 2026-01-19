@@ -1,4 +1,4 @@
-package river_service
+package rule
 
 import (
 	"strings"
@@ -34,7 +34,7 @@ type Rule struct {
 	Pipeline string `yaml:"pipeline"`
 }
 
-func newDefaultRule(schema string, table string) *Rule {
+func NewDefaultRule(schema string, table string) *Rule {
 	r := new(Rule)
 
 	r.Schema = schema
@@ -49,7 +49,7 @@ func newDefaultRule(schema string, table string) *Rule {
 	return r
 }
 
-func (r *Rule) prepare() error {
+func (r *Rule) Prepare() error {
 	if r.FieldMapping == nil {
 		r.FieldMapping = make(map[string]string)
 	}

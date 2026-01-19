@@ -4,20 +4,27 @@ package main
 
 import (
 	"myblogx/core"
+	"myblogx/flags"
 	"myblogx/global"
 	"myblogx/router"
 )
 
 func main() {
-	core.Parse()
+	flag := flags.Parse()
 
-	global.Config = core.ReadCfg(&global.Flags.File)
+	global.Flags = &global.FlagRecord{
+		File: flag.File,
+	}
+
+	global.Config = core.ReadCfg(&flag.File)
 	global.Logger = core.InitLogrus(&global.Config.Log)
 	global.DB = core.InitDB(global.Config.DB)
 	global.Redis = core.InitRedis(&global.Config.Redis)
 	global.ESClient = core.EsConnect(&global.Config.ES)
 
-	core.Run(global.Flags, global.DB)
+	flags.Run(flag, global.DB)
+
+	core.InitMySQLES()
 
 	// 启动 Web 程序
 	router.Run()

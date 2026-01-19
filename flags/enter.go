@@ -1,18 +1,26 @@
 // flags/enter.go
-package core
+package flags
 
 import (
 	"flag"
 	"fmt"
-	"myblogx/global"
-	"myblogx/service/flag_service"
 	"os"
 
 	"gorm.io/gorm"
 )
 
-func Parse() {
-	var Flags = new(global.FlagOptions)
+type FlagOptions struct {
+	/* 定义命令行参数选项结构体,用于存储和处理命令行传入的各种标志参数 */
+	File    string
+	DB      bool
+	Version bool
+	Type    string
+	Sub     string
+	ES      bool
+}
+
+func Parse() *FlagOptions {
+	var Flags = new(FlagOptions)
 
 	flag.StringVar(&Flags.File, "f", "settings.yaml", "指定配置文件路径")
 	flag.BoolVar(&Flags.DB, "db", false, "数据库迁移")
@@ -23,24 +31,24 @@ func Parse() {
 
 	flag.Parse()
 
-	global.Flags = Flags
+	return Flags
 }
 
-func Run(op *global.FlagOptions, db *gorm.DB) {
+func Run(op *FlagOptions, db *gorm.DB) {
 	if op.DB {
 		// 执行数据库迁移
-		flag_service.FlagDB()
+		FlagDB(db)
 		os.Exit(0)
 	}
 
 	if op.ES {
-		flag_service.FlagESIndex()
+		FlagESIndex()
 		os.Exit(0)
 	}
 
 	switch op.Type {
 	case "user":
-		u := flag_service.FlagUser{}
+		u := FlagUser{}
 		switch op.Sub {
 		case "create":
 			u.Create(db)
