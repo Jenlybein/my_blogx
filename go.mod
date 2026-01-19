@@ -3,10 +3,12 @@ module myblogx
 go 1.25.1
 
 require (
+	github.com/BurntSushi/toml v1.3.2
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/gabriel-vasile/mimetype v1.4.12
 	github.com/gin-gonic/gin v1.11.0
+	github.com/go-mysql-org/go-mysql v1.13.0
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.27.0
@@ -16,8 +18,12 @@ require (
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251023062652-029a5578aa01
 	github.com/mojocn/base64Captcha v1.3.8
+	github.com/pingcap/check v0.0.0-20190102082844-67f458068fc8
+	github.com/pingcap/errors v0.11.5-0.20250318082626-8f80e5cb09ec
 	github.com/pkg/errors v0.9.1
 	github.com/qiniu/go-sdk/v7 v7.25.5
+	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
+	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.44.0
 	golang.org/x/image v0.34.0
@@ -28,8 +34,16 @@ require (
 )
 
 require (
+	github.com/golang/protobuf v1.5.0 // indirect
+	github.com/pingcap/parser v0.0.0-20190506092653-e336082eb825 // indirect
+	github.com/pingcap/tidb v1.1.0-beta.0.20190117121324-5f8265a8f9be // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20250421232622-526b2c79173d // indirect
+	github.com/pingcap/tipb v0.0.0-20190428032612-535e1abaa330 // indirect
+	github.com/satori/go.uuid v1.2.0 // indirect
+)
+
+require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/alex-ant/gomath v0.0.0-20160516115720-89013a210a82 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
@@ -38,7 +52,6 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
-	github.com/go-mysql-org/go-mysql v1.13.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
@@ -54,13 +67,12 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/pingcap/errors v0.11.5-0.20250318082626-8f80e5cb09ec // indirect
 	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
 	github.com/pingcap/log v1.1.1-0.20241212030209-7e3ff8601a2a // indirect
-	github.com/pingcap/tidb/pkg/parser v0.0.0-20250421232622-526b2c79173d // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/siddontang/go-mysql v0.0.0-20190524062908-de6c3a84bcbe
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect

@@ -10,6 +10,7 @@ type Config struct {
 	GORM   GormConf `yaml:"gorm"`
 	Redis  Redis    `yaml:"redis"`
 	ES     ES       `yaml:"es"`
+	River  River    `yaml:"river"`
 	Upload Upload   `yaml:"upload"`
 	Site   Site     `yaml:"site"`
 	Email  Email    `yaml:"email"`

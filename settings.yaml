@@ -41,6 +41,22 @@ es:
   username: elastic
   password: ******_password1
   index: blogx
+river:
+  server_id: 1001
+  flavor: mysql
+  data_dir: ./var
+  source:
+    - schema: blogx
+      table:
+        - article_models
+  rule:
+    - schema: blogx
+      table: article_models
+      index: article_index
+      type: _doc
+      field:
+        tag_list: tag_list,list
+  bulk_size: 128
 upload:
   size: 3
   whitelist:
