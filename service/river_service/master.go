@@ -2,28 +2,31 @@ package river_service
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path"
 	"sync"
 	"time"
 
-	"github.com/BurntSushi/toml"
+	"myblogx/global"
+
 	"github.com/pingcap/errors"
-	"github.com/siddontang/go-log/log"
 	"github.com/siddontang/go-mysql/mysql"
-	"github.com/siddontang/go/ioutil2"
+	"gopkg.in/yaml.v3"
 )
 
+// masterInfo 存储MySQL主库位置信息
 type masterInfo struct {
 	sync.RWMutex
 
-	Name string `toml:"bin_name"`
-	Pos  uint32 `toml:"bin_pos"`
+	Name string `yaml:"bin_name"` // binlog文件名
+	Pos  uint32 `yaml:"bin_pos"`  // binlog位置
 
-	filePath     string
-	lastSaveTime time.Time
+	filePath     string    // 文件路径
+	lastSaveTime time.Time // 最后保存时间
 }
 
+// loadMasterInfo 从指定目录加载master信息
 func loadMasterInfo(dataDir string) (*masterInfo, error) {
 	var m masterInfo
 
@@ -31,7 +34,7 @@ func loadMasterInfo(dataDir string) (*masterInfo, error) {
 		return &m, nil
 	}
 
-	m.filePath = path.Join(dataDir, "master.info")
+	m.filePath = path.Join(dataDir, "master.yaml")
 	m.lastSaveTime = time.Now()
 
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
@@ -46,18 +49,22 @@ func loadMasterInfo(dataDir string) (*masterInfo, error) {
 	}
 	defer f.Close()
 
-	_, err = toml.DecodeReader(f, &m)
+	decoder := yaml.NewDecoder(f)
+	err = decoder.Decode(&m)
 	return &m, errors.Trace(err)
 }
 
+// Save 保存MySQL位置信息到文件
 func (m *masterInfo) Save(pos mysql.Position) error {
-	log.Infof("save position %s", pos)
+	global.Logger.Infof("save position %s", pos)
 
 	m.Lock()
 	defer m.Unlock()
 
 	m.Name = pos.Name
 	m.Pos = pos.Pos
+
+	var err error
 
 	if len(m.filePath) == 0 {
 		return nil
@@ -70,18 +77,26 @@ func (m *masterInfo) Save(pos mysql.Position) error {
 
 	m.lastSaveTime = n
 	var buf bytes.Buffer
-	e := toml.NewEncoder(&buf)
+	encoder := yaml.NewEncoder(&buf)
 
-	e.Encode(m)
+	err = encoder.Encode(m)
+	if err != nil {
+		encoder.Close()
+		return errors.Trace(err)
+	}
+	err = encoder.Close()
+	if err != nil {
+		return errors.Trace(err)
+	}
 
-	var err error
-	if err = ioutil2.WriteFileAtomic(m.filePath, buf.Bytes(), 0644); err != nil {
-		log.Errorf("canal save master info to file %s err %v", m.filePath, err)
+	if err = WriteFileAtomic(m.filePath, buf.Bytes(), 0644); err != nil {
+		global.Logger.Errorf("canal save master info to file %s err %v", m.filePath, err)
 	}
 
 	return errors.Trace(err)
 }
 
+// Position 返回当前MySQL位置信息
 func (m *masterInfo) Position() mysql.Position {
 	m.RLock()
 	defer m.RUnlock()
@@ -92,8 +107,29 @@ func (m *masterInfo) Position() mysql.Position {
 	}
 }
 
+// Close 关闭master信息，保存当前位置
 func (m *masterInfo) Close() error {
 	pos := m.Position()
 
 	return m.Save(pos)
+}
+
+func WriteFileAtomic(filename string, data []byte, perm os.FileMode) error {
+	dir, name := path.Dir(filename), path.Base(filename)
+	f, err := os.CreateTemp(dir, name)
+	if err != nil {
+		return err
+	}
+	n, err := f.Write(data)
+	f.Close()
+	if err == nil && n < len(data) {
+		err = io.ErrShortWrite
+	} else {
+		err = os.Chmod(f.Name(), perm)
+	}
+	if err != nil {
+		os.Remove(f.Name())
+		return err
+	}
+	return os.Rename(f.Name(), filename)
 }

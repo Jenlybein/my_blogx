@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/pingcap/errors"
-	"github.com/siddontang/go-log/log"
 	"github.com/siddontang/go-mysql/canal"
 	"github.com/siddontang/go-mysql/mysql"
 	"github.com/siddontang/go-mysql/replication"
@@ -21,22 +20,25 @@ import (
 
 const (
 	fieldTypeList = "list"
-	// for the mysql int type to es date type
-	// set the [rule.field] created_time = ",date"
+	// 用于mysql int类型到es日期类型的转换
+	// 设置 [rule.field] created_time = ",date"
 	fieldTypeDate = "date"
 )
 
 const mysqlDateFormat = "2006-01-02"
 
+// posSaver 保存位置信息的结构
 type posSaver struct {
-	pos   mysql.Position
-	force bool
+	pos   mysql.Position // MySQL位置
+	force bool           // 是否强制保存
 }
 
+// eventHandler 事件处理器
 type eventHandler struct {
-	r *River
+	r *River // River实例
 }
 
+// OnRotate 处理旋转事件
 func (h *eventHandler) OnRotate(e *replication.RotateEvent) error {
 	pos := mysql.Position{
 		Name: string(e.NextLogName),
@@ -48,6 +50,7 @@ func (h *eventHandler) OnRotate(e *replication.RotateEvent) error {
 	return h.r.ctx.Err()
 }
 
+// OnTableChanged 处理表变更事件
 func (h *eventHandler) OnTableChanged(schema, table string) error {
 	err := h.r.updateRule(schema, table)
 	if err != nil && err != ErrRuleNotExist {
@@ -56,16 +59,19 @@ func (h *eventHandler) OnTableChanged(schema, table string) error {
 	return nil
 }
 
+// OnDDL 处理DDL语句事件
 func (h *eventHandler) OnDDL(nextPos mysql.Position, _ *replication.QueryEvent) error {
 	h.r.syncCh <- posSaver{nextPos, true}
 	return h.r.ctx.Err()
 }
 
+// OnXID 处理事务提交事件
 func (h *eventHandler) OnXID(nextPos mysql.Position) error {
 	h.r.syncCh <- posSaver{nextPos, false}
 	return h.r.ctx.Err()
 }
 
+// OnRow 处理行事件
 func (h *eventHandler) OnRow(e *canal.RowsEvent) error {
 	rule, ok := h.r.rules[ruleKey(e.Table.Schema, e.Table.Name)]
 	if !ok {
@@ -95,18 +101,22 @@ func (h *eventHandler) OnRow(e *canal.RowsEvent) error {
 	return h.r.ctx.Err()
 }
 
+// OnGTID 处理GTID事件
 func (h *eventHandler) OnGTID(gtid mysql.GTIDSet) error {
 	return nil
 }
 
+// OnPosSynced 处理位置同步事件
 func (h *eventHandler) OnPosSynced(pos mysql.Position, set mysql.GTIDSet, force bool) error {
 	return nil
 }
 
+// String 返回事件处理器的字符串表示
 func (h *eventHandler) String() string {
 	return "ESRiverEventHandler"
 }
 
+// syncLoop 同步循环，处理同步请求
 func (r *River) syncLoop() {
 	bulkSize := global.Config.River.BulkSize
 	if bulkSize == 0 {
@@ -155,7 +165,7 @@ func (r *River) syncLoop() {
 		if needFlush {
 			// TODO: retry some times?
 			if err := r.doBulk(reqs); err != nil {
-				log.Errorf("do ES bulk err %v, close sync", err)
+				global.Logger.Errorf("do ES bulk err %v, close sync", err)
 				r.cancel()
 				return
 			}
@@ -164,7 +174,7 @@ func (r *River) syncLoop() {
 
 		if needSavePos {
 			if err := r.master.Save(pos); err != nil {
-				log.Errorf("save sync position %s err %v, close sync", pos, err)
+				global.Logger.Errorf("save sync position %s err %v, close sync", pos, err)
 				r.cancel()
 				return
 			}
@@ -172,7 +182,7 @@ func (r *River) syncLoop() {
 	}
 }
 
-// for insert and delete
+// makeRequest 为插入和删除操作创建请求
 func (r *River) makeRequest(rule *rule.Rule, action string, rows [][]interface{}) ([]*elastic.BulkRequest, error) {
 	reqs := make([]*elastic.BulkRequest, 0, len(rows))
 
@@ -203,14 +213,17 @@ func (r *River) makeRequest(rule *rule.Rule, action string, rows [][]interface{}
 	return reqs, nil
 }
 
+// makeInsertRequest 创建插入请求
 func (r *River) makeInsertRequest(rule *rule.Rule, rows [][]interface{}) ([]*elastic.BulkRequest, error) {
 	return r.makeRequest(rule, canal.InsertAction, rows)
 }
 
+// makeDeleteRequest 创建删除请求
 func (r *River) makeDeleteRequest(rule *rule.Rule, rows [][]interface{}) ([]*elastic.BulkRequest, error) {
 	return r.makeRequest(rule, canal.DeleteAction, rows)
 }
 
+// makeUpdateRequest 创建更新请求
 func (r *River) makeUpdateRequest(rule *rule.Rule, rows [][]interface{}) ([]*elastic.BulkRequest, error) {
 	if len(rows)%2 != 0 {
 		return nil, errors.Errorf("invalid update rows event, must have 2x rows, but %d", len(rows))
@@ -251,9 +264,9 @@ func (r *River) makeUpdateRequest(rule *rule.Rule, rows [][]interface{}) ([]*ela
 
 		} else {
 			if len(rule.Pipeline) > 0 {
-				// Pipelines can only be specified on index action
+				// 管道只能在索引操作上指定
 				r.makeInsertReqData(req, rule, rows[i+1])
-				// Make sure action is index, not create
+				// 确保操作是索引，而不是创建
 				req.Action = elastic.ActionIndex
 				req.Pipeline = rule.Pipeline
 			} else {
@@ -267,16 +280,17 @@ func (r *River) makeUpdateRequest(rule *rule.Rule, rows [][]interface{}) ([]*ela
 	return reqs, nil
 }
 
+// makeReqColumnData 根据列类型转换数据值
 func (r *River) makeReqColumnData(col *schema.TableColumn, value interface{}) interface{} {
 	switch col.Type {
 	case schema.TYPE_ENUM:
 		switch value := value.(type) {
 		case int64:
-			// for binlog, ENUM may be int64, but for dump, enum is string
+			// 对于binlog，ENUM可能是int64，但对于dump，enum是字符串
 			eNum := value - 1
 			if eNum < 0 || eNum >= int64(len(col.EnumValues)) {
-				// we insert invalid enum value before, so return empty
-				log.Warnf("invalid binlog enum index %d, for enum %v", eNum, col.EnumValues)
+				// 我们之前插入了无效的枚举值，所以返回空
+				global.Logger.Warnf("invalid binlog enum index %d, for enum %v", eNum, col.EnumValues)
 				return ""
 			}
 
@@ -285,7 +299,7 @@ func (r *River) makeReqColumnData(col *schema.TableColumn, value interface{}) in
 	case schema.TYPE_SET:
 		switch value := value.(type) {
 		case int64:
-			// for binlog, SET may be int64, but for dump, SET is string
+			// 对于binlog，SET可能是int64，但对于dump，SET是字符串
 			bitmask := value
 			sets := make([]string, 0, len(col.SetValues))
 			for i, s := range col.SetValues {
@@ -298,8 +312,8 @@ func (r *River) makeReqColumnData(col *schema.TableColumn, value interface{}) in
 	case schema.TYPE_BIT:
 		switch value := value.(type) {
 		case string:
-			// for binlog, BIT is int64, but for dump, BIT is string
-			// for dump 0x01 is for 1, \0 is for 0
+			// 对于binlog，BIT是int64，但对于dump，BIT是字符串
+			// 对于dump 0x01表示1，\0表示0
 			if value == "\x01" {
 				return int64(1)
 			}
@@ -327,7 +341,7 @@ func (r *River) makeReqColumnData(col *schema.TableColumn, value interface{}) in
 		switch v := value.(type) {
 		case string:
 			vt, err := time.ParseInLocation(mysql.TimeFormat, string(v), time.Local)
-			if err != nil || vt.IsZero() { // failed to parse date or zero date
+			if err != nil || vt.IsZero() { // 解析日期失败或零日期
 				return nil
 			}
 			return vt.Format(time.RFC3339)
@@ -336,7 +350,7 @@ func (r *River) makeReqColumnData(col *schema.TableColumn, value interface{}) in
 		switch v := value.(type) {
 		case string:
 			vt, err := time.Parse(mysqlDateFormat, string(v))
-			if err != nil || vt.IsZero() { // failed to parse date or zero date
+			if err != nil || vt.IsZero() { // 解析日期失败或零日期
 				return nil
 			}
 			return vt.Format(mysqlDateFormat)
@@ -346,6 +360,7 @@ func (r *River) makeReqColumnData(col *schema.TableColumn, value interface{}) in
 	return value
 }
 
+// getFieldParts 获取字段的部分信息
 func (r *River) getFieldParts(k string, v string) (string, string, string) {
 	composedField := strings.Split(v, ",")
 
@@ -363,6 +378,7 @@ func (r *River) getFieldParts(k string, v string) (string, string, string) {
 	return mysql, elastic, fieldType
 }
 
+// makeInsertReqData 创建插入请求数据
 func (r *River) makeInsertReqData(req *elastic.BulkRequest, rule *rule.Rule, values []interface{}) {
 	req.Data = make(map[string]interface{}, len(values))
 	req.Action = elastic.ActionIndex
@@ -385,11 +401,12 @@ func (r *River) makeInsertReqData(req *elastic.BulkRequest, rule *rule.Rule, val
 	}
 }
 
+// makeUpdateReqData 创建更新请求数据
 func (r *River) makeUpdateReqData(req *elastic.BulkRequest, rule *rule.Rule,
 	beforeValues []interface{}, afterValues []interface{}) {
 	req.Data = make(map[string]interface{}, len(beforeValues))
 
-	// maybe dangerous if something wrong delete before?
+	// 如果出错可能会很危险，是否先删除？
 	req.Action = elastic.ActionUpdate
 
 	for i, c := range rule.TableInfo.Columns {
@@ -398,7 +415,7 @@ func (r *River) makeUpdateReqData(req *elastic.BulkRequest, rule *rule.Rule,
 			continue
 		}
 		if reflect.DeepEqual(beforeValues[i], afterValues[i]) {
-			//nothing changed
+			// 没有任何变化
 			continue
 		}
 		for k, v := range rule.FieldMapping {
@@ -415,8 +432,9 @@ func (r *River) makeUpdateReqData(req *elastic.BulkRequest, rule *rule.Rule,
 	}
 }
 
-// If id in toml file is none, get primary keys in one row and format them into a string, and PK must not be nil
-// Else get the ID's column in one row and format them into a string
+// getDocID 获取文档ID
+// 如果toml文件中的id为none，则获取一行中的主键并将它们格式化为字符串，且PK不能为nil
+// 否则获取一行中的ID列并将它们格式化为字符串
 func (r *River) getDocID(rule *rule.Rule, row []interface{}) (string, error) {
 	var (
 		ids []interface{}
@@ -453,6 +471,7 @@ func (r *River) getDocID(rule *rule.Rule, row []interface{}) (string, error) {
 	return buf.String(), nil
 }
 
+// getParentID 获取父文档ID
 func (r *River) getParentID(rule *rule.Rule, row []interface{}, columnName string) (string, error) {
 	index := rule.TableInfo.FindColumn(columnName)
 	if index < 0 {
@@ -462,19 +481,20 @@ func (r *River) getParentID(rule *rule.Rule, row []interface{}, columnName strin
 	return fmt.Sprint(row[index]), nil
 }
 
+// doBulk 执行批量请求
 func (r *River) doBulk(reqs []*elastic.BulkRequest) error {
 	if len(reqs) == 0 {
 		return nil
 	}
 
 	if resp, err := r.es.Bulk(reqs); err != nil {
-		log.Errorf("sync docs err %v after binlog %s", err, r.canal.SyncedPosition())
+		global.Logger.Errorf("sync docs err %v after binlog %s", err, r.canal.SyncedPosition())
 		return errors.Trace(err)
 	} else if resp.Code/100 == 2 || resp.Errors {
 		for i := 0; i < len(resp.Items); i++ {
 			for action, item := range resp.Items[i] {
 				if len(item.Error) > 0 {
-					log.Errorf("%s index: %s, type: %s, id: %s, status: %d, error: %s",
+					global.Logger.Errorf("%s index: %s, type: %s, id: %s, status: %d, error: %s",
 						action, item.Index, item.Type, item.ID, item.Status, item.Error)
 				}
 			}
@@ -484,7 +504,7 @@ func (r *River) doBulk(reqs []*elastic.BulkRequest) error {
 	return nil
 }
 
-// get mysql field value and convert it to specific value to es
+// getFieldValue 获取mysql字段值并将其转换为特定的es值
 func (r *River) getFieldValue(col *schema.TableColumn, fieldType string, value interface{}) interface{} {
 	var fieldValue interface{}
 	switch fieldType {

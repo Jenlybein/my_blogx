@@ -21,7 +21,7 @@ func Test(t *testing.T) {
 
 // elasticTestSuite 表示Elasticsearch客户端测试的测试套件
 type elasticTestSuite struct {
-	c *Client
+	c *Client // Elasticsearch客户端实例
 }
 
 // 将测试套件注册到gocheck
@@ -90,7 +90,7 @@ func (s *elasticTestSuite) TestSimple(c *C) {
 	for i := 0; i < 10; i++ {
 		id := fmt.Sprintf("%d", i)
 		req := new(BulkRequest)
-		req.Action = ActionIndex
+		req.Action = ActionIndex // 设置操作类型为索引
 		req.ID = id
 		req.Data = makeTestData(fmt.Sprintf("abc %d", i), fmt.Sprintf("hello world %d", i))
 		items[i] = req
@@ -106,7 +106,7 @@ func (s *elasticTestSuite) TestSimple(c *C) {
 	for i := 0; i < 10; i++ {
 		id := fmt.Sprintf("%d", i)
 		req := new(BulkRequest)
-		req.Action = ActionDelete
+		req.Action = ActionDelete // 设置操作类型为删除
 		req.ID = id
 		items[i] = req
 	}
@@ -129,7 +129,7 @@ func (s *elasticTestSuite) TestParent(c *C) {
 	// 创建具有父子关系配置的映射
 	mapping := map[string]interface{}{
 		docType: map[string]interface{}{
-			"_parent": map[string]string{"type": ParentType},
+			"_parent": map[string]string{"type": ParentType}, // 配置父类型
 		},
 	}
 	err := s.c.CreateMapping(index, docType, mapping)

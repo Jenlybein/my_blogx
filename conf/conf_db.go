@@ -12,7 +12,6 @@ type DB struct {
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 	DBName   string `yaml:"dbname"`
-	Debug    bool   `yaml:"debug"`  // 是否开启调试模式：开启后会打印 SQL 语句
 	Source   string `yaml:"source"` // 数据库的源
 }
 

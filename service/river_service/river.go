@@ -11,34 +11,33 @@ import (
 	"sync"
 
 	"github.com/pingcap/errors"
-	"github.com/siddontang/go-log/log"
 	"github.com/siddontang/go-mysql/canal"
 )
 
-// ErrRuleNotExist is the error if rule is not defined.
+// ErrRuleNotExist 是规则不存在的错误
 var ErrRuleNotExist = errors.New("rule is not exist")
 
-// River is a pluggable service within Elasticsearch pulling data then indexing it into Elasticsearch.
-// We use this definition here too, although it may not run within Elasticsearch.
-// Maybe later I can implement a acutal river in Elasticsearch, but I must learn java. :-)
+// River 是一个可插拔的服务，它从Elasticsearch中拉取数据然后将其索引到Elasticsearch中。
+// 我们在这里也使用这个定义，尽管它可能不在Elasticsearch中运行。
+// 也许以后我可以实现一个实际的Elasticsearch river，但我必须学习java。:-)
 type River struct {
-	canal *canal.Canal
+	canal *canal.Canal // MySQL的canal实例
 
-	rules map[string]*rule.Rule
+	rules map[string]*rule.Rule // 规则映射
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx    context.Context    // 上下文
+	cancel context.CancelFunc // 取消函数
 
-	wg sync.WaitGroup
+	wg sync.WaitGroup // 等待组
 
-	es *elastic.Client
+	es *elastic.Client // Elasticsearch客户端
 
-	master *masterInfo
+	master *masterInfo // 主库信息
 
-	syncCh chan interface{}
+	syncCh chan interface{} // 同步通道
 }
 
-// NewRiver creates the River from config
+// NewRiver 根据配置创建River实例
 func NewRiver() (*River, error) {
 	r := new(River)
 
@@ -78,10 +77,12 @@ func NewRiver() (*River, error) {
 	return r, nil
 }
 
+// newCanal 创建canal实例
 func (r *River) newCanal() error {
 	cfg := canal.NewDefaultConfig()
 	db := global.Config.DB[0]
 
+	// 配置mysql连接信息
 	cfg.Addr = db.Addr()
 	cfg.User = db.User
 	cfg.Password = db.Password
@@ -93,6 +94,7 @@ func (r *River) newCanal() error {
 	cfg.Dump.DiscardErr = false
 	cfg.Dump.SkipMasterData = global.Config.River.SkipMasterData
 
+	// 配置需要同步的数据库表，添加正则表达式 "schema\\.table"
 	for _, s := range global.Config.River.Sources {
 		for _, t := range s.Tables {
 			cfg.IncludeTableRegex = append(cfg.IncludeTableRegex, s.Schema+"\\."+t)
@@ -104,6 +106,7 @@ func (r *River) newCanal() error {
 	return errors.Trace(err)
 }
 
+// prepareCanal 准备canal实例
 func (r *River) prepareCanal() error {
 	var db string
 	dbs := map[string]struct{}{}
@@ -132,17 +135,19 @@ func (r *River) prepareCanal() error {
 	return nil
 }
 
+// newRule 创建新规则
 func (r *River) newRule(schema, table string) error {
 	key := ruleKey(schema, table)
 
 	if _, ok := r.rules[key]; ok {
-		return errors.Errorf("duplicate source %s, %s defined in config", schema, table)
+		return errors.Errorf("重复的数据源 %s, %s 已在配置中定义", schema, table)
 	}
 
 	r.rules[key] = rule.NewDefaultRule(schema, table)
 	return nil
 }
 
+// updateRule 更新规则
 func (r *River) updateRule(schema, table string) error {
 	rule, ok := r.rules[ruleKey(schema, table)]
 	if !ok {
@@ -159,26 +164,32 @@ func (r *River) updateRule(schema, table string) error {
 	return nil
 }
 
+// parseSource 解析数据源
 func (r *River) parseSource() (map[string][]string, error) {
+	// 存储通配符表的映射关系，key为 schema.table，value为匹配的表名列表
 	wildTables := make(map[string][]string, len(global.Config.River.Sources))
 
-	// first, check sources
+	// 解析数据源，获取通配符表的映射关系
 	for _, s := range global.Config.River.Sources {
 		if !isValidTables(s.Tables) {
-			return nil, errors.Errorf("wildcard * is not allowed for multiple tables")
+			return nil, errors.Errorf("不允许在多个表中使用通配符 *")
 		}
 
-		for _, table := range s.Tables {
-			if len(s.Schema) == 0 {
-				return nil, errors.Errorf("empty schema not allowed for source")
-			}
+		// 检查数据库名是否为空
+		if len(s.Schema) == 0 {
+			return nil, errors.Errorf("数据源中不允许为空的数据库名")
+		}
 
+		// 解析各个表
+		for _, table := range s.Tables {
+			// 检查表名是否包含正则表达式特殊字符（即是否为通配符表）
 			if regexp.QuoteMeta(table) != table {
 				if _, ok := wildTables[ruleKey(s.Schema, table)]; ok {
-					return nil, errors.Errorf("duplicate wildcard table defined for %s.%s", s.Schema, table)
+					return nil, errors.Errorf("数据源中定义了重复的通配符表 %s.%s", s.Schema, table)
 				}
 
-				tables := []string{}
+				// 执行查询获取匹配的表名，将结果存储在tables切片中
+				tables := []string{} // 存储匹配的表名列表（通配符存在导致可能有多个匹配）
 
 				sql := fmt.Sprintf(`SELECT table_name FROM information_schema.tables WHERE
 					table_name RLIKE "%s" AND table_schema = "%s";`, buildTable(table), s.Schema)
@@ -215,34 +226,44 @@ func (r *River) parseSource() (map[string][]string, error) {
 	return wildTables, nil
 }
 
+// prepareRule 准备规则 - 初始化和配置用于数据同步的规则
 func (r *River) prepareRule() error {
+	// 解析数据源，获取通配符表的映射关系
 	wildtables, err := r.parseSource()
 	if err != nil {
 		return errors.Trace(err)
 	}
 
+	// 如果配置了自定义规则，则应用这些规则
 	if global.Config.River.Rules != nil {
-		// then, set custom mapping rule
+		// 遍历所有自定义规则
 		for _, rule := range global.Config.River.Rules {
+			// 检查规则的数据库名是否为空
 			if len(rule.Schema) == 0 {
-				return errors.Errorf("empty schema not allowed for rule")
+				return errors.Errorf("自定义规则中不允许为空的数据库名")
 			}
 
+			// 检查表名是否包含正则表达式特殊字符（即是否为通配符表）
 			if regexp.QuoteMeta(rule.Table) != rule.Table {
-				//wildcard table
+				// 处理通配符表的情况
 				tables, ok := wildtables[ruleKey(rule.Schema, rule.Table)]
 				if !ok {
-					return errors.Errorf("wildcard table for %s.%s is not defined in source", rule.Schema, rule.Table)
+					return errors.Errorf("通配符表 %s.%s 在数据源中未定义", rule.Schema, rule.Table)
 				}
 
+				// 通配符规则必须指定索引名称
 				if len(rule.Index) == 0 {
-					return errors.Errorf("wildcard table rule %s.%s must have a index, can not empty", rule.Schema, rule.Table)
+					return errors.Errorf("通配符表规则 %s.%s 必须指定索引名称，不能为空", rule.Schema, rule.Table)
 				}
 
+				// 准备规则（预处理操作）
 				rule.Prepare()
 
+				// 将当前规则的配置应用到所有匹配的表上
 				for _, table := range tables {
+					// 获取对应表的规则对象
 					rr := r.rules[ruleKey(rule.Schema, table)]
+					// 应用索引、类型、父级等配置
 					rr.Index = rule.Index
 					rr.Type = rule.Type
 					rr.Parent = rule.Parent
@@ -250,59 +271,69 @@ func (r *River) prepareRule() error {
 					rr.FieldMapping = rule.FieldMapping
 				}
 			} else {
+				// 处理非通配符表（精确匹配）的情况
 				key := ruleKey(rule.Schema, rule.Table)
+				// 检查该表是否已在源配置中定义
 				if _, ok := r.rules[key]; !ok {
-					return errors.Errorf("rule %s, %s not defined in source", rule.Schema, rule.Table)
+					return errors.Errorf("规则 %s.%s 在数据源中未定义", rule.Schema, rule.Table)
 				}
+				// 准备规则
 				rule.Prepare()
+				// 替换原有的默认规则为自定义规则
 				r.rules[key] = rule
 			}
 		}
 	}
 
+	// 创建新的规则映射，过滤掉没有主键的表
 	rules := make(map[string]*rule.Rule)
 	for key, rule := range r.rules {
+		// 从MySQL获取表结构信息
 		if rule.TableInfo, err = r.canal.GetTable(rule.Schema, rule.Table); err != nil {
 			return errors.Trace(err)
 		}
 
+		// 检查表是否有主键，没有主键的表会被忽略（因为无法进行有效的同步）
 		if len(rule.TableInfo.PKColumns) == 0 {
-			log.Errorf("ignored table without a primary key: %s\n", rule.TableInfo.Name)
+			global.Logger.Errorf("ignored table without a primary key: %s\n", rule.TableInfo.Name)
 		} else {
+			// 只保留有主键的表规则
 			rules[key] = rule
 		}
 	}
+	// 更新规则映射
 	r.rules = rules
 
 	return nil
 }
 
+// ruleKey 生成规则键
 func ruleKey(schema string, table string) string {
 	return strings.ToLower(fmt.Sprintf("%s:%s", schema, table))
 }
 
-// Run syncs the data from MySQL and inserts to ES.
+// Run 从MySQL同步数据并插入到ES中
 func (r *River) Run() error {
 	r.wg.Add(1)
 	go r.syncLoop()
 
 	pos := r.master.Position()
 	if err := r.canal.RunFrom(pos); err != nil {
-		log.Errorf("start canal err %v", err)
+		global.Logger.Errorf("start canal err %v", err)
 		return errors.Trace(err)
 	}
 
 	return nil
 }
 
-// Ctx returns the internal context for outside use.
+// Ctx 返回内部上下文供外部使用
 func (r *River) Ctx() context.Context {
 	return r.ctx
 }
 
-// Close closes the River
+// Close 关闭River
 func (r *River) Close() {
-	log.Infof("closing river")
+	global.Logger.Infof("closing river")
 
 	r.cancel()
 
@@ -313,6 +344,7 @@ func (r *River) Close() {
 	r.wg.Wait()
 }
 
+// isValidTables 检查表名是否有效
 func isValidTables(tables []string) bool {
 	if len(tables) > 1 {
 		for _, table := range tables {
@@ -324,6 +356,7 @@ func isValidTables(tables []string) bool {
 	return true
 }
 
+// buildTable 构建表名
 func buildTable(table string) string {
 	if table == "*" {
 		return "." + table

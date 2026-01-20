@@ -3,7 +3,6 @@ module myblogx
 go 1.25.1
 
 require (
-	github.com/BurntSushi/toml v1.3.2
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/gabriel-vasile/mimetype v1.4.12
@@ -22,8 +21,6 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20250318082626-8f80e5cb09ec
 	github.com/pkg/errors v0.9.1
 	github.com/qiniu/go-sdk/v7 v7.25.5
-	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
-	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.44.0
 	golang.org/x/image v0.34.0
@@ -34,12 +31,15 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/pingcap/parser v0.0.0-20190506092653-e336082eb825 // indirect
 	github.com/pingcap/tidb v1.1.0-beta.0.20190117121324-5f8265a8f9be // indirect
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20250421232622-526b2c79173d // indirect
 	github.com/pingcap/tipb v0.0.0-20190428032612-535e1abaa330 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
+	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726 // indirect
+	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed // indirect
 )
 
 require (

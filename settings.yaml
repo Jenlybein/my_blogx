@@ -16,16 +16,15 @@ db:
     user: admin
     password: ******_password1
     dbname: blogx
-    debug: false
     source: mysql
   - host: ******_addr1
     port: ******_port3
     user: admin
     password: ******_password1
     dbname: blogx
-    debug: false
     source: mysql
 gorm:
+  debug: true
   max_idle_conns: 100
   max_open_conns: 100
   conn_max_lifetime: 1

@@ -16,20 +16,20 @@ import (
 // 尽管有很多Go语言的Elasticsearch客户端，我还是想自己实现一个。
 // 因为我们只需要一些非常简单的功能。
 type Client struct {
-	Protocol string
-	Addr     string
-	User     string
-	Password string
+	Protocol string // 协议（http或https）
+	Addr     string // ES服务器地址
+	User     string // 用户名
+	Password string // 密码
 
-	c *http.Client
+	c *http.Client // HTTP客户端
 }
 
 // ClientConfig 是客户端的配置。
 type ClientConfig struct {
-	HTTPS    bool
-	Addr     string
-	User     string
-	Password string
+	HTTPS    bool   // 是否使用HTTPS协议
+	Addr     string // ES服务器地址
+	User     string // 用户名
+	Password string // 密码
 }
 
 // NewClient 根据配置创建客户端。
@@ -56,17 +56,17 @@ func NewClient(conf *ClientConfig) *Client {
 
 // ResponseItem 是响应中的ES项目。
 type ResponseItem struct {
-	ID      string                 `json:"_id"`
-	Index   string                 `json:"_index"`
-	Type    string                 `json:"_type"`
-	Version int                    `json:"_version"`
-	Found   bool                   `json:"found"`
-	Source  map[string]interface{} `json:"_source"`
+	ID      string                 `json:"_id"`      // 文档ID
+	Index   string                 `json:"_index"`   // 索引名称
+	Type    string                 `json:"_type"`    // 文档类型
+	Version int                    `json:"_version"` // 版本号
+	Found   bool                   `json:"found"`    // 是否找到文档
+	Source  map[string]interface{} `json:"_source"`  // 文档源数据
 }
 
 // Response 是ES响应
 type Response struct {
-	Code int
+	Code int // 响应状态码
 	ResponseItem
 }
 
@@ -80,14 +80,14 @@ const (
 
 // BulkRequest 用于批量发送多个请求。
 type BulkRequest struct {
-	Action   string
-	Index    string
-	Type     string
-	ID       string
-	Parent   string
-	Pipeline string
+	Action   string // 批量操作的动作类型
+	Index    string // 索引名称
+	Type     string // 文档类型
+	ID       string // 文档ID
+	Parent   string // 父文档ID
+	Pipeline string // 处理管道
 
-	Data map[string]interface{}
+	Data map[string]interface{} // 请求数据
 }
 
 // bulk 将批量请求序列化为ES格式的数据
@@ -151,38 +151,38 @@ func (r *BulkRequest) bulk(buf *bytes.Buffer) error {
 
 // BulkResponse 是批量请求的响应。
 type BulkResponse struct {
-	Code   int
-	Took   int  `json:"took"`
-	Errors bool `json:"errors"`
+	Code   int  // 响应状态码
+	Took   int  `json:"took"`   // 执行耗时（毫秒）
+	Errors bool `json:"errors"` // 是否有错误
 
-	Items []map[string]*BulkResponseItem `json:"items"`
+	Items []map[string]*BulkResponseItem `json:"items"` // 批量操作结果项
 }
 
 // BulkResponseItem 是批量响应中的项目。
 type BulkResponseItem struct {
-	Index   string          `json:"_index"`
-	Type    string          `json:"_type"`
-	ID      string          `json:"_id"`
-	Version int             `json:"_version"`
-	Status  int             `json:"status"`
-	Error   json.RawMessage `json:"error"`
-	Found   bool            `json:"found"`
+	Index   string          `json:"_index"`   // 索引名称
+	Type    string          `json:"_type"`    // 文档类型
+	ID      string          `json:"_id"`      // 文档ID
+	Version int             `json:"_version"` // 版本号
+	Status  int             `json:"status"`   // 状态码
+	Error   json.RawMessage `json:"error"`    // 错误信息
+	Found   bool            `json:"found"`    // 是否找到
 }
 
 // MappingResponse 是映射请求的响应。
 type MappingResponse struct {
-	Code    int
-	Mapping Mapping
+	Code    int     // 响应状态码
+	Mapping Mapping // 映射结构
 }
 
 // Mapping 表示ES映射。
 type Mapping map[string]struct {
 	Mappings map[string]struct {
 		Properties map[string]struct {
-			Type   string      `json:"type"`
-			Fields interface{} `json:"fields"`
-		} `json:"properties"`
-	} `json:"mappings"`
+			Type   string      `json:"type"`   // 字段类型
+			Fields interface{} `json:"fields"` // 字段定义
+		} `json:"properties"` // 属性映射
+	} `json:"mappings"` // 映射定义
 }
 
 // DoRequest 发送带有请求体的请求到ES。

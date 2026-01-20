@@ -3,6 +3,8 @@
 package core
 
 import (
+	"log"
+	"os"
 	"time"
 
 	"myblogx/conf"
@@ -10,6 +12,7 @@ import (
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/plugin/dbresolver"
 )
 
@@ -18,14 +21,31 @@ func InitDB(dbCfg []conf.DB) *gorm.DB {
 		global.Logger.Fatalf("数据库配置错误：未配置数据库")
 	}
 
+	// 配置日志（Debug 模式）
+	logLevel := logger.Warn
+	if global.Config.GORM.Debug {
+		logLevel = logger.Info
+	}
+	newLogger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags), // 输出到控制台
+		logger.Config{
+			SlowThreshold: time.Second, // 慢查询阈值（超过 1 秒标红）
+			LogLevel:      logLevel,    // SQL 日志级别（Debug 核心）
+			Colorful:      true,        // 彩色输出（开发环境友好）
+		},
+	)
+
+	gormCfg := gorm.Config{
+		Logger:                                   newLogger, // 配置日志
+		DisableForeignKeyConstraintWhenMigrating: true,      // 禁用外键约束
+	}
+
 	// 从配置文件中读取数据库配置
 	DB := dbCfg[0] // 写库
 	dsn := DB.DSN()
 
 	// 连接数据库（使用主库初始化）
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true, // 禁用外键约束
-	})
+	db, err := gorm.Open(mysql.Open(dsn), &gormCfg)
 	if err != nil {
 		global.Logger.Fatalf("数据库连接失败: %s", err)
 	}

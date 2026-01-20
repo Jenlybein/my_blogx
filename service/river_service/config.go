@@ -8,46 +8,56 @@ package river_service
 // 	"github.com/pingcap/errors"
 // )
 
-// // SourceConfig is the configs for source
+// // SourceConfig 定义数据源的配置信息
 // type SourceConfig struct {
-// 	Schema string   `toml:"schema"`
-// 	Tables []string `toml:"tables"`
+// 	Schema string   `toml:"schema"` // 数据库模式名称
+// 	Tables []string `toml:"tables"` // 需要同步的表列表
 // }
 
-// // Config is the configuration
+// // Config 定义River服务的主要配置参数
 // type Config struct {
-// 	MyAddr     string `toml:"my_addr"`
-// 	MyUser     string `toml:"my_user"`
-// 	MyPassword string `toml:"my_pass"`
-// 	MyCharset  string `toml:"my_charset"`
+// 	// MySQL连接配置
+// 	MyAddr     string `toml:"my_addr"`    // MySQL服务器地址
+// 	MyUser     string `toml:"my_user"`    // MySQL用户名
+// 	MyPassword string `toml:"my_pass"`    // MySQL密码
+// 	MyCharset  string `toml:"my_charset"` // MySQL字符集
 
-// 	ESHttps    bool   `toml:"es_https"`
-// 	ESAddr     string `toml:"es_addr"`
-// 	ESUser     string `toml:"es_user"`
-// 	ESPassword string `toml:"es_pass"`
+// 	// Elasticsearch连接配置
+// 	ESHttps    bool   `toml:"es_https"`   // 是否使用HTTPS连接Elasticsearch
+// 	ESAddr     string `toml:"es_addr"`    // Elasticsearch服务器地址
+// 	ESUser     string `toml:"es_user"`    // Elasticsearch用户名
+// 	ESPassword string `toml:"es_pass"`    // Elasticsearch密码
 
-// 	StatAddr string `toml:"stat_addr"`
-// 	StatPath string `toml:"stat_path"`
+// 	// 统计信息配置
+// 	StatAddr string `toml:"stat_addr"`    // 统计信息服务器地址
+// 	StatPath string `toml:"stat_path"`    // 统计信息路径
 
-// 	ServerID uint32 `toml:"server_id"`
-// 	Flavor   string `toml:"flavor"`
-// 	DataDir  string `toml:"data_dir"`
+// 	// MySQL复制配置
+// 	ServerID uint32 `toml:"server_id"`    // MySQL复制的Server ID
+// 	Flavor   string `toml:"flavor"`       // MySQL版本类型
+// 	DataDir  string `toml:"data_dir"`     // 数据存储目录
 
-// 	DumpExec       string `toml:"mysqldump"`
-// 	SkipMasterData bool   `toml:"skip_master_data"`
+// 	// 导出配置
+// 	DumpExec       string `toml:"mysqldump"`      // mysqldump命令路径
+// 	SkipMasterData bool   `toml:"skip_master_data"` // 是否跳过主数据
 
-// 	Sources []SourceConfig `toml:"source"`
+// 	// 数据源配置
+// 	Sources []SourceConfig `toml:"source"` // 数据源列表
 
-// 	Rules []*Rule `toml:"rule"`
+// 	// 规则配置
+// 	Rules []*Rule `toml:"rule"` // 同步规则列表
 
-// 	BulkSize int `toml:"bulk_size"`
+// 	// 批量处理配置
+// 	BulkSize int `toml:"bulk_size"` // 批量处理大小
 
-// 	FlushBulkTime TomlDuration `toml:"flush_bulk_time"`
+// 	// 刷新时间配置
+// 	FlushBulkTime TomlDuration `toml:"flush_bulk_time"` // 批量刷新时间间隔
 
-// 	SkipNoPkTable bool `toml:"skip_no_pk_table"`
+// 	// 表处理配置
+// 	SkipNoPkTable bool `toml:"skip_no_pk_table"` // 是否跳过没有主键的表
 // }
 
-// // NewConfigWithFile creates a Config from file.
+// // NewConfigWithFile 从文件创建一个新的配置对象
 // func NewConfigWithFile(name string) (*Config, error) {
 // 	data, err := ioutil.ReadFile(name)
 // 	if err != nil {
@@ -57,7 +67,7 @@ package river_service
 // 	return NewConfig(string(data))
 // }
 
-// // NewConfig creates a Config from data.
+// // NewConfig 从数据字符串创建一个新的配置对象
 // func NewConfig(data string) (*Config, error) {
 // 	var c Config
 
@@ -69,14 +79,15 @@ package river_service
 // 	return &c, nil
 // }
 
-// // TomlDuration supports time codec for TOML format.
+// // TomlDuration 支持TOML格式的时间编解码
 // type TomlDuration struct {
 // 	time.Duration
 // }
 
-// // UnmarshalText implementes TOML UnmarshalText
+// // UnmarshalText 实现TOML的UnmarshalText接口
 // func (d *TomlDuration) UnmarshalText(text []byte) error {
 // 	var err error
 // 	d.Duration, err = time.ParseDuration(string(text))
 // 	return err
 // }
+//
