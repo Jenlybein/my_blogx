@@ -47,6 +47,10 @@ river:
   server_id: 1001
   flavor: mysql
   data_dir: ./var
+  mysql:
+    addr: ******_addr1:******_port2
+    user: admin
+    password: ******_password1
   source:
     - schema: blogx
       tables:

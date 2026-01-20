@@ -5,10 +5,13 @@ import "myblogx/service/river_service/rule"
 type River struct {
 	Enabled bool `yaml:"enabled"`
 
-	ServerID uint32        `yaml:"server_id"`
-	Flavor   string        `yaml:"flavor"`
-	DataDir  string        `yaml:"data_dir"`
-	Sources  []RiverSource `yaml:"source"`
+	ServerID uint32 `yaml:"server_id"`
+	Flavor   string `yaml:"flavor"`
+	DataDir  string `yaml:"data_dir"`
+
+	Mysql RiverMysql `yaml:"mysql"`
+
+	Sources []RiverSource `yaml:"source"`
 
 	Rules []*rule.Rule `yaml:"rule"`
 
@@ -24,4 +27,10 @@ type River struct {
 type RiverSource struct {
 	Schema string   `yaml:"schema"`
 	Tables []string `yaml:"tables"`
+}
+
+type RiverMysql struct {
+	Addr     string `yaml:"addr"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
 }

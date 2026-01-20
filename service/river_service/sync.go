@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"myblogx/global"
-	"myblogx/service/river_service/elastic"
+	"myblogx/service/es_service"
 	"myblogx/service/river_service/rule"
 	"reflect"
 	"strings"
@@ -78,7 +78,7 @@ func (h *eventHandler) OnRow(e *canal.RowsEvent) error {
 		return nil
 	}
 
-	var reqs []*elastic.BulkRequest
+	var reqs []*es_service.BulkRequest
 	var err error
 	switch e.Action {
 	case canal.InsertAction:
@@ -138,7 +138,7 @@ func (r *River) syncLoop() {
 	defer r.wg.Done()
 
 	lastSavedTime := time.Now()
-	reqs := make([]*elastic.BulkRequest, 0, 1024)
+	reqs := make([]*es_service.BulkRequest, 0, 1024)
 
 	var pos mysql.Position
 
@@ -157,7 +157,7 @@ func (r *River) syncLoop() {
 					needSavePos = true
 					pos = v.pos
 				}
-			case []*elastic.BulkRequest:
+			case []*es_service.BulkRequest:
 				reqs = append(reqs, v...)
 				needFlush = len(reqs) >= bulkSize
 			}
@@ -188,8 +188,8 @@ func (r *River) syncLoop() {
 }
 
 // makeRequest 为插入和删除操作创建请求
-func (r *River) makeRequest(rule *rule.Rule, action string, rows [][]interface{}) ([]*elastic.BulkRequest, error) {
-	reqs := make([]*elastic.BulkRequest, 0, len(rows))
+func (r *River) makeRequest(rule *rule.Rule, action string, rows [][]interface{}) ([]*es_service.BulkRequest, error) {
+	reqs := make([]*es_service.BulkRequest, 0, len(rows))
 
 	for _, values := range rows {
 		id, err := r.getDocID(rule, values)
@@ -204,10 +204,10 @@ func (r *River) makeRequest(rule *rule.Rule, action string, rows [][]interface{}
 			}
 		}
 
-		req := &elastic.BulkRequest{Index: rule.Index, Type: rule.Type, ID: id, Parent: parentID, Pipeline: rule.Pipeline}
+		req := &es_service.BulkRequest{Index: rule.Index, Type: rule.Type, ID: id, Parent: parentID, Pipeline: rule.Pipeline}
 
 		if action == canal.DeleteAction {
-			req.Action = elastic.ActionDelete
+			req.Action = es_service.ActionDelete
 		} else {
 			r.makeInsertReqData(req, rule, values)
 		}
@@ -219,22 +219,22 @@ func (r *River) makeRequest(rule *rule.Rule, action string, rows [][]interface{}
 }
 
 // makeInsertRequest 创建插入请求
-func (r *River) makeInsertRequest(rule *rule.Rule, rows [][]interface{}) ([]*elastic.BulkRequest, error) {
+func (r *River) makeInsertRequest(rule *rule.Rule, rows [][]interface{}) ([]*es_service.BulkRequest, error) {
 	return r.makeRequest(rule, canal.InsertAction, rows)
 }
 
 // makeDeleteRequest 创建删除请求
-func (r *River) makeDeleteRequest(rule *rule.Rule, rows [][]interface{}) ([]*elastic.BulkRequest, error) {
+func (r *River) makeDeleteRequest(rule *rule.Rule, rows [][]interface{}) ([]*es_service.BulkRequest, error) {
 	return r.makeRequest(rule, canal.DeleteAction, rows)
 }
 
 // makeUpdateRequest 创建更新请求
-func (r *River) makeUpdateRequest(rule *rule.Rule, rows [][]interface{}) ([]*elastic.BulkRequest, error) {
+func (r *River) makeUpdateRequest(rule *rule.Rule, rows [][]interface{}) ([]*es_service.BulkRequest, error) {
 	if len(rows)%2 != 0 {
 		return nil, errors.Errorf("invalid update rows event, must have 2x rows, but %d", len(rows))
 	}
 
-	reqs := make([]*elastic.BulkRequest, 0, len(rows))
+	reqs := make([]*es_service.BulkRequest, 0, len(rows))
 
 	for i := 0; i < len(rows); i += 2 {
 		beforeID, err := r.getDocID(rule, rows[i])
@@ -258,13 +258,13 @@ func (r *River) makeUpdateRequest(rule *rule.Rule, rows [][]interface{}) ([]*ela
 			}
 		}
 
-		req := &elastic.BulkRequest{Index: rule.Index, Type: rule.Type, ID: beforeID, Parent: beforeParentID}
+		req := &es_service.BulkRequest{Index: rule.Index, Type: rule.Type, ID: beforeID, Parent: beforeParentID}
 
 		if beforeID != afterID || beforeParentID != afterParentID {
-			req.Action = elastic.ActionDelete
+			req.Action = es_service.ActionDelete
 			reqs = append(reqs, req)
 
-			req = &elastic.BulkRequest{Index: rule.Index, Type: rule.Type, ID: afterID, Parent: afterParentID, Pipeline: rule.Pipeline}
+			req = &es_service.BulkRequest{Index: rule.Index, Type: rule.Type, ID: afterID, Parent: afterParentID, Pipeline: rule.Pipeline}
 			r.makeInsertReqData(req, rule, rows[i+1])
 
 		} else {
@@ -272,7 +272,7 @@ func (r *River) makeUpdateRequest(rule *rule.Rule, rows [][]interface{}) ([]*ela
 				// 管道只能在索引操作上指定
 				r.makeInsertReqData(req, rule, rows[i+1])
 				// 确保操作是索引，而不是创建
-				req.Action = elastic.ActionIndex
+				req.Action = es_service.ActionIndex
 				req.Pipeline = rule.Pipeline
 			} else {
 				r.makeUpdateReqData(req, rule, rows[i], rows[i+1])
@@ -384,9 +384,10 @@ func (r *River) getFieldParts(k string, v string) (string, string, string) {
 }
 
 // makeInsertReqData 创建插入请求数据
-func (r *River) makeInsertReqData(req *elastic.BulkRequest, rule *rule.Rule, values []interface{}) {
+func (r *River) makeInsertReqData(req *es_service.BulkRequest, rule *rule.Rule, values []interface{}) {
 	req.Data = make(map[string]interface{}, len(values))
-	req.Action = elastic.ActionIndex
+
+	req.Action = es_service.ActionIndex
 
 	for i, c := range rule.TableInfo.Columns {
 		if !rule.CheckFilter(c.Name) {
@@ -407,12 +408,12 @@ func (r *River) makeInsertReqData(req *elastic.BulkRequest, rule *rule.Rule, val
 }
 
 // makeUpdateReqData 创建更新请求数据
-func (r *River) makeUpdateReqData(req *elastic.BulkRequest, rule *rule.Rule,
+func (r *River) makeUpdateReqData(req *es_service.BulkRequest, rule *rule.Rule,
 	beforeValues []interface{}, afterValues []interface{}) {
 	req.Data = make(map[string]interface{}, len(beforeValues))
 
 	// 如果出错可能会很危险，是否先删除？
-	req.Action = elastic.ActionUpdate
+	req.Action = es_service.ActionUpdate
 
 	for i, c := range rule.TableInfo.Columns {
 		mapped := false
@@ -487,23 +488,14 @@ func (r *River) getParentID(rule *rule.Rule, row []interface{}, columnName strin
 }
 
 // doBulk 执行批量请求
-func (r *River) doBulk(reqs []*elastic.BulkRequest) error {
+func (r *River) doBulk(reqs []*es_service.BulkRequest) error {
 	if len(reqs) == 0 {
 		return nil
 	}
 
-	if resp, err := r.es.Bulk(reqs); err != nil {
-		global.Logger.Errorf("sync docs err %v after binlog %s", err, r.canal.SyncedPosition())
-		return errors.Trace(err)
-	} else if resp.Code/100 == 2 || resp.Errors {
-		for i := 0; i < len(resp.Items); i++ {
-			for action, item := range resp.Items[i] {
-				if len(item.Error) > 0 {
-					global.Logger.Errorf("%s index: %s, type: %s, id: %s, status: %d, error: %s",
-						action, item.Index, item.Type, item.ID, item.Status, item.Error)
-				}
-			}
-		}
+	resp := es_service.Bulk(reqs)
+	if !resp.Success {
+		global.Logger.Errorf("sync docs err %s after binlog %s", resp.Msg, r.canal.SyncedPosition())
 	}
 
 	return nil

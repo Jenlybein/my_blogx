@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"myblogx/global"
-	"myblogx/service/river_service/elastic"
 	"myblogx/service/river_service/rule"
 	"regexp"
 	"strings"
@@ -18,8 +17,6 @@ import (
 var ErrRuleNotExist = errors.New("rule is not exist")
 
 // River 是一个可插拔的服务，它从Elasticsearch中拉取数据然后将其索引到Elasticsearch中。
-// 我们在这里也使用这个定义，尽管它可能不在Elasticsearch中运行。
-// 也许以后我可以实现一个实际的Elasticsearch river，但我必须学习java。:-)
 type River struct {
 	canal *canal.Canal // MySQL的canal实例
 
@@ -30,14 +27,12 @@ type River struct {
 
 	wg sync.WaitGroup // 等待组
 
-	es *elastic.Client // Elasticsearch客户端
-
 	master *masterInfo // 主库信息
 
 	syncCh chan interface{} // 同步通道
 }
 
-// NewRiver 根据配置创建River实例
+// NewRiver 根据配置创建 River 实例
 func NewRiver() (*River, error) {
 	r := new(River)
 
@@ -67,25 +62,17 @@ func NewRiver() (*River, error) {
 		return nil, errors.Trace(err)
 	}
 
-	cfg := new(elastic.ClientConfig)
-	cfg.Addr = global.Config.ES.Addr
-	cfg.User = global.Config.ES.Username
-	cfg.Password = global.Config.ES.Password
-	cfg.HTTPS = global.Config.ES.IsHttps
-	r.es = elastic.NewClient(cfg)
-
 	return r, nil
 }
 
 // newCanal 创建canal实例
 func (r *River) newCanal() error {
 	cfg := canal.NewDefaultConfig()
-	db := global.Config.DB[0]
 
 	// 配置mysql连接信息
-	cfg.Addr = db.Addr()
-	cfg.User = db.User
-	cfg.Password = db.Password
+	cfg.Addr = global.Config.River.Mysql.Addr
+	cfg.User = global.Config.River.Mysql.User
+	cfg.Password = global.Config.River.Mysql.Password
 	cfg.Charset = global.Config.River.Charset
 	cfg.Flavor = global.Config.River.Flavor
 

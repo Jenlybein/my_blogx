@@ -91,6 +91,15 @@ func decodeResponse(body io.ReadCloser) (map[string]any, error) {
 	return target, err
 }
 
+// --- 批量操作相关常量 ---
+
+const (
+	ActionCreate = "create" // 创建动作
+	ActionUpdate = "update" // 更新动作
+	ActionDelete = "delete" // 删除动作
+	ActionIndex  = "index"  // 索引动作
+)
+
 // --- 批量操作相关结构体 ---
 
 // BulkRequest 用于批量发送多个请求
