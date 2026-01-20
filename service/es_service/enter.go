@@ -91,6 +91,47 @@ func decodeResponse(body io.ReadCloser) (map[string]any, error) {
 	return target, err
 }
 
+// --- 批量操作相关结构体 ---
+
+// BulkRequest 用于批量发送多个请求
+type BulkRequest struct {
+	Action   string                 // 批量操作的动作类型
+	Index    string                 // 索引名称
+	Type     string                 // 文档类型
+	ID       string                 // 文档ID
+	Parent   string                 // 父文档ID
+	Pipeline string                 // 处理管道
+	Data     map[string]interface{} // 请求数据
+}
+
+// BulkResponse 是批量请求的响应
+type BulkResponse struct {
+	Took   int                            `json:"took"`   // 执行耗时（毫秒）
+	Errors bool                           `json:"errors"` // 是否有错误
+	Items  []map[string]*BulkResponseItem `json:"items"`  // 批量操作结果项
+}
+
+// BulkResponseItem 是批量响应中的项目
+type BulkResponseItem struct {
+	Index   string          `json:"_index"`   // 索引名称
+	Type    string          `json:"_type"`    // 文档类型
+	ID      string          `json:"_id"`      // 文档ID
+	Version int             `json:"_version"` // 版本号
+	Status  int             `json:"status"`   // 状态码
+	Error   json.RawMessage `json:"error"`    // 错误信息
+	Found   bool            `json:"found"`    // 是否找到
+}
+
+// Mapping 表示ES映射
+type Mapping map[string]struct {
+	Mappings map[string]struct {
+		Properties map[string]struct {
+			Type   string      `json:"type"`   // 字段类型
+			Fields interface{} `json:"fields"` // 字段定义
+		} `json:"properties"` // 属性映射
+	} `json:"mappings"` // 映射定义
+}
+
 // --- 业务操作封装 ---
 
 // 创建通用文档（泛型）
@@ -174,4 +215,240 @@ func DeleteDocument(index, docID string) ESResponse {
 
 	result, _ := decodeResponse(res.Body)
 	return ESResponse{Success: true, Msg: "删除成功", Data: result}
+}
+
+// --- 批量操作函数 ---
+
+// 构建批量请求体
+func buildBulkBody(items []*BulkRequest) ([]byte, error) {
+	var buf bytes.Buffer
+	for _, item := range items {
+		meta := make(map[string]map[string]string)
+		metaData := make(map[string]string)
+		if item.Index != "" {
+			metaData["_index"] = item.Index
+		}
+		if item.Type != "" {
+			metaData["_type"] = item.Type
+		}
+		if item.ID != "" {
+			metaData["_id"] = item.ID
+		}
+		if item.Parent != "" {
+			metaData["_parent"] = item.Parent
+		}
+		if item.Pipeline != "" {
+			metaData["pipeline"] = item.Pipeline
+		}
+		meta[item.Action] = metaData
+
+		if data, err := json.Marshal(meta); err != nil {
+			return nil, err
+		} else {
+			buf.Write(data)
+			buf.WriteByte('\n')
+		}
+
+		switch item.Action {
+		case "delete":
+			// 删除操作不需要额外数据
+		case "update":
+			doc := map[string]interface{}{
+				"doc": item.Data,
+			}
+			if data, err := json.Marshal(doc); err != nil {
+				return nil, err
+			} else {
+				buf.Write(data)
+				buf.WriteByte('\n')
+			}
+		default:
+			// 用于创建和索引操作
+			if data, err := json.Marshal(item.Data); err != nil {
+				return nil, err
+			} else {
+				buf.Write(data)
+				buf.WriteByte('\n')
+			}
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+// Bulk 发送批量请求
+func Bulk(items []*BulkRequest) ESResponse {
+	body, err := buildBulkBody(items)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+
+	req := esapi.BulkRequest{
+		Body: bytes.NewReader(body),
+	}
+
+	res, err := doRequest(req)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+
+	result, _ := decodeResponse(res.Body)
+	return ESResponse{Success: true, Msg: "批量操作成功", Data: result}
+}
+
+// IndexBulk 发送针对索引的批量请求
+func IndexBulk(index string, items []*BulkRequest) ESResponse {
+	body, err := buildBulkBody(items)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+
+	req := esapi.BulkRequest{
+		Index: index,
+		Body:  bytes.NewReader(body),
+	}
+
+	res, err := doRequest(req)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+
+	result, _ := decodeResponse(res.Body)
+	return ESResponse{Success: true, Msg: "索引批量操作成功", Data: result}
+}
+
+// IndexTypeBulk 发送针对索引和文档类型的批量请求
+func IndexTypeBulk(index, docType string, items []*BulkRequest) ESResponse {
+	body, err := buildBulkBody(items)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+
+	req := esapi.BulkRequest{
+		Index: index,
+		Body:  bytes.NewReader(body),
+	}
+
+	res, err := doRequest(req)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+
+	result, _ := decodeResponse(res.Body)
+	return ESResponse{Success: true, Msg: "索引类型批量操作成功", Data: result}
+}
+
+// --- 映射管理函数 ---
+
+// CreateMapping 创建ES映射
+func CreateMapping(index, docType string, mapping map[string]interface{}) ESResponse {
+	// 先检查索引是否存在
+	existsReq := esapi.IndicesExistsRequest{
+		Index: []string{index},
+	}
+	existsRes, err := existsReq.Do(context.Background(), global.ESClient)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+	defer closeResponse(existsRes)
+
+	// 如果索引不存在，创建索引
+	if existsRes.IsError() {
+		createReq := esapi.IndicesCreateRequest{
+			Index: index,
+		}
+		var createRes *esapi.Response
+		var createErr error
+		createRes, createErr = createReq.Do(context.Background(), global.ESClient)
+		if createErr != nil {
+			return ESResponse{Success: false, Msg: createErr.Error()}
+		}
+		defer closeResponse(createRes)
+		if createRes.IsError() {
+			return ESResponse{Success: false, Msg: handleError(createRes).Error()}
+		}
+	}
+
+	// 创建映射
+	mappingJSON, _ := json.Marshal(mapping)
+	mapReq := esapi.IndicesPutMappingRequest{
+		Index: []string{index},
+		Body:  bytes.NewReader([]byte(fmt.Sprintf(`{"properties":%s}`, string(mappingJSON)))),
+	}
+	mapRes, err := mapReq.Do(context.Background(), global.ESClient)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+	defer closeResponse(mapRes)
+
+	if mapRes.IsError() {
+		return ESResponse{Success: false, Msg: handleError(mapRes).Error()}
+	}
+
+	return ESResponse{Success: true, Msg: "映射创建成功"}
+}
+
+// GetMapping 获取映射
+func GetMapping(index, docType string) ESResponse {
+	req := esapi.IndicesGetMappingRequest{
+		Index: []string{index},
+	}
+
+	res, err := doRequest(req)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+
+	result, _ := decodeResponse(res.Body)
+	return ESResponse{Success: true, Msg: "获取映射成功", Data: result}
+}
+
+// --- 索引管理函数 ---
+
+// DeleteIndexWithResponse 删除索引并返回响应
+func DeleteIndexWithResponse(index string) ESResponse {
+	req := esapi.IndicesDeleteRequest{
+		Index: []string{index},
+	}
+
+	res, err := doRequest(req)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+
+	result, _ := decodeResponse(res.Body)
+	return ESResponse{Success: true, Msg: "删除索引成功", Data: result}
+}
+
+// --- 文档操作函数 ---
+
+// Get 根据ID获取文档
+func Get(index, docType, id string) ESResponse {
+	req := esapi.GetRequest{
+		Index:      index,
+		DocumentID: id,
+	}
+
+	res, err := doRequest(req)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+
+	result, _ := decodeResponse(res.Body)
+	return ESResponse{Success: true, Msg: "获取文档成功", Data: result}
+}
+
+// Exists 检查文档是否存在
+func Exists(index, docType, id string) ESResponse {
+	req := esapi.ExistsRequest{
+		Index:      index,
+		DocumentID: id,
+	}
+
+	res, err := req.Do(context.Background(), global.ESClient)
+	if err != nil {
+		return ESResponse{Success: false, Msg: err.Error()}
+	}
+	defer closeResponse(res)
+
+	return ESResponse{Success: true, Msg: "检查文档存在性成功", Data: !res.IsError()}
 }

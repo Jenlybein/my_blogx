@@ -3,7 +3,7 @@ package rule
 import (
 	"strings"
 
-	"github.com/siddontang/go-mysql/schema"
+	"github.com/go-mysql-org/go-mysql/schema"
 )
 
 // Rule 是从MySQL到ES同步数据的规则。

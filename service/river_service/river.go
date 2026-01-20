@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/go-mysql-org/go-mysql/canal"
 	"github.com/pingcap/errors"
-	"github.com/siddontang/go-mysql/canal"
 )
 
 // ErrRuleNotExist 是规则不存在的错误

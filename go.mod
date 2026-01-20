@@ -32,14 +32,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
-	github.com/golang/protobuf v1.5.0 // indirect
-	github.com/pingcap/parser v0.0.0-20190506092653-e336082eb825 // indirect
-	github.com/pingcap/tidb v1.1.0-beta.0.20190117121324-5f8265a8f9be // indirect
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20250421232622-526b2c79173d // indirect
-	github.com/pingcap/tipb v0.0.0-20190428032612-535e1abaa330 // indirect
-	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726 // indirect
-	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed // indirect
 )
 
 require (
@@ -72,7 +65,6 @@ require (
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/siddontang/go-mysql v0.0.0-20190524062908-de6c3a84bcbe
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect

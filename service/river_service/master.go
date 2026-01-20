@@ -10,8 +10,8 @@ import (
 
 	"myblogx/global"
 
+	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/pingcap/errors"
-	"github.com/siddontang/go-mysql/mysql"
 	"gopkg.in/yaml.v3"
 )
 
