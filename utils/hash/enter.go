@@ -37,3 +37,10 @@ func FileMd5(file string) (string, error) {
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
+
+// 计算传入 data 的 md5 值
+func Md5(data []byte) string {
+	h := md5.New()
+	h.Write(data)
+	return hex.EncodeToString(h.Sum(nil))
+}

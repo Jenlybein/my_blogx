@@ -3,6 +3,7 @@
 package api
 
 import (
+	"myblogx/api/article_api"
 	"myblogx/api/banner_api"
 	"myblogx/api/captcha_api"
 	"myblogx/api/image_api"
@@ -18,6 +19,7 @@ type Api struct {
 	BannerApi       banner_api.BannerApi
 	ImageCaptchaApi captcha_api.ImageCaptchaApi
 	UserApi         user_api.UserApi
+	ArticleApi      article_api.ArticleApi
 }
 
 var App = Api{}

@@ -69,6 +69,9 @@ func NewRiver() (*River, error) {
 func (r *River) newCanal() error {
 	cfg := canal.NewDefaultConfig()
 
+	// // 配置日志记录器，使用 global.Logger
+	cfg.Logger = logrusToSlogAdapter(global.Logger)
+
 	// 配置mysql连接信息
 	cfg.Addr = global.Config.River.Mysql.Addr
 	cfg.User = global.Config.River.Mysql.User

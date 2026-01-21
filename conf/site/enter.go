@@ -52,5 +52,5 @@ type IndexRight struct {
 }
 
 type Article struct {
-	SkipAudit bool `yaml:"skip_audit" json:"skip_audit"` // 免审核
+	SkipExamining bool `yaml:"skip_examining" json:"skip_examining"` // 免审核
 }

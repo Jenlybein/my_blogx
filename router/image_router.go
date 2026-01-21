@@ -2,6 +2,7 @@ package router
 
 import (
 	"myblogx/api"
+	"myblogx/api/image_api"
 	"myblogx/common"
 	"myblogx/middleware"
 	"myblogx/models"
@@ -18,6 +19,7 @@ func ImageRouter(r *gin.RouterGroup) {
 
 	authGroup.POST("", app.ImageUploadView)
 	authGroup.POST("qiniu", app.GenUpToken)
+	authGroup.POST("transfer", middleware.BindJsonMiddleware[image_api.TransferSaveRequest], app.TransferSaveView)
 
 	adminGroup.GET("", middleware.BindQueryMiddleware[common.PageInfo], app.ImageListView)
 	adminGroup.DELETE("", middleware.BindJsonMiddleware[models.RemoveRequest], app.ImageRemoveView)

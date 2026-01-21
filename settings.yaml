@@ -63,7 +63,7 @@ river:
       field:
         tag_list: tag_list,list
   charset: "utf8mb4"
-  mysqldump: ""
+  mysqldump: "mysqldump"
   skip_master_data: true
   bulk_size: 128
   flush_bulk_time: 200
@@ -105,7 +105,7 @@ site:
   index_right:
     list: []
   article:
-    skip_audit: true
+    skip_examining: true
 email:
   domain: ******_domain1
   port: ******_port5
