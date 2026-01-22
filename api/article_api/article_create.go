@@ -1,8 +1,6 @@
 package article_api
 
 import (
-	"bytes"
-	"fmt"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
@@ -12,7 +10,6 @@ import (
 	"myblogx/utils/jwts"
 	"myblogx/utils/markdown"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,7 +17,7 @@ type ArticleCreateRequest struct {
 	Title          string             `json:"title" binding:"required"`
 	Abstract       string             `json:"abstract"`
 	Content        string             `json:"content" binding:"required"`
-	CategoryID     uint               `json:"category_id"`
+	CategoryID     *uint              `json:"category_id"`
 	TagList        ctype.List         `json:"tag_list"`
 	Cover          string             `json:"cover"`
 	CommentsToggle bool               `json:"comments_toggle"`
@@ -37,65 +34,49 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 	}
 
 	// 判断分类id是否存在
-	var category models.CategoryModel
-	if err := global.DB.Take(&category, "id = ? AND user_id = ?", cr.CategoryID, claims.UserID).Error; err != nil {
-		res.FailWithMsg("分类不存在", c)
-		return
-	}
-
-	// 文章正文防止 xss 注入
-	contentDoc, err := goquery.NewDocumentFromReader(bytes.NewReader([]byte(cr.Content)))
-	if err != nil {
-		res.FailWithMsg("解析正文失败", c)
-		return
-	}
-	contentDoc.Find("img").Each(func(i int, s *goquery.Selection) {
-		url, exists := s.Attr("src")
-		if exists {
-			alt := s.Text()
-			if alt == "" {
-				alt = "image"
-			}
-			// 替换 img 标签为 Markdown 图片语法
-			s.ReplaceWithHtml(fmt.Sprintf("![%s](%s)", alt, url))
+	if cr.CategoryID != nil {
+		var category models.CategoryModel
+		if err := global.DB.Take(&category, "id = ? AND user_id = ?", *cr.CategoryID, claims.UserID).Error; err != nil {
+			res.FailWithMsg("分类不存在", c)
+			return
 		}
-	})
-	contentDoc.Find("script, style, iframe, embed, object, param, video, audio, source, track, menu").Remove()
-	cr.Content, _ = contentDoc.Html()
+	}
+	// 从正文中提取纯文本内容
+	textContent := markdown.MdToText(cr.Content)
+
+	// 文章正文防止 xss 注入，安全转为 html 格式
+	htmlContent := markdown.MdToHTMLSafe(cr.Content)
 
 	// 不传简介，则从正文中提取前 200 个字符
 	if cr.Abstract == "" {
-		// 把正文中的 markdown 格式去掉
-		html := markdown.MdToHTML(cr.Content)
-		doc, err := goquery.NewDocumentFromReader(bytes.NewReader([]byte(html)))
-		if err != nil {
-			res.FailWithMsg("解析正文失败", c)
-			return
-		}
-		htmlText := doc.Text()
-		if len(htmlText) > 200 {
-			cr.Abstract = htmlText[:200]
+		if len(textContent) > 200 {
+			// 把字符串转为rune切片（rune对应单个Unicode字符）
+			runes := []rune(textContent)
+			// 安全截取子字符串
+			cr.Abstract = string(runes[:200])
 		} else {
-			cr.Abstract = htmlText
+			cr.Abstract = textContent
 		}
 	}
-
-	// 正文内容图片转存
 
 	var article = models.ArticleModel{
 		AuthorID:       claims.UserID,
 		Title:          cr.Title,
 		Abstract:       cr.Abstract,
 		Content:        cr.Content,
-		CategoryID:     &cr.CategoryID,
+		HtmlContent:    htmlContent,
+		CategoryID:     cr.CategoryID,
 		TagList:        cr.TagList,
-		Cover:          &cr.Cover,
+		Cover:          cr.Cover,
 		CommentsToggle: cr.CommentsToggle,
-		Status:         enum.ArticleStatusDraft,
+		Status:         cr.Status,
 	}
 
 	if global.Config.Site.Article.SkipExamining {
-		article.Status = enum.ArticleStatusPublished
+		if cr.Status == enum.ArticleStatusExamining {
+			article.Status = enum.ArticleStatusPublished
+		}
+		// TODO：审核 textContent 内容，判断是否包含违规内容
 	}
 
 	if err := global.DB.Create(&article).Error; err != nil {
@@ -106,23 +87,3 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 	// 可以返回文章id
 	res.OkWithMsg("创建文章成功", c)
 }
-
-// func xssFilter(content string) (string, error) {
-// 	contentDoc, err := goquery.NewDocumentFromReader(bytes.NewReader([]byte(content)))
-// 	if err != nil {
-// 		return content, errors.New("解析正文失败")
-// 	}
-
-// 	// 提取img标签的图片url，转为markdown格式
-// 	contentDoc.Find("img").Map(func(i int, s *goquery.Selection) string {
-// 		url, _ := s.Attr("src")
-// 		return fmt.Sprintf("![%s](%s)", s.Text(), url)
-// 	})
-
-// 	// 过滤不需要的标签
-// 	contentDoc.Find("script, style, iframe, embed, object, param, video, audio, source, track, menu").Remove()
-
-// 	filteredContent := contentDoc.Text()
-
-// 	return filteredContent, nil
-// }

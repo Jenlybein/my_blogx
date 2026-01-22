@@ -494,8 +494,71 @@ func (r *River) doBulk(reqs []*es_service.BulkRequest) error {
 	}
 
 	resp := es_service.Bulk(reqs)
+
+	errorsCount := 0
+	successCount := 0
+
+	// 输出响应数据
+	if resp.Data != nil {
+		dataBytes, err := json.Marshal(resp.Data)
+		if err == nil {
+			// 解析响应数据，分析每个操作的状态
+			var bulkResp map[string]interface{}
+			if json.Unmarshal(dataBytes, &bulkResp) == nil {
+				if items, ok := bulkResp["items"].([]interface{}); ok {
+					for _, item := range items {
+						if itemMap, ok := item.(map[string]interface{}); ok {
+							for action, result := range itemMap {
+								if resultMap, ok := result.(map[string]interface{}); ok {
+									status := int(resultMap["status"].(float64))
+									var resultStr string
+									if resultVal, exists := resultMap["result"]; exists && resultVal != nil {
+										resultStr = resultVal.(string)
+									}
+									docID := resultMap["_id"].(string)
+
+									// 检查是否有错误信息
+									var errorMsg string
+									if errorVal, exists := resultMap["error"]; exists && errorVal != nil {
+										if errorMap, ok := errorVal.(map[string]interface{}); ok {
+											if reason, exists := errorMap["reason"].(string); exists {
+												errorMsg = reason
+											}
+											if causedBy, exists := errorMap["caused_by"].(map[string]interface{}); exists {
+												if cbReason, exists := causedBy["reason"].(string); exists {
+													errorMsg = errorMsg + " (原因: " + cbReason + ")"
+												}
+											}
+										}
+									}
+
+									// 根据状态和结果分析
+									switch {
+									case status >= 200 && status < 300:
+										successCount++
+									default:
+										errorsCount++
+										if errorMsg != "" {
+											global.Logger.Errorf("同步错误: %s 操作文档 %s 失败，状态: %d, 错误: %s", action, docID, status, errorMsg)
+										} else {
+											global.Logger.Errorf("同步错误: %s 操作文档 %s 失败，状态: %d, 结果: %s", action, docID, status, resultStr)
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// 输出操作统计信息
+	global.Logger.Infof("同步操作统计: 总计=%d, 成功=%d, 失败=%d, binlog=%s",
+		len(reqs), successCount, errorsCount, r.canal.SyncedPosition())
+
 	if !resp.Success {
-		global.Logger.Errorf("sync docs err %s after binlog %s", resp.Msg, r.canal.SyncedPosition())
+		global.Logger.Errorf("同步文档失败 %s, binlog=%s", resp.Msg, r.canal.SyncedPosition())
 	}
 
 	return nil

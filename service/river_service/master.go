@@ -56,7 +56,7 @@ func loadMasterInfo(dataDir string) (*masterInfo, error) {
 
 // Save 保存MySQL位置信息到文件
 func (m *masterInfo) Save(pos mysql.Position) error {
-	global.Logger.Infof("save position %s", pos)
+	global.Logger.Debugf("save position %s", pos)
 
 	m.Lock()
 	defer m.Unlock()

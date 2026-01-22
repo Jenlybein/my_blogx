@@ -25,7 +25,7 @@ func CreateIndex(index, mapping string) {
 
 	// 检查响应状态码
 	if res.IsError() {
-		global.Logger.Errorf("创建索引 %s 失败，响应错误: %s", index, res.Status())
+		global.Logger.Errorf("创建索引 %s 失败，响应体: %s", index, res.String())
 		return
 	}
 

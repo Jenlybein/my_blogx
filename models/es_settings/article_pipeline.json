@@ -1,0 +1,11 @@
+{
+  "description": "过滤html_content的HTML标签",
+  "processors": [
+    {
+      "html_strip": {
+        "field": "html_content",
+        "ignore_missing": true
+      }
+    }
+  ]
+}

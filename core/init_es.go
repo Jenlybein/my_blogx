@@ -30,7 +30,7 @@ func EsConnect(esConf *conf.ES) *elasticsearch.Client {
 		return nil
 	}
 
-	// 3. 验证连接（修正上下文传参方式）
+	// 验证连接（修正上下文传参方式）
 	ctx := context.Background()
 	resp, err := es.Info(es.Info.WithContext(ctx))
 	if err != nil {
@@ -45,7 +45,7 @@ func EsConnect(esConf *conf.ES) *elasticsearch.Client {
 		return nil
 	}
 
-	// 4. 赋值全局客户端
+	// 赋值全局客户端
 	global.Logger.Infof("ES 客户端连接成功：%s", esConf.Addresses)
 	return es
 }

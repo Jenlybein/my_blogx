@@ -10,6 +10,7 @@ jwt:
 log:
   app: blogx_server
   dir: ./logs
+  level: info
 db:
   - host: ******_addr1
     port: ******_port2
@@ -39,7 +40,7 @@ es:
     - http://******_addr1:9200
   username: elastic
   password: ******_password1
-  index: blogx
+  index: article_index
   addr: ******_addr1:9200
   is_https: false
 river:
@@ -62,6 +63,24 @@ river:
       type: _doc
       field:
         tag_list: tag_list,list
+      filter:
+        - id
+        - created_at
+        - updated_at
+        - deleted_at
+        - title
+        - abstract
+        - html_content
+        - category_id
+        - tag_list
+        - cover
+        - author_id
+        - view_count
+        - digg_count
+        - comment_count
+        - favor_count
+        - status
+        - comments_toggle
   charset: "utf8mb4"
   mysqldump: "mysqldump"
   skip_master_data: true

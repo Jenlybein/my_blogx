@@ -1,4 +1,23 @@
 {
+  "settings": {
+    "index.default_pipeline": "article_pipeline",
+    "analysis": {
+      "char_filter": {
+        "my_html_strip": {
+          "type": "html_strip",
+          "escaped_tags": []
+        }
+      },
+      "analyzer": {
+        "ik_html_analyzer": {
+          "type": "custom",
+          "char_filter": ["my_html_strip"],
+          "tokenizer": "ik_max_word",
+          "filter": ["lowercase"]
+        }
+      }
+    }
+  },
   "mappings": {
     "properties": {
       "id": {
@@ -23,8 +42,10 @@
       "abstract": {
         "type": "text"
       },
-      "content": {
-        "type": "text"
+      "html_content": {
+        "type": "text",
+        "analyzer": "ik_html_analyzer",
+        "search_analyzer": "ik_smart"
       },
       "category_id": {
         "type": "integer"

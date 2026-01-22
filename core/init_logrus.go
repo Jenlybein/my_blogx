@@ -145,7 +145,15 @@ func InitLogrus(l *conf.Logrus) *logrus.Logger {
 	logger.SetOutput(os.Stdout)          // 设置输出位置
 	logger.SetReportCaller(true)         // 日志显示函数名和行号
 	logger.SetFormatter(&LogFormatter{}) // 设置自己定义的Formatter
-	logger.SetLevel(logrus.DebugLevel)   // 设置最低的Level
+
+	// 设置日志级别
+	level, err := logrus.ParseLevel(l.Level)
+	if err != nil {
+		logger.Errorf("解析日志级别失败: %s, 使用默认级别: info", l.Level)
+		logger.SetLevel(logrus.InfoLevel)
+	} else {
+		logger.SetLevel(level)
+	}
 
 	InitFile(logger, l.Dir, l.App)
 

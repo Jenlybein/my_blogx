@@ -5,14 +5,8 @@ services:
     restart: always
     privileged: true # 容器内的root用户与宿主机root用户权限相同
     environment:
-      MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD # 主库root用户的密码
-    command: --default-authentication-plugin=mysql_native_password
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_general_ci
-      --explicit_defaults_for_timestamp=true
-      --lower_case_table_names=1
-      --max_allowed_packet=128M
-      --bind-address=0.0.0.0
+      MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD # root用户的密码
+    command:
     ports:
       - 3306:3306 # 映射宿主机端口：容器端口
     volumes: # 宿主机配置目录或文件挂载到容器
@@ -21,7 +15,6 @@ services:
       - ./sql_master/data:/var/lib/mysql
       - ./sql_master/log:/var/log/
       - ./sql_master/init.sql:/docker-entrypoint-initdb.d/init.sql # 挂载初始化脚本
-      
     healthcheck: # 健康检查，确保主库启动完成
       test:
         [
@@ -46,14 +39,8 @@ services:
     restart: always
     privileged: true
     environment:
-      MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD # 从库root用户的密码
-    command: --default-authentication-plugin=mysql_native_password
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_general_ci
-      --explicit_defaults_for_timestamp=true
-      --lower_case_table_names=1
-      --max_allowed_packet=128M
-      --bind-address=0.0.0.0
+      MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD # root用户的密码
+    command:
     ports:
       - 3307:3306 # 映射宿主机端口：容器端口
     volumes: # 宿主机配置目录或文件挂载到容器
@@ -83,12 +70,21 @@ services:
       http.cors.enabled: true
       http.cors.allow-origin: "*"
       http.cors.allow-headers: "X-Requested-With,Content-Type,Authorization"
-      # 设置内置用户的初始密码（可选，也可以后续手动设置）
+      # 设置内置用户的初始密码
       ELASTIC_PASSWORD: "REDACTED_SHARED_PASSWORD" # elastic用户的初始密码
     ports:
       - 9200:9200
+    command: >
+      "
+        if [ ! -d /usr/share/elasticsearch/plugins/analysis-ik/config ]; then
+          /usr/share/elasticsearch/bin/elasticsearch-plugin install -b https://get.infini.cloud/elasticsearch/analysis-ik/7.12.0;
+        fi;
+        if
+        /usr/local/bin/docker-entrypoint.sh elasticsearch
+      "
     volumes:
       - ./es/data:/usr/share/elasticsearch/data
+      - ./es/plugins:/usr/share/elasticsearch/plugins
     networks:
       blogx_network:
         ipv4_address: 10.2.0.4
@@ -103,6 +99,9 @@ services:
     volumes:
       - ./redis/data:/data
       - ./redis/conf/redis.conf:/etc/redis/redis.conf
+    networks:
+      blogx_network:
+        ipv4_address: 10.2.0.5
 networks: # 定义容器连接网络
   blogx_network:
     driver: bridge

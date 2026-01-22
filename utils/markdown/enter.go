@@ -1,21 +1,79 @@
 package markdown
 
 import (
+	"regexp"
+
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
+	"github.com/microcosm-cc/bluemonday"
 )
 
-func MdToHTML(md string) string {
-	// 创建带有扩展的markdown解析器
-	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
+// 公共逻辑：获取解析后的 HTML 字符串
+func getRawHTML(md string) string {
+	// 定义所需的 Markdown 解析扩展
+	extensions := parser.CommonExtensions |
+		parser.SuperSubscript // 上标下标 x^2, H~2~O
+		// parser.AutoHeadingIDs | // 自动生成标题ID，但只支持英文
+		// parser.NoEmptyLineBeforeBlock // 段落之间不允许空行
+
+	// 解析 Markdown 为 AST
 	p := parser.NewWithExtensions(extensions)
 	doc := p.Parse([]byte(md))
 
-	// 创建带有扩展的HTML渲染器
-	htmlFlags := html.CommonFlags | html.HrefTargetBlank
-	opts := html.RendererOptions{Flags: htmlFlags}
+	// 定义 HTML 渲染标志
+	htmlFlags := html.CommonFlags |
+		html.HrefTargetBlank // 新窗口打开链接
+
+	// 定义 HTML 渲染选项
+	opts := html.RendererOptions{
+		Flags:          htmlFlags,
+		RenderNodeHook: PrefixAnchorHook,
+	}
+
+	// 创建 HTML 渲染器
 	renderer := html.NewRenderer(opts)
 
 	return string(markdown.Render(doc, renderer))
+}
+
+// 不允许任何 HTML 标签 (纯文本输出)
+func MdToText(md string) string {
+	raw := getRawHTML(md)
+	// 移除所有 HTML 标签，只保留文本内容
+	return bluemonday.StrictPolicy().Sanitize(raw)
+}
+
+// 允许所有 HTML (不做任何过滤)
+func MdToHTMLUnsafe(md string) string {
+	return getRawHTML(md)
+}
+
+var (
+	// 图片缩放正则表达式
+	reZoomValue = regexp.MustCompile(`^((0\.\d+|1(\.\d+)?|2(\.0+)?)|([1-9]\d?%|1\d{2}%|200%))$`)
+	// 匹配 math, math inline, math display
+	reMath = regexp.MustCompile(`^math(\s.+)?$`)
+	// 匹配 user-content- 开头的 id
+	reUserContentID = regexp.MustCompile(`^user-content-.*$`)
+)
+
+// 过滤掉不安全的 HTML (如 <script>, <onerror> 等)
+func MdToHTMLSafe(md string) string {
+	raw := getRawHTML(md)
+
+	// 以 UGC 策略为基础（允许基本格式、链接等）
+	// UGC策略已经很严格，想再禁用一些标签则使用SkipElementsContent
+	p := bluemonday.UGCPolicy()
+
+	// 允许数学公式用到的 class 和标签
+	p.AllowAttrs("class").Matching(reMath).OnElements("span", "div")
+
+	// 放行标题 id（用于标题锚点）
+	p.AllowAttrs("id").Matching(reUserContentID).OnElements("h1", "h2", "h3", "h4", "h5", "h6")
+
+	// 放行图片缩放（Typora 常用）
+	p.AllowStyles("zoom").Matching(reZoomValue).OnElements("img")
+
+	return p.Sanitize(raw)
 }

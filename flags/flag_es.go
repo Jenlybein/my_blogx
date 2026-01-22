@@ -9,4 +9,6 @@ func FlagESIndex() {
 	// 初始化ES索引
 	article := models.ArticleModel{}
 	es_service.CreateIndexForce(article.Index(), article.Mapping())
+	// 初始化ES pipeline
+	es_service.CreatePipelineForce(article.PipelineName(), article.Pipeline())
 }

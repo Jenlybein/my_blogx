@@ -3,6 +3,7 @@
 package conf
 
 type Logrus struct {
-	App string `yaml:"app"`
-	Dir string `yaml:"dir"`
+	App   string `yaml:"app"`
+	Dir   string `yaml:"dir"`
+	Level string `yaml:"level"`
 }

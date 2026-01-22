@@ -15,9 +15,10 @@ type ArticleModel struct {
 	Title          string             `gorm:"size:256" json:"title"`
 	Abstract       string             `gorm:"size:256" json:"abstract"`
 	Content        string             `gorm:"type:longtext" json:"content"`
+	HtmlContent    string             `gorm:"type:longtext" json:"html_content"`
 	CategoryID     *uint              `gorm:"index" json:"category_id"`
 	TagList        ctype.List         `gorm:"type:longtext" json:"tag_list"`
-	Cover          *string            `gorm:"size:256" json:"cover"`
+	Cover          string             `gorm:"size:256" json:"cover"`
 	AuthorID       uint               `gorm:"index" json:"author_id"`
 	UserModel      UserModel          `gorm:"foreignKey:AuthorID;references:ID" json:"-"`
 	ViewCount      uint               `gorm:"default:0" json:"view_count"`         // 查看次数
@@ -28,7 +29,7 @@ type ArticleModel struct {
 	Status         enum.ArticleStatus `gorm:"default:0" json:"status"`
 }
 
-//go:embed mappings/article_mapping.json
+//go:embed es_settings/article_mapping.json
 var ArticleMapping string
 
 func (ArticleModel) Mapping() string {
@@ -37,4 +38,15 @@ func (ArticleModel) Mapping() string {
 
 func (ArticleModel) Index() string {
 	return global.Config.ES.Index
+}
+
+//go:embed es_settings/article_pipeline.json
+var ArticlePipeline string
+
+func (ArticleModel) Pipeline() string {
+	return ArticlePipeline
+}
+
+func (ArticleModel) PipelineName() string {
+	return "article_pipeline"
 }
