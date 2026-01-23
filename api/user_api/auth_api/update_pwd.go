@@ -19,7 +19,7 @@ type UpdatePasswordRequest struct {
 func (AuthApi) UpdatePwdByEmailView(c *gin.Context) {
 	cr := middleware.GetBindJson[UpdatePasswordRequest](c)
 
-	claims := jwts.GetClaimsByGin(c)
+	claims := jwts.MustGetClaimsByGin(c)
 
 	var user models.UserModel
 	if err := global.DB.Take(&user, claims.UserID).Error; err != nil {

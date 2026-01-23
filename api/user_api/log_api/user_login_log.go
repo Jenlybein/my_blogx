@@ -33,7 +33,7 @@ type UserLoginListResponse struct {
 func (LogApi) UserLoginLogList(c *gin.Context) {
 	cr := middleware.GetBindQuery[UserLoginListRequest](c)
 
-	claims := jwts.GetClaimsByGin(c)
+	claims := jwts.MustGetClaimsByGin(c)
 
 	// 权限判断
 	if (cr.Type == 1 && claims.UserID != cr.UserID) ||

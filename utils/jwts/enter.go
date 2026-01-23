@@ -98,5 +98,13 @@ func ParseTokenByGin(c *gin.Context) (*MyClaims, error) {
 }
 
 func GetClaimsByGin(c *gin.Context) (claims *MyClaims) {
+	claims, err := ParseTokenByGin(c)
+	if err != nil {
+		return nil
+	}
+	return claims
+}
+
+func MustGetClaimsByGin(c *gin.Context) (claims *MyClaims) {
 	return c.MustGet("claims").(*MyClaims)
 }

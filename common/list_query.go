@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// TODO: 加时间范围
 type PageInfo struct {
 	Limit int    `form:"limit"`
 	Page  int    `form:"page"`
@@ -15,6 +16,7 @@ type PageInfo struct {
 }
 
 func (p PageInfo) GetPage() int {
+	// TODO：分页范围需修改
 	if p.Page > 20 || p.Page <= 0 {
 		p.Page = 1
 	}

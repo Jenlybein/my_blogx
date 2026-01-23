@@ -27,7 +27,7 @@ type ArticleCreateRequest struct {
 func (ArticleApi) ArticleCreateView(c *gin.Context) {
 	cr := middleware.GetBindJson[ArticleCreateRequest](c)
 
-	claims := jwts.GetClaimsByGin(c)
+	claims := jwts.MustGetClaimsByGin(c)
 	if err := global.DB.Take(&models.UserModel{}, claims.UserID).Error; err != nil {
 		res.FailWithMsg("用户不存在", c)
 		return

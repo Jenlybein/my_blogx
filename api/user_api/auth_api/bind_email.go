@@ -16,7 +16,7 @@ func (AuthApi) BindEmailView(c *gin.Context) {
 		return
 	}
 
-	claims := jwts.GetClaimsByGin(c)
+	claims := jwts.MustGetClaimsByGin(c)
 
 	var user models.UserModel
 	if err := global.DB.Take(&user, claims.UserID).Error; err != nil {

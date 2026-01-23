@@ -29,7 +29,7 @@ func AuthMiddleware(c *gin.Context) {
 }
 
 func AdminMiddleware(c *gin.Context) {
-	claims := jwts.GetClaimsByGin(c)
+	claims := jwts.MustGetClaimsByGin(c)
 
 	if claims.Role != enum.RoleAdmin {
 		res.FailWithMsg("权限错误", c)

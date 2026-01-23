@@ -40,7 +40,7 @@ func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
 		return
 	}
 
-	claims := jwts.GetClaimsByGin(c)
+	claims := jwts.MustGetClaimsByGin(c)
 
 	// 处理用户基本表的更新
 	if len(userMap) > 0 {
