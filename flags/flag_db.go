@@ -8,16 +8,6 @@ import (
 )
 
 func FlagDB(db *gorm.DB) {
-	// 确保数据库使用 utf8mb4 字符集
-	db.Exec("SET character_set_client = utf8mb4")
-	db.Exec("SET character_set_connection = utf8mb4")
-	db.Exec("SET character_set_database = utf8mb4")
-	db.Exec("SET character_set_results = utf8mb4")
-	db.Exec("SET character_set_server = utf8mb4")
-	db.Exec("SET collation_connection = utf8mb4_unicode_ci")
-	db.Exec("SET collation_database = utf8mb4_unicode_ci")
-	db.Exec("SET collation_server = utf8mb4_unicode_ci")
-
 	// 自动建表
 	err := db.AutoMigrate(
 		&models.UserModel{},

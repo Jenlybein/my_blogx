@@ -1,8 +1,34 @@
 {
-  "description": "过滤html_content的HTML标签",
+  "description": "过滤html_content内容（正确保留换行/转义字符）",
   "processors": [
     {
       "html_strip": {
+        "description": "过滤HTML标签",
+        "field": "html_content",
+        "ignore_missing": true
+      }
+    },
+    {
+      "gsub": {
+        "description": "将连续的空格和制表符替换为单个空格",
+        "field": "html_content",
+        "pattern": "[ \\t]+",
+        "replacement": " ",
+        "ignore_missing": true
+      }
+    },
+    {
+      "gsub": {
+        "description": "处理多个换行符，统一保留为单个换行符",
+        "field": "html_content",
+        "pattern": "(\\s*\\n\\s*)+",
+        "replacement": "\n",
+        "ignore_missing": true
+      }
+    },
+    {
+      "trim": {
+        "description": "移除首尾空白",
         "field": "html_content",
         "ignore_missing": true
       }

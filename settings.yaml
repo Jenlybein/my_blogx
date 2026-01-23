@@ -67,20 +67,11 @@ river:
         - id
         - created_at
         - updated_at
-        - deleted_at
         - title
         - abstract
         - html_content
         - category_id
         - tag_list
-        - cover
-        - author_id
-        - view_count
-        - digg_count
-        - comment_count
-        - favor_count
-        - status
-        - comments_toggle
   charset: "utf8mb4"
   mysqldump: "mysqldump"
   skip_master_data: true

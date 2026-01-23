@@ -40,6 +40,10 @@
         }
       },
       "abstract": {
+        "type": "text",
+        "index": false
+      },
+      "content": {
         "type": "text"
       },
       "html_content": {
