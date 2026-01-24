@@ -38,6 +38,7 @@ type Options struct {
 	Preloads     []string
 	Where        *gorm.DB
 	Debug        bool
+	OrderMap     map[string]bool
 	DefaultOrder string
 }
 
@@ -79,7 +80,12 @@ func ListQuery[T any](model T, option Options) (list []T, count int, err error) 
 	// 排序
 	if option.PageInfo.Order != "" {
 		// 前端已配置排序
-		query = query.Order(option.PageInfo.Order)
+		if option.OrderMap != nil && option.OrderMap[option.PageInfo.Order] {
+			query = query.Order(option.PageInfo.Order)
+		} else {
+			err = fmt.Errorf("排序字段错误")
+			return
+		}
 	} else if option.DefaultOrder != "" {
 		// 前端未配置排序，使用默认排序
 		query = query.Order(option.DefaultOrder)

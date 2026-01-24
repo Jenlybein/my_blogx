@@ -1,11 +1,13 @@
 package site
 
+import "myblogx/models/enum"
+
 // 网站设置
 type SiteInfo struct {
-	Title string `yaml:"title" json:"title"`
-	Logo  string `yaml:"logo" json:"logo"`
-	Beian string `yaml:"beian" json:"beian"`
-	Mode  int8   `yaml:"mode" json:"mode" oneof:"1 2"` // 1 社区模式 2 博客模式
+	Title string        `yaml:"title" json:"title"`
+	Logo  string        `yaml:"logo" json:"logo"`
+	Beian string        `yaml:"beian" json:"beian"`
+	Mode  enum.SiteMode `yaml:"mode" json:"mode" oneof:"1 2"` // 1 社区模式 2 博客模式
 }
 
 // 项目设置

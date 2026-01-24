@@ -77,3 +77,12 @@ func MdToHTMLSafe(md string) string {
 
 	return p.Sanitize(raw)
 }
+
+// 提取纯文本前 n 个字符
+func ExtractText(text string, length int) string {
+	if len(text) > length {
+		runes := []rune(text)
+		return string(runes[:length])
+	}
+	return text
+}

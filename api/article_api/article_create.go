@@ -33,6 +33,11 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 		return
 	}
 
+	if claims.Role != enum.RoleAdmin && global.Config.Site.SiteInfo.Mode == enum.SiteModeBlog {
+		res.FailWithMsg("站点处于个人博客模式，普通用户无法创建文章", c)
+		return
+	}
+
 	// 判断分类id是否存在
 	if cr.CategoryID != nil {
 		var category models.CategoryModel
@@ -41,22 +46,13 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 			return
 		}
 	}
-	// 从正文中提取纯文本内容
-	textContent := markdown.MdToText(cr.Content)
-
 	// 文章正文防止 xss 注入，安全转为 html 格式
 	htmlContent := markdown.MdToHTMLSafe(cr.Content)
 
 	// 不传简介，则从正文中提取前 200 个字符
 	if cr.Abstract == "" {
-		if len(textContent) > 200 {
-			// 把字符串转为rune切片（rune对应单个Unicode字符）
-			runes := []rune(textContent)
-			// 安全截取子字符串
-			cr.Abstract = string(runes[:200])
-		} else {
-			cr.Abstract = textContent
-		}
+		textContent := markdown.MdToText(cr.Content)
+		cr.Abstract = markdown.ExtractText(textContent, 200)
 	}
 
 	var article = models.ArticleModel{
