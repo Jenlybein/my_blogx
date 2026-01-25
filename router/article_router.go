@@ -12,7 +12,7 @@ import (
 func ArticleRouter(r *gin.RouterGroup) {
 	Group := r.Group("articles")
 	authGroup := Group.Group("", middleware.AuthMiddleware)
-	// adminGroup := authGroup.Group("", middleware.AdminMiddleware)
+	adminGroup := authGroup.Group("", middleware.AdminMiddleware)
 
 	app := api.App.ArticleApi
 
@@ -21,4 +21,7 @@ func ArticleRouter(r *gin.RouterGroup) {
 
 	authGroup.POST("", middleware.BindJsonMiddleware[article_api.ArticleCreateRequest], app.ArticleCreateView)
 	authGroup.PUT("/:id", middleware.BindUriMiddleware[models.IDRequest], middleware.BindJsonMiddleware[article_api.ArticleUpdateRequest], app.ArticleUpdateView)
+	authGroup.PUT("/:id/digg", middleware.BindUriMiddleware[models.IDRequest], app.ArticleDiggView)
+
+	adminGroup.POST("/:id/examine", middleware.BindUriMiddleware[models.IDRequest], middleware.BindJsonMiddleware[article_api.ArticleExamineRequest], app.ArticleExamineView)
 }
