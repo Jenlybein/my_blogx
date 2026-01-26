@@ -24,16 +24,12 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 
 	var article models.ArticleModel
 	if err := global.DB.Take(&article, "id = ? and status = ?", cr.ArticleID, enum.ArticleStatusPublished).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			res.FailWithMsg("文章不存在", c)
-		} else {
-			res.FailWithMsg("查询文章失败", c)
-		}
+		res.FailWithMsg("查询文章失败", c)
 		return
 	}
 
 	var isFavorited bool
-	err := global.DB.Transaction(func(tx *gorm.DB) error {
+	if err := global.DB.Transaction(func(tx *gorm.DB) error {
 		favorite, err := getOrCreateFavoriteID(tx, cr.FavorID, claims.UserID)
 		if err != nil {
 			return err
@@ -67,10 +63,8 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 		}
 		isFavorited = false
 		return nil
-	})
-
-	if err != nil {
-		res.FailWithMsg("操作失败", c)
+	}); err != nil {
+		res.FailWithMsg("收藏操作失败", c)
 		return
 	}
 

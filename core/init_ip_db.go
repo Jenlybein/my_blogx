@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"myblogx/global"
-	ipUtils "myblogx/utils/ip"
+	ipUtils "myblogx/utils/user_info"
 
 	"github.com/lionsoul2014/ip2region/binding/golang/xdb"
 )

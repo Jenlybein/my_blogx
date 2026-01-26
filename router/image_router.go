@@ -4,7 +4,7 @@ import (
 	"myblogx/api"
 	"myblogx/api/image_api"
 	"myblogx/common"
-	"myblogx/middleware"
+	mw "myblogx/middleware"
 	"myblogx/models"
 
 	"github.com/gin-gonic/gin"
@@ -12,15 +12,15 @@ import (
 
 func ImageRouter(r *gin.RouterGroup) {
 	Group := r.Group("images")
-	authGroup := Group.Group("", middleware.AuthMiddleware)
-	adminGroup := authGroup.Group("", middleware.AdminMiddleware)
+	authGroup := Group.Group("", mw.AuthMiddleware)
+	adminGroup := authGroup.Group("", mw.AdminMiddleware)
 
 	app := api.App.ImageApi
 
 	authGroup.POST("", app.ImageUploadView)
 	authGroup.POST("qiniu", app.GenUpToken)
-	authGroup.POST("transfer", middleware.BindJsonMiddleware[image_api.TransferSaveRequest], app.TransferSaveView)
+	authGroup.POST("transfer", mw.BindJson[image_api.TransferSaveRequest], app.TransferSaveView)
 
-	adminGroup.GET("", middleware.BindQueryMiddleware[common.PageInfo], app.ImageListView)
-	adminGroup.DELETE("", middleware.BindJsonMiddleware[models.RemoveRequest], app.ImageRemoveView)
+	adminGroup.GET("", mw.BindQuery[common.PageInfo], app.ImageListView)
+	adminGroup.DELETE("", mw.BindJson[models.RemoveRequest], app.ImageRemoveView)
 }

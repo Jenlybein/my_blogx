@@ -5,11 +5,10 @@ package models
 import "time"
 
 // 用户文章查看历史表
-type UserArticleViewHistoryModel struct {
+type GuestArticleViewRecordModel struct {
 	ArticleID    uint         `gorm:"primaryKey" json:"article_id"`
-	UserID       uint         `gorm:"primaryKey" json:"user_id"`
+	GuestIP      string       `gorm:"primaryKey" json:"guest_ip"`
+	DeviceID     string       `gorm:"primaryKey" json:"device_id"`
 	CreatedAt    time.Time    `gorm:"primaryKey" json:"created_at"`
-	UpdatedAt    time.Time    `json:"updated_at"`
 	ArticleModel ArticleModel `gorm:"foreignKey:ArticleID;references:ID" json:"-"`
-	UserModel    UserModel    `gorm:"foreignKey:UserID;references:ID" json:"-"`
 }

@@ -1,10 +1,39 @@
-// IP工具模块
-
-package ip
+package user_info
 
 import (
 	"net"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
+
+func isValidIP(ip string) bool {
+	return net.ParseIP(ip) != nil
+}
+
+// 获取客户端 IP 地址
+func GetClientIP(c *gin.Context) string {
+	ip := c.GetHeader("X-Forwarded-For")
+	if ip != "" {
+		ipList := strings.Split(ip, ",")
+		clientIP := strings.TrimSpace(ipList[0])
+		if isValidIP(clientIP) {
+			return clientIP
+		}
+	}
+
+	ip = c.GetHeader("X-Real-IP")
+	if ip != "" && isValidIP(ip) {
+		return ip
+	}
+
+	ip = c.GetHeader("CF-Connecting-IP")
+	if ip != "" && isValidIP(ip) {
+		return ip
+	}
+
+	return c.ClientIP()
+}
 
 // 返回 IP 地址的类型，包括 ipv4、ipv6 和 空字符串
 func IpType(ipstr string) string {

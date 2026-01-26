@@ -17,7 +17,7 @@ func Bind[T any](c *gin.Context) {
 	c.Set("request", cr)
 }
 
-func BindJsonMiddleware[T any](c *gin.Context) {
+func BindJson[T any](c *gin.Context) {
 	var cr T
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
@@ -28,7 +28,7 @@ func BindJsonMiddleware[T any](c *gin.Context) {
 	c.Set("requestJson", cr)
 }
 
-func BindQueryMiddleware[T any](c *gin.Context) {
+func BindQuery[T any](c *gin.Context) {
 	var cr T
 	err := c.ShouldBindQuery(&cr)
 	if err != nil {
@@ -39,7 +39,7 @@ func BindQueryMiddleware[T any](c *gin.Context) {
 	c.Set("requestQuery", cr)
 }
 
-func BindUriMiddleware[T any](c *gin.Context) {
+func BindUri[T any](c *gin.Context) {
 	var cr T
 	err := c.ShouldBindUri(&cr)
 	if err != nil {
