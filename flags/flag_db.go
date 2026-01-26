@@ -15,7 +15,7 @@ func FlagDB(db *gorm.DB) {
 		&models.ArticleModel{},
 		&models.ArticleDiggModel{},
 		&models.CategoryModel{},
-		&models.FavorModel{},
+		&models.FavoriteModel{},
 		&models.UserArticleFavorModel{},
 		&models.UserArticleViewHistoryModel{},
 		&models.UserTopArticleModel{},

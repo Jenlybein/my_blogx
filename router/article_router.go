@@ -20,8 +20,9 @@ func ArticleRouter(r *gin.RouterGroup) {
 	Group.GET("/:id", middleware.BindUriMiddleware[models.IDRequest], app.ArticleDetailView)
 
 	authGroup.POST("", middleware.BindJsonMiddleware[article_api.ArticleCreateRequest], app.ArticleCreateView)
-	authGroup.PUT("/:id", middleware.BindUriMiddleware[models.IDRequest], middleware.BindJsonMiddleware[article_api.ArticleUpdateRequest], app.ArticleUpdateView)
-	authGroup.PUT("/:id/digg", middleware.BindUriMiddleware[models.IDRequest], app.ArticleDiggView)
+	authGroup.PUT(":id", middleware.BindUriMiddleware[models.IDRequest], middleware.BindJsonMiddleware[article_api.ArticleUpdateRequest], app.ArticleUpdateView)
+	authGroup.PUT(":id/digg", middleware.BindUriMiddleware[models.IDRequest], app.ArticleDiggView)
+	authGroup.POST("favorite", middleware.BindJsonMiddleware[article_api.ArticleFavoriteRequest], app.ArticleFavoriteSaveView)
 
-	adminGroup.POST("/:id/examine", middleware.BindUriMiddleware[models.IDRequest], middleware.BindJsonMiddleware[article_api.ArticleExamineRequest], app.ArticleExamineView)
+	adminGroup.POST(":id/examine", middleware.BindUriMiddleware[models.IDRequest], middleware.BindJsonMiddleware[article_api.ArticleExamineRequest], app.ArticleExamineView)
 }
