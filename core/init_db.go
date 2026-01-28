@@ -3,36 +3,104 @@
 package core
 
 import (
-	"log"
-	"os"
+	"context"
+	"fmt"
 	"time"
 
 	"myblogx/conf"
 	"myblogx/global"
 
+	"github.com/go-gorm/caches/v4"
+	"github.com/go-redis/redis/v8"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/plugin/dbresolver"
 )
 
+// 实现 caches.Cacher 接口
+type redisCacher struct {
+	rdb *redis.Client
+}
+
+// Get 从 Redis 中获取缓存数据
+func (c *redisCacher) Get(ctx context.Context, key string, q *caches.Query[any]) (*caches.Query[any], error) {
+	res, err := c.rdb.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := q.Unmarshal([]byte(res)); err != nil {
+		return nil, err
+	}
+
+	return q, nil
+}
+
+// Store 将缓存数据存储到 Redis 中
+func (c *redisCacher) Store(ctx context.Context, key string, val *caches.Query[any]) error {
+	res, err := val.Marshal()
+	if err != nil {
+		return err
+	}
+
+	c.rdb.Set(ctx, key, res, 300*time.Second) // Set proper cache time
+	return nil
+}
+
+// Invalidate 从 Redis 中删除所有缓存数据
+func (c *redisCacher) Invalidate(ctx context.Context) error {
+	var (
+		cursor uint64
+		keys   []string
+	)
+	for {
+		var (
+			k   []string
+			err error
+		)
+		k, cursor, err = c.rdb.Scan(ctx, cursor, fmt.Sprintf("%s*", caches.IdentifierPrefix), 0).Result()
+		if err != nil {
+			return err
+		}
+		keys = append(keys, k...)
+		if cursor == 0 {
+			break
+		}
+	}
+
+	if len(keys) > 0 {
+		if _, err := c.rdb.Del(ctx, keys...).Result(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// InitDB 初始化数据库连接
 func InitDB(dbCfg []conf.DB) *gorm.DB {
 	if len(dbCfg) == 0 {
 		global.Logger.Fatalf("数据库配置错误：未配置数据库")
 	}
 
 	// 配置日志（Debug 模式）
-	logLevel := logger.Warn
+	logConfig := logger.Config{
+		SlowThreshold:             time.Second, // 慢查询阈值（超过 1 秒标红）
+		LogLevel:                  logger.Warn, // SQL 日志级别（Debug 核心）
+		Colorful:                  true,        // 彩色输出（开发环境友好）
+		IgnoreRecordNotFoundError: true,        // 忽略记录不存在错误
+		
+	}
 	if global.Config.GORM.Debug {
-		logLevel = logger.Info
+		logConfig.LogLevel = logger.Info
 	}
 	newLogger := logger.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags), // 输出到控制台
-		logger.Config{
-			SlowThreshold: time.Second, // 慢查询阈值（超过 1 秒标红）
-			LogLevel:      logLevel,    // SQL 日志级别（Debug 核心）
-			Colorful:      true,        // 彩色输出（开发环境友好）
-		},
+		global.Logger,
+		logConfig,
 	)
 
 	gormCfg := gorm.Config{
@@ -59,6 +127,7 @@ func InitDB(dbCfg []conf.DB) *gorm.DB {
 	sqlDB.SetMaxOpenConns(gormConf.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Hour * time.Duration(gormConf.ConnMaxLifetime))
 
+	// 读写分离配置
 	if len(dbCfg) > 1 {
 		var readList []gorm.Dialector
 		for _, d := range dbCfg[1:] {
@@ -75,6 +144,16 @@ func InitDB(dbCfg []conf.DB) *gorm.DB {
 		}
 		global.Logger.Infof("数据库读写分离配置成功 %d 个读库", len(readList))
 	}
+
+	// 缓存加速配置
+	cachesPlugin := &caches.Caches{Conf: &caches.Config{
+		Easer:  true,
+		Cacher: &redisCacher{rdb: global.Redis},
+	}}
+	if err := db.Use(cachesPlugin); err != nil {
+		global.Logger.Fatalf("数据库缓存插件配置失败: %s", err)
+	}
+	global.Logger.Infof("数据库缓存插件配置成功")
 
 	return db
 }

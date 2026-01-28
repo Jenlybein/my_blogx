@@ -3,7 +3,7 @@ package middleware
 import (
 	"myblogx/common/res"
 	"myblogx/models/enum"
-	"myblogx/service/redis_service"
+	"myblogx/service/redis_service/redis_jwt"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +19,7 @@ func AuthMiddleware(c *gin.Context) {
 	}
 
 	// 判断 token 是否在黑名单中
-	blackMsg, ok := redis_service.HasTokenBlackByGin(c)
+	blackMsg, ok := redis_jwt.HasTokenBlackByGin(c)
 	if !ok {
 		res.FailWithMsg(blackMsg, c)
 		c.Abort()

@@ -1,4 +1,4 @@
-package redis_service
+package redis_jwt
 
 import (
 	"context"

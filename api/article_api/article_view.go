@@ -9,6 +9,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
 	"myblogx/utils/user_info"
 	"time"
@@ -71,9 +72,7 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 					if err = tx.Create(&guestArticleViewRecord).Error; err != nil {
 						return errors.New("创建访客访问记录失败")
 					}
-					if err = tx.Model(&article).Update("view_count", gorm.Expr("view_count + 1")).Error; err != nil {
-						return errors.New("更新浏览量失败")
-					}
+					redis_article.SetCacheView(cr.ArticleID, 1)
 					return nil
 				}
 				return errors.New("查询访客访问记录失败")
@@ -83,6 +82,7 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 			res.FailWithMsg(err.Error(), c)
 			return
 		}
+		redis_article.SetCacheView(cr.ArticleID, 1)
 		res.OkWithMsg("文章访问量增加：访客", c)
 		return
 	}
@@ -121,6 +121,8 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 		res.FailWithMsg(err.Error(), c)
 		return
 	}
+
+	redis_article.SetCacheView(cr.ArticleID, 1)
 
 	res.OkWithMsg("文章访问量增加：用户", c)
 }
