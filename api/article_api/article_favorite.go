@@ -7,6 +7,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -69,8 +70,10 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 	}
 
 	if isFavorited {
+		redis_article.SetCacheFavorite(cr.ArticleID, 1)
 		res.OkWithMsg("收藏成功", c)
 	} else {
+		redis_article.SetCacheFavorite(cr.ArticleID, -1)
 		res.OkWithMsg("取消收藏成功", c)
 	}
 }

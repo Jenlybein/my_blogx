@@ -20,10 +20,10 @@ type ArticleModel struct {
 	TagList        ctype.List         `gorm:"type:longtext" json:"tag_list"`
 	Cover          string             `gorm:"size:256" json:"cover"`
 	AuthorID       uint               `gorm:"index" json:"author_id"`
-	ViewCount      uint               `gorm:"default:0" json:"view_count"`         // 查看次数
-	DiggCount      uint               `gorm:"default:0" json:"digg_count"`         // 点赞次数
-	CommentCount   uint               `gorm:"default:0" json:"comment_count"`      // 评论次数
-	FavorCount     uint               `gorm:"default:0" json:"favor_count"`        // 收藏次数
+	ViewCount      int                `gorm:"default:0" json:"view_count"`         // 查看次数
+	DiggCount      int                `gorm:"default:0" json:"digg_count"`         // 点赞次数
+	CommentCount   int                `gorm:"default:0" json:"comment_count"`      // 评论次数
+	FavorCount     int                `gorm:"default:0" json:"favor_count"`        // 收藏次数
 	CommentsToggle bool               `gorm:"default:true" json:"comments_toggle"` // 是否允许评论
 	Status         enum.ArticleStatus `gorm:"default:0" json:"status"`
 	UserModel      UserModel          `gorm:"foreignKey:AuthorID;references:ID" json:"-"`

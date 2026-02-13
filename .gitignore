@@ -1,4 +1,6 @@
 .vscode
+.claude
+
 logs
 test
 uploads

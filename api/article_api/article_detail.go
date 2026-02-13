@@ -6,6 +6,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -49,6 +50,13 @@ func (ArticleApi) ArticleDetailView(c *gin.Context) {
 	}
 
 	// TODO: 从缓存里面获取浏览量和点赞数
+	diggCount := redis_article.GetCacheDigg(article.ID)
+	viewCount := redis_article.GetCacheView(article.ID)
+	favorCount := redis_article.GetCacheFavorite(article.ID)
+
+	article.DiggCount = article.DiggCount + diggCount
+	article.FavorCount = article.FavorCount + favorCount
+	article.ViewCount = article.ViewCount + viewCount
 
 	var response = ArticleDetailResponse{
 		ArticleModel:   article,
