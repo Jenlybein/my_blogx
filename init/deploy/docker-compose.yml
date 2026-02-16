@@ -2,7 +2,7 @@ services:
   mysql-master:
     image: "mysql:5.7"
     container_name: mysql-master
-    restart: always
+    restart: unless-stopped
     privileged: true # 容器内的root用户与宿主机root用户权限相同
     environment:
       MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD # root用户的密码
@@ -36,7 +36,7 @@ services:
   mysql-slave:
     image: "mysql:5.7"
     container_name: mysql-slave
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD # root用户的密码
@@ -58,7 +58,8 @@ services:
         ipv4_address: 10.2.0.3
   es:
     image: "elasticsearch:7.12.0"
-    restart: always
+    container_name: es
+    restart: unless-stopped
     privileged: true
     environment:
       discovery.type: single-node
@@ -74,24 +75,17 @@ services:
       ELASTIC_PASSWORD: "REDACTED_SHARED_PASSWORD" # elastic用户的初始密码
     ports:
       - 9200:9200
-    command: >
-      "
-        if [ ! -d /usr/share/elasticsearch/plugins/analysis-ik/config ]; then
-          /usr/share/elasticsearch/bin/elasticsearch-plugin install -b https://get.infini.cloud/elasticsearch/analysis-ik/7.12.0;
-        fi;
-        if
-        /usr/local/bin/docker-entrypoint.sh elasticsearch
-      "
+    entrypoint: ["/bin/sh", "/start.sh"]
     volumes:
       - ./es/data:/usr/share/elasticsearch/data
-      - ./es/plugins:/usr/share/elasticsearch/plugins
+      - ./es/start.sh:/start.sh:ro
     networks:
       blogx_network:
         ipv4_address: 10.2.0.4
   redis:
     image: "redis:7.4.7"
     container_name: redis
-    restart: always
+    restart: unless-stopped
     privileged: true
     command: redis-server /etc/redis/redis.conf
     ports:
@@ -102,6 +96,91 @@ services:
     networks:
       blogx_network:
         ipv4_address: 10.2.0.5
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: kafka
+    hostname: kafka
+    privileged: true
+    restart: unless-stopped
+
+    # 对外只暴露 EXTERNAL 端口：避免容器内服务绕公网回环、也减少暴露面
+    ports:
+      - "19092:19092"
+
+    # entrypoint: ["/bin/sh", "/start.sh"]
+
+    # KRaft 元数据 + 日志数据必须持久化，否则容器重建会丢集群状态
+    volumes:
+      - ./kafka/data:/var/lib/kafka/data
+      - ./kafka/start.sh:/start.sh:ro
+
+    environment:
+      # ===== KRaft combined 单节点必需项 =====
+      # 节点角色：同时作为控制器(controller)和 broker
+      # 在KRaft模式下，节点可以是纯控制器、纯broker或混合角色
+      - KAFKA_PROCESS_ROLES=broker,controller
+
+      # 节点ID：在集群中唯一标识当前节点，取值范围1-255
+      - KAFKA_NODE_ID=1
+
+      # controller quorum：单节点指向自己（用容器 hostname 更稳）
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+
+      # 指定控制器使用的监听器名称（需与下方 LISTENERS 配置对应）
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+
+      # 指定 broker 之间通信使用的监听器名称
+      # 必须与 ADVERTISED_LISTENERS 中定义的监听器名称一致
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
+
+      # ===== listeners / advertised.listeners =====
+      # 配置Kafka监听的网络接口和端口
+      # 格式：监听器名称://绑定地址:端口
+      #
+      # INTERNAL：给 docker 网络内使用（容器/服务名访问，如 kafka:9092）
+      # EXTERNAL：给宿主机/公网使用（公网IP访问，如 REDACTED_SERVER_IP:19092）
+      # CONTROLLER：KRaft 控制器（仅内部使用，不对外暴露）
+      #
+      # 注意：
+      # - ip 不能绑定 0.0.0.0（表示监听所有网卡），必须是“可路由地址”（容器名/IP/域名）
+      - KAFKA_LISTENERS=INTERNAL://10.2.0.6:9092,EXTERNAL://10.2.0.6:19092,CONTROLLER://10.2.0.6:9093
+
+      # 配置对外公告的监听器地址（客户端实际连接的地址）
+      # 当客户端连接Kafka时，Kafka会返回此地址给客户端
+      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://REDACTED_SERVER_IP:19092
+
+      # 配置监听器的安全协议映射
+      # 格式：监听器名称:协议类型
+      # PLAINTEXT 表示不加密传输（适用于开发环境）
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+      # ===== 单节点必须把这些 replication/minISR 设成 1 =====
+      # （否则 Kafka 默认可能是 3，会导致创建内部主题/事务相关功能异常）
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=1
+      - KAFKA_MIN_INSYNC_REPLICAS=1
+
+      # ===== 生产常见建议项（按需）=====
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+
+      # 建议关闭自动建 topic，避免拼错 topic 名也“写成功”
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=false
+
+      # ===== 数据目录持久化 =====
+      # server.properties: log.dirs
+      - KAFKA_LOG_DIRS=/var/lib/kafka/data
+
+      # ===== cluster id（建议显式写定）=====
+      # 官方 usage guide：CLUSTER_ID 可选（容器里有默认），但生产建议你自己固定下来
+      - CLUSTER_ID=kafka-single-prod-G86wewKeSvqCK-yU4sWNIA
+
+      # ===== （可选）JVM 堆大小 =====
+      - KAFKA_HEAP_OPTS=-Xms1g -Xmx1g
+    networks:
+      blogx_network:
+        ipv4_address: 10.2.0.6
 networks: # 定义容器连接网络
   blogx_network:
     driver: bridge
