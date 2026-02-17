@@ -142,17 +142,19 @@ services:
       # CONTROLLER：KRaft 控制器（仅内部使用，不对外暴露）
       #
       # 注意：
-      # - ip 不能绑定 0.0.0.0（表示监听所有网卡），必须是“可路由地址”（容器名/IP/域名）
-      - KAFKA_LISTENERS=INTERNAL://10.2.0.6:9092,EXTERNAL://10.2.0.6:19092,CONTROLLER://10.2.0.6:9093
+      # - listener 绑定用 0.0.0.0 监听所有网卡是最稳的做法（对外真实地址由 advertised.listeners 决定）
+      - KAFKA_LISTENERS=INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:19092,CONTROLLER://0.0.0.0:9093
 
       # 配置对外公告的监听器地址（客户端实际连接的地址）
       # 当客户端连接Kafka时，Kafka会返回此地址给客户端
-      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://REDACTED_SERVER_IP:19092
+      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://REDACTED_SERVER_IP:19092,CONTROLLER://kafka:9093
 
       # 配置监听器的安全协议映射
       # 格式：监听器名称:协议类型
-      # PLAINTEXT 表示不加密传输（适用于开发环境）
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      # INTERNAL（容器内）：PLAINTEXT（无认证）
+      # EXTERNAL（外部）：SASL_PLAINTEXT（有认证）
+      # CONTROLLER（KRaft内部）：SASL_PLAINTEXT（KRaft controller 也启用认证 - 方案B）
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:SASL_PLAINTEXT,CONTROLLER:SASL_PLAINTEXT
 
       # ===== 单节点必须把这些 replication/minISR 设成 1 =====
       # （否则 Kafka 默认可能是 3，会导致创建内部主题/事务相关功能异常）
@@ -178,6 +180,42 @@ services:
 
       # ===== （可选）JVM 堆大小 =====
       - KAFKA_HEAP_OPTS=-Xms1g -Xmx1g
+
+      # ===== SASL认证配置 =====
+      - KAFKA_SASL_ENABLED_MECHANISMS=PLAIN
+
+      # 显式声明每个 listener 支持的机制（避免默认值导致不匹配）
+      - KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS=PLAIN
+      - KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS=PLAIN
+
+      # 显式指定 controller 通信的 SASL 机制（因为 CONTROLLER listener 是 SASL_PLAINTEXT）
+      - KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL=PLAIN
+
+      # 注意：INTER_BROKER 用的是 INTERNAL（PLAINTEXT），所以不要配置 inter-broker SASL 机制
+      # - KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN
+
+      # ===== JAAS 配置（关键）=====
+      # 不要用 KAFKA_SASL_JAAS_CONFIG（你之前就是这行被 Kafka 忽略导致崩溃）
+      # 改为 listener + mechanism 级别配置：
+      # 1) EXTERNAL 给外部客户端认证（logistics/REDACTED_KAFKA_PASSWORD）
+      # 2) CONTROLLER 给 KRaft 内部认证（broker/controller 自己用 kafka_admin 登录）
+      #
+      # username/password：Kafka 内部（broker/controller）通信的账号
+      # user_<用户名>="<密码>"：允许的客户端用户（固定格式）
+      - >-
+        KAFKA_LISTENER_NAME_EXTERNAL_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="kafka_admin"
+        password="REDACTED_KAFKA_ADMIN_PASSWORD"
+        user_kafka_admin="REDACTED_KAFKA_ADMIN_PASSWORD"
+        user_logistics="REDACTED_KAFKA_PASSWORD";
+
+      - >-
+        KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="kafka_admin"
+        password="REDACTED_KAFKA_ADMIN_PASSWORD"
+        user_kafka_admin="REDACTED_KAFKA_ADMIN_PASSWORD"
+        user_logistics="REDACTED_KAFKA_PASSWORD";
+
     networks:
       blogx_network:
         ipv4_address: 10.2.0.6
