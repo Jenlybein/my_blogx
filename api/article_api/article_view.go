@@ -19,6 +19,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ArticleViewCountRequest struct {
@@ -27,30 +28,11 @@ type ArticleViewCountRequest struct {
 
 func (ArticleApi) ArticleVisitView(c *gin.Context) {
 	cr := middleware.GetBindJson[ArticleViewCountRequest](c)
-	ctx := c.Request.Context()
-	now := time.Now()
 
-	// 验证文章是否存在并已发布
-	var articleID uint
-	err := global.DB.Model(&models.ArticleModel{}).
-		Where("id = ? and status = ?", cr.ArticleID, enum.ArticleStatusPublished).
-		Select("id").Scan(&articleID).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			res.FailWithMsg("文章不存在或未发布", c)
-			return
-		}
-		// 记录详细错误日志（建议使用日志库，如 zap）
-		global.Logger.Errorf("数据库验证文章失败 %v, article_id: %d", err, cr.ArticleID)
-		res.FailWithMsg("服务器内部错误", c)
-		return
-	}
-
+	// 获取用户登录信息
 	claims, err := jwts.ParseTokenByGin(c)
 
-	var keySuffix string
-
-	if claims == nil {
+	if err != nil {
 		// TODO：获取更真实可靠的ip和设备id防爬虫？
 		// 未登录用户，靠 ip 和 设备id 进行确认
 		ip := user_info.GetClientIP(c)
@@ -61,55 +43,63 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 		}
 
 		// 先生成 ip:ua 字符串，再转为字节切片计算 MD5
-
 		hash := md5.Sum([]byte(fmt.Sprintf("%s:%s", ip, ua)))
-		keySuffix = fmt.Sprintf("g:%s", hex.EncodeToString(hash[:]))
+		key := fmt.Sprintf("g:%s", hex.EncodeToString(hash[:]))
+
+		if redis_article.GetGuestArticleHistoryCache(int(cr.ArticleID), key) {
+			fmt.Printf("访客已经阅读过该文章, %d", cr.ArticleID)
+			res.OkWithMsg("访客已访问过该文章", c)
+			return
+		}
+
+		redis_article.SetGuestArticleHistoryCache(int(cr.ArticleID), key)
 	} else {
 		// 已登录用户，靠用户 id 进行确认
-		keySuffix = fmt.Sprintf("u:%d", claims.UserID)
-
-		// 同时更新数据库浏览历史(TODO：改消息队列)
-		condition := map[string]interface{}{
-			"article_id": cr.ArticleID,
-			"user_id":    claims.UserID,
-		}
-		var articleHistory models.UserArticleViewHistoryModel
-		if dbErr := global.DB.Where(condition).FirstOrCreate(&articleHistory, condition).Error; dbErr != nil {
-			global.Logger.Error("查询/创建文章访问历史失败", "err", dbErr, "article_id", cr.ArticleID, "user_id", claims.UserID)
-			res.FailWithMsg("服务器内部错误", c)
+		if redis_article.GetUserArticleHistoryCache(int(cr.ArticleID), int(claims.UserID)) {
+			// global.Logger.Infof("用户已阅读过该文章, article_id：%d, user_id: %d", cr.ArticleID, claims.UserID)
+			res.OkWithMsg("用户已访问过该文章", c)
 			return
-		} else {
-			if dbErr := global.DB.Model(&articleHistory).Update("updated_at", now).Error; dbErr != nil {
-				global.Logger.Error("更新文章访问历史时间失败", "err", dbErr, "article_id", cr.ArticleID, "user_id", claims.UserID)
-				res.FailWithMsg("服务器内部错误", c)
+		}
+
+		// 验证文章是否存在并已发布
+		var articleID uint
+		err := global.DB.Model(&models.ArticleModel{}).
+			Where("id = ? and status = ?", cr.ArticleID, enum.ArticleStatusPublished).
+			Select("id").Scan(&articleID).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				res.FailWithMsg("文章不存在或未发布", c)
 				return
 			}
+			// 记录详细错误日志（建议使用日志库，如 zap）
+			global.Logger.Errorf("数据库验证文章失败 %v, article_id: %d", err, cr.ArticleID)
+			res.FailWithMsg("服务器内部错误", c)
+			return
 		}
+
+		// 同时更新数据库浏览历史(TODO：可选改消息队列异步)
+		articleHistory := models.UserArticleViewHistoryModel{
+			ArticleID: cr.ArticleID,
+			UserID:    claims.UserID,
+		}
+
+		if err = global.DB.Clauses(clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "article_id"},
+				{Name: "user_id"},
+			},
+			DoUpdates: clause.Assignments(map[string]interface{}{
+				"updated_at": time.Now(),
+			}),
+		}).Create(&articleHistory).Error; err != nil {
+			global.Logger.Errorf("数据库更新浏览历史失败 %v, article_id: %d", err, cr.ArticleID)
+			res.FailWithMsg("服务器内部错误", c)
+			return
+		}
+
+		redis_article.SetUserArticleHistoryCache(int(cr.ArticleID), int(claims.UserID))
 	}
 
-	// 将用户id和文章id作为key存入缓存，value为访问时间，过期时间24小时
-	cacheKey := fmt.Sprintf("article_visit:%s:%d", keySuffix, cr.ArticleID)
-	hashKey := fmt.Sprintf("%s:%s", string(redis_article.ArticleCacheGuestView), now.Format("2006-01-02"))
-	nextDay := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
-
-	// 使用 Redis Pipeline 保证多操作原子性（批量执行，要么都成功，要么都失败）
-	pipe := global.Redis.Pipeline()
-	hsetnxCmd := pipe.HSetNX(ctx, hashKey, cacheKey, now)
-	pipe.ExpireAt(ctx, hashKey, nextDay)
-
-	_, pipeErr := pipe.Exec(ctx)
-	if pipeErr != nil {
-		global.Logger.Errorf("Redis 操作失败 %v, cacheKey: %s", pipeErr, cacheKey)
-		res.FailWithMsg("访问记录统计失败", c)
-		return
-	}
-
-	// 首次访问则返回true，自增访问量
-	if hsetnxCmd.Val() {
-		redis_article.SetCacheView(cr.ArticleID, 1)
-		res.OkWithMsg("文章访问量增加成功", c)
-	} else {
-		res.OkWithMsg("用户已访问过该文章", c)
-	}
-
+	redis_article.SetCacheView(cr.ArticleID, 1)
+	res.OkWithMsg("文章访问量增加成功", c)
 }
