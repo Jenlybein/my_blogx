@@ -35,6 +35,14 @@ redis:
   username: default
   password: ******_password1
   db: 0
+kafka:
+  mysql:
+    brokers:
+      - ******_addr1:19092
+    topic: blogx-mysql
+    group_id: logistics_group
+    username: logistics
+    password: REDACTED_KAFKA_PASSWORD
 es:
   addresses:
     - http://******_addr1:9200

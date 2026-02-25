@@ -1,5 +1,4 @@
 // 配置模块入口
-
 package conf
 
 type Config struct {
@@ -9,6 +8,7 @@ type Config struct {
 	DB     []DB     `yaml:"db"`
 	GORM   GormConf `yaml:"gorm"`
 	Redis  Redis    `yaml:"redis"`
+	Kafka  Kafka    `yaml:"kafka"`
 	ES     ES       `yaml:"es"`
 	River  River    `yaml:"river"`
 	Upload Upload   `yaml:"upload"`

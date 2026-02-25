@@ -4,6 +4,7 @@ package global
 
 import (
 	"myblogx/conf"
+	"myblogx/service/kafka_service"
 	"myblogx/store/email_store"
 
 	"github.com/elastic/go-elasticsearch/v7"
@@ -25,6 +26,7 @@ var (
 	Logger            *logrus.Logger
 	DB                *gorm.DB
 	Redis             *redis.Client
+	KafkaMysqlClient  *kafka_service.KafkaMysqlClient
 	ESClient          *elasticsearch.Client
 	ImageCaptchaStore = base64Captcha.DefaultMemStore
 	EmailVerifyStore  = email_store.NewEmailVerifyStore(3, 5)
