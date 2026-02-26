@@ -7,6 +7,7 @@ import (
 	"myblogx/flags"
 	"myblogx/global"
 	"myblogx/router"
+	"myblogx/service/cron_service"
 )
 
 func main() {
@@ -26,6 +27,9 @@ func main() {
 	flags.Run(flag, global.DB)
 
 	core.InitMySQLES()
+
+	// 定时任务
+	cron_service.Cron()
 
 	// 启动 Web 程序
 	router.Run()

@@ -83,6 +83,10 @@ func GetAllCacheFavorite() map[uint]int {
 	return GetAll(articleCacheFavorite)
 }
 
+func ClearAllCacheArticle() error {
+	return global.Redis.Del(context.Background(), string(articleCacheView), string(articleCacheDigg), string(articleCacheFavorite)).Err()
+}
+
 // 设置用户阅读历史
 func SetUserArticleHistoryCache(articleID, userID int) {
 	key := fmt.Sprintf("user_history_%d", userID)

@@ -7,6 +7,7 @@ require (
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/gabriel-vasile/mimetype v1.4.12
 	github.com/gin-gonic/gin v1.11.0
+	github.com/go-co-op/gocron/v2 v2.19.1
 	github.com/go-gorm/caches/v4 v4.0.5
 	github.com/go-mysql-org/go-mysql v1.13.0
 	github.com/go-playground/locales v0.14.1
@@ -57,6 +58,7 @@ require (
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
@@ -70,6 +72,7 @@ require (
 	github.com/pingcap/log v1.1.1-0.20241212030209-7e3ff8601a2a // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
