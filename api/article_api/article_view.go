@@ -56,7 +56,7 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 	} else {
 		// 已登录用户，靠用户 id 进行确认
 		if redis_article.GetUserArticleHistoryCache(int(cr.ArticleID), int(claims.UserID)) {
-			// global.Logger.Infof("用户已阅读过该文章, article_id：%d, user_id: %d", cr.ArticleID, claims.UserID)
+			// TODO：加消息队列通知数据库更新访问历史
 			res.OkWithMsg("用户已访问过该文章", c)
 			return
 		}

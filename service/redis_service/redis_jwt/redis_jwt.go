@@ -85,7 +85,7 @@ func HasTokenBlack(token string) (BlackMsg string, ok bool) {
 		return BlackTypeMsg(0), false
 	}
 
-	return BlackTypeMsg(blackType), true
+	return BlackTypeMsg(blackType), false
 }
 
 func HasTokenBlackByGin(c *gin.Context) (BlackMsg string, ok bool) {

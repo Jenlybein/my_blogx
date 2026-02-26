@@ -35,7 +35,7 @@ func GetClientIP(c *gin.Context) string {
 	return c.ClientIP()
 }
 
-// 返回 IP 地址的类型，包括 ipv4、ipv6 和 空字符串
+// 返回 IP 地址的类型：ipv4、ipv6 或空字符串
 func IpType(ipstr string) string {
 	ip := net.ParseIP(ipstr)
 	if ip == nil {
@@ -50,30 +50,36 @@ func IpType(ipstr string) string {
 	return ""
 }
 
-// 判断 IP 地址是否为本地回环地址
+// 判断 IP 地址是否为本地/私有地址
 func IsLocalIP(ipstr string, ipType string) bool {
 	ip := net.ParseIP(ipstr)
 	if ip == nil {
 		return false
 	}
 
-	// 回环地址（127.0.0.0/8 或 ::1）
+	// 回环地址：127.0.0.0/8 或 ::1
 	if ip.IsLoopback() {
 		return true
 	}
 
-	// 根据 IP 类型判断私有地址
 	switch ipType {
 	case "ipv4":
+		ip4 := ip.To4()
+		if ip4 == nil {
+			return false
+		}
 		// 私有地址范围：10.0.0.0/8、172.16.0.0/12、192.168.0.0/16
-		return ip[0] == 10 ||
-			(ip[0] == 172 && ip[1] >= 16 && ip[1] <= 31) ||
-			(ip[0] == 192 && ip[1] == 168)
+		return ip4[0] == 10 ||
+			(ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31) ||
+			(ip4[0] == 192 && ip4[1] == 168)
 
 	case "ipv6":
-		// 私有地址范围：链路本地（fe80::/10）、唯一本地（fc00::/7）
-		return ip.IsLinkLocalUnicast() || // 链路本地地址（fe80::/10）
-			(ip[0]&0x80 == 0x80 && ip[0]&0x40 == 0x40) // 唯一本地地址（fc00::/7）
+		ip16 := ip.To16()
+		if ip16 == nil {
+			return false
+		}
+		// 链路本地（fe80::/10）或唯一本地（fc00::/7）
+		return ip.IsLinkLocalUnicast() || (ip16[0]&0xfe == 0xfc)
 	}
 
 	return false
