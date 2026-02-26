@@ -8,54 +8,50 @@ import (
 	"time"
 )
 
-type articleCacheType string
+type ArticleCacheType string
 
 // 文章缓存的Key
 const (
-	articleCacheView     articleCacheType = "article_view"
-	articleCacheDigg     articleCacheType = "article_digg"
-	articleCacheFavorite articleCacheType = "article_favorite"
-)
-
-const (
-	ArticleCacheGuestView articleCacheType = "article_guest_view"
+	ArticleCacheView     ArticleCacheType = "article_view"
+	ArticleCacheDigg     ArticleCacheType = "article_digg"
+	ArticleCacheFavorite ArticleCacheType = "article_favorite"
 )
 
 // 设置缓存
-func set(t articleCacheType, articleID uint, increase int) error {
+func set(t ArticleCacheType, articleID uint, increase int) error {
 	return global.Redis.HIncrBy(context.Background(), string(t), strconv.Itoa(int(articleID)), int64(increase)).Err()
 }
 
-func get(t articleCacheType, articleID uint) int {
+func get(t ArticleCacheType, articleID uint) int {
 	num, _ := global.Redis.HGet(context.Background(), string(t), strconv.Itoa(int(articleID))).Int()
 	return num
 }
 
 // 浏览量缓存
 func SetCacheView(articleID uint, increase int) error {
-	return set(articleCacheView, articleID, increase)
+	return set(ArticleCacheView, articleID, increase)
 }
 func GetCacheView(articleID uint) int {
-	return get(articleCacheView, articleID)
+	return get(ArticleCacheView, articleID)
 }
 
 // 点赞缓存
 func SetCacheDigg(articleID uint, increase int) error {
-	return set(articleCacheDigg, articleID, increase)
+	return set(ArticleCacheDigg, articleID, increase)
 }
 func GetCacheDigg(articleID uint) int {
-	return get(articleCacheDigg, articleID)
+	return get(ArticleCacheDigg, articleID)
 }
 
 // 收藏缓存
 func SetCacheFavorite(articleID uint, increase int) error {
-	return set(articleCacheFavorite, articleID, increase)
+	return set(ArticleCacheFavorite, articleID, increase)
 }
 func GetCacheFavorite(articleID uint) int {
-	return get(articleCacheFavorite, articleID)
+	return get(ArticleCacheFavorite, articleID)
 }
 
-func GetAll(t articleCacheType) map[uint]int {
+func GetAll(t ArticleCacheType) map[uint]int {
 	res, err := global.Redis.HGetAll(context.Background(), string(t)).Result()
 	if err != nil {
 		return nil
@@ -74,17 +70,17 @@ func GetAll(t articleCacheType) map[uint]int {
 }
 
 func GetAllCacheView() map[uint]int {
-	return GetAll(articleCacheView)
+	return GetAll(ArticleCacheView)
 }
 func GetAllCacheDigg() map[uint]int {
-	return GetAll(articleCacheDigg)
+	return GetAll(ArticleCacheDigg)
 }
 func GetAllCacheFavorite() map[uint]int {
-	return GetAll(articleCacheFavorite)
+	return GetAll(ArticleCacheFavorite)
 }
 
 func ClearAllCacheArticle() error {
-	return global.Redis.Del(context.Background(), string(articleCacheView), string(articleCacheDigg), string(articleCacheFavorite)).Err()
+	return global.Redis.Del(context.Background(), string(ArticleCacheView), string(ArticleCacheDigg), string(ArticleCacheFavorite)).Err()
 }
 
 // 设置用户阅读历史
