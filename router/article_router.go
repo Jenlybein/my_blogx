@@ -3,6 +3,7 @@ package router
 import (
 	"myblogx/api"
 	"myblogx/api/article_api"
+	"myblogx/middleware"
 	mw "myblogx/middleware"
 	"myblogx/models"
 
@@ -24,6 +25,8 @@ func ArticleRouter(r *gin.RouterGroup) {
 	authGroup.PUT(":id", mw.BindUri[models.IDRequest], mw.BindJson[article_api.ArticleUpdateRequest], app.ArticleUpdateView)
 	authGroup.PUT(":id/digg", mw.BindUri[models.IDRequest], app.ArticleDiggView)
 	authGroup.POST("favorite", mw.BindJson[article_api.ArticleFavoriteRequest], app.ArticleFavoriteSaveView)
+	authGroup.DELETE(":id", middleware.BindUri[models.IDRequest], app.ArticleRemoveUserView)
 
 	adminGroup.POST(":id/examine", mw.BindUri[models.IDRequest], mw.BindJson[article_api.ArticleExamineRequest], app.ArticleExamineView)
+	adminGroup.DELETE("", mw.BindJson[models.RemoveRequest], app.ArticleRemoveView)
 }
