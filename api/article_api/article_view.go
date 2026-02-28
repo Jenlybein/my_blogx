@@ -65,7 +65,7 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 		var articleID uint
 		err := global.DB.Model(&models.ArticleModel{}).
 			Where("id = ? and status = ?", cr.ArticleID, enum.ArticleStatusPublished).
-			Select("id").Scan(&articleID).Error
+			Select("id").Take(&articleID).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				res.FailWithMsg("文章不存在或未发布", c)

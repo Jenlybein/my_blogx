@@ -35,5 +35,6 @@ func Cron() {
 		global.Logger.Errorf("添加同步文章任务失败: %v", err)
 	}
 
+	global.Logger.Infof("成功启动定时任务")
 	s.Start()
 }

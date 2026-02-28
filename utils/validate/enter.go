@@ -40,7 +40,14 @@ func init() {
 		if label == "" {
 			label = field.Name
 		}
-		name := field.Tag.Get("json")
+		name := ""
+		tagList := []string{"json", "form", "uri"}
+		for _, tag := range tagList {
+			name = field.Tag.Get(tag)
+			if name != "" {
+				break
+			}
+		}
 		return fmt.Sprintf("%s---%s", name, label)
 	})
 }
