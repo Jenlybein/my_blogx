@@ -108,3 +108,11 @@ func GetClaimsByGin(c *gin.Context) (claims *MyClaims) {
 func MustGetClaimsByGin(c *gin.Context) (claims *MyClaims) {
 	return c.MustGet("claims").(*MyClaims)
 }
+
+func (claims *MyClaims) IsAdmin() bool {
+	return claims.Role == enum.RoleAdmin
+}
+
+func (claims *MyClaims) IsUser() bool {
+	return claims.Role == enum.RoleUser
+}

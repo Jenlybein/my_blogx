@@ -29,7 +29,7 @@ type ArticleModel struct {
 	CommentsToggle bool               `gorm:"default:true" json:"comments_toggle"` // 是否允许评论
 	Status         enum.ArticleStatus `gorm:"default:0" json:"status"`
 	UserModel      UserModel          `gorm:"foreignKey:AuthorID;references:ID" json:"-"`
-	CategoryModel  CategoryModel      `gorm:"foreignKey:CategoryID;references:ID" json:"-"`
+	CategoryModel  *CategoryModel     `gorm:"foreignKey:CategoryID;references:ID" json:"-"`
 }
 
 //go:embed es_settings/article_mapping.json

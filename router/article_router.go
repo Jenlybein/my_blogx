@@ -20,6 +20,7 @@ func ArticleRouter(r *gin.RouterGroup) {
 	Group.GET("", mw.BindQuery[article_api.ArticleListRequest], app.ArticleListView)
 	Group.GET("/:id", mw.BindUri[models.IDRequest], app.ArticleDetailView)
 	Group.POST("view", mw.BindJson[article_api.ArticleViewCountRequest], app.ArticleVisitView)
+	Group.GET("category", mw.BindQuery[article_api.CategoryListRequest], app.CategoryListView)
 
 	authGroup.POST("", mw.BindJson[article_api.ArticleCreateRequest], app.ArticleCreateView)
 	authGroup.PUT(":id", mw.BindUri[models.IDRequest], mw.BindJson[article_api.ArticleUpdateRequest], app.ArticleUpdateView)
@@ -29,6 +30,7 @@ func ArticleRouter(r *gin.RouterGroup) {
 	authGroup.GET("history", mw.BindQuery[article_api.ArticleViewHistoryRequest], app.ArticleViewHistoryView)
 	authGroup.DELETE("history", mw.BindJson[models.RemoveRequest], app.ArticleViewHistoryRemoveView)
 	authGroup.POST("category", mw.BindJson[article_api.CategoryRequest], app.CategoryCreateUpdateView)
+	authGroup.DELETE("category", mw.BindJson[models.RemoveRequest], app.CategoryDeleteView)
 
 	adminGroup.POST(":id/examine", mw.BindUri[models.IDRequest], mw.BindJson[article_api.ArticleExamineRequest], app.ArticleExamineView)
 	adminGroup.DELETE("", mw.BindJson[models.RemoveRequest], app.ArticleRemoveView)
