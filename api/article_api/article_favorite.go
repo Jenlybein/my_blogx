@@ -49,9 +49,9 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 				if err = tx.Create(&articleFavorite).Error; err != nil {
 					return err
 				}
-				if err = tx.Model(&favorite).Update("article_count", gorm.Expr("article_count + 1")).Error; err != nil {
-					return err
-				}
+				// if err = tx.Model(&favorite).Update("article_count", gorm.Expr("article_count + 1")).Error; err != nil {
+				// 	return err
+				// }
 				isFavorited = true
 				return nil
 			}
@@ -61,9 +61,9 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 		if err = tx.Delete(&articleFavorite).Error; err != nil {
 			return err
 		}
-		if err = tx.Model(&favorite).Where("article_count > 0").Update("article_count", gorm.Expr("article_count - 1")).Error; err != nil {
-			return err
-		}
+		// if err = tx.Model(&favorite).Where("article_count > 0").Update("article_count", gorm.Expr("article_count - 1")).Error; err != nil {
+		// 	return err
+		// }
 		isFavorited = false
 		return nil
 	}); err != nil {
@@ -72,10 +72,14 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 	}
 
 	if isFavorited {
-		redis_article.SetCacheFavorite(cr.ArticleID, 1)
+		if err := redis_article.SetCacheFavorite(cr.ArticleID, 1); err != nil {
+			global.Logger.Errorf("文章收藏数据加一失败 err: %v", err)
+		}
 		res.OkWithMsg("收藏成功", c)
 	} else {
-		redis_article.SetCacheFavorite(cr.ArticleID, -1)
+		if err := redis_article.SetCacheFavorite(cr.ArticleID, -1); err != nil {
+			global.Logger.Errorf("文章收藏数据减一失败 err: %v", err)
+		}
 		res.OkWithMsg("取消收藏成功", c)
 	}
 }

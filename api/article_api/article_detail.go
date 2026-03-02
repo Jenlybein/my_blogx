@@ -63,7 +63,10 @@ func (ArticleApi) ArticleDetailView(c *gin.Context) {
 		AuthorAvatar:   article.UserModel.Avatar,
 		AuthorNickname: article.UserModel.Nickname,
 		AuthorUsername: article.UserModel.Username,
-		CategoryName:   article.CategoryModel.Title,
+	}
+
+	if article.CategoryModel != nil {
+		response.CategoryName = article.CategoryModel.Title
 	}
 
 	res.OkWithData(response, c)

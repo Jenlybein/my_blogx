@@ -57,19 +57,19 @@ func (ArticleModel) PipelineName() string {
 func (a *ArticleModel) BeforeDelete(tx *gorm.DB) (err error) {
 	// 评论、点赞、收藏、置顶、浏览量
 	var commentList []CommentModel
-	global.DB.Find(&commentList, "article_id = ?", a.ID).Delete(&commentList)
+	tx.Find(&commentList, "article_id = ?", a.ID).Delete(&commentList)
 
 	var diggList []ArticleDiggModel
-	global.DB.Find(&diggList, "article_id = ?", a.ID).Delete(&diggList)
+	tx.Find(&diggList, "article_id = ?", a.ID).Delete(&diggList)
 
 	var favoriteList []FavoriteModel
-	global.DB.Find(&favoriteList, "article_id = ?", a.ID).Delete(&favoriteList)
+	tx.Find(&favoriteList, "article_id = ?", a.ID).Delete(&favoriteList)
 
 	var topList []UserTopArticleModel
-	global.DB.Find(&topList, "article_id = ?", a.ID).Delete(&topList)
+	tx.Find(&topList, "article_id = ?", a.ID).Delete(&topList)
 
 	var viewList []UserArticleViewHistoryModel
-	global.DB.Find(&viewList, "article_id = ?", a.ID).Delete(&viewList)
+	tx.Find(&viewList, "article_id = ?", a.ID).Delete(&viewList)
 
 	global.Logger.Infof("删除文章 %d 时，删除了 %d 条评论、%d 条点赞、%d 条收藏、%d 条置顶、%d 条浏览记录", a.ID, len(commentList), len(diggList), len(favoriteList), len(topList), len(viewList))
 
