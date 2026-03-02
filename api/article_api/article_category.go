@@ -24,12 +24,15 @@ func (ArticleApi) CategoryCreateUpdateView(c *gin.Context) {
 
 	// 创建
 	if cr.ID == 0 {
-		if err := global.DB.Take(&models.CategoryModel{}, "title = ?", cr.Title).Error; err == nil {
+		if err := global.DB.Take(&models.CategoryModel{}, "user_id = ? and title = ?", claims.UserID, cr.Title).Error; err == nil {
 			res.FailWithMsg("分类名称重复", c)
 			return
 		}
 
-		if err := global.DB.Create(&models.CategoryModel{Title: cr.Title}).Error; err != nil {
+		if err := global.DB.Create(&models.CategoryModel{
+			Title:  cr.Title,
+			UserID: claims.UserID,
+		}).Error; err != nil {
 			res.FailWithMsg(fmt.Sprintf("创建分类失败 %v", err), c)
 			return
 		}
@@ -81,7 +84,7 @@ func (ArticleApi) CategoryListView(c *gin.Context) {
 		cr.UserID = claim.UserID
 	case 2: //
 	case 3:
-		if claim.IsAdmin() == false {
+		if err != nil || claim.IsAdmin() == false {
 			res.FailWithMsg("权限不足", c)
 			return
 		}
@@ -122,7 +125,7 @@ func (ArticleApi) CategoryDeleteView(c *gin.Context) {
 
 	claim := jwts.GetClaimsByGin(c)
 	if claim.IsAdmin() == false {
-		query.Where("user_id = ?", claim.UserID)
+		query = query.Where("user_id = ?", claim.UserID)
 	}
 
 	var list []models.CategoryModel
