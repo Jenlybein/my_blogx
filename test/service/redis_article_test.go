@@ -18,6 +18,9 @@ func TestArticleCacheCounters(t *testing.T) {
 	if err := redis_article.SetCacheFavorite(1, 1); err != nil {
 		t.Fatalf("SetCacheFavorite 失败: %v", err)
 	}
+	if err := redis_article.SetCacheComment(1, 4); err != nil {
+		t.Fatalf("SetCacheComment 失败: %v", err)
+	}
 
 	if redis_article.GetCacheView(1) != 3 {
 		t.Fatalf("view 计数错误: %d", redis_article.GetCacheView(1))
@@ -28,6 +31,9 @@ func TestArticleCacheCounters(t *testing.T) {
 	if redis_article.GetCacheFavorite(1) != 1 {
 		t.Fatalf("favorite 计数错误: %d", redis_article.GetCacheFavorite(1))
 	}
+	if redis_article.GetCacheComment(1) != 4 {
+		t.Fatalf("comment 计数错误: %d", redis_article.GetCacheComment(1))
+	}
 
 	if len(redis_article.GetAllCacheView()) != 1 {
 		t.Fatal("GetAllCacheView 长度异常")
@@ -36,7 +42,10 @@ func TestArticleCacheCounters(t *testing.T) {
 	if err := redis_article.ClearAllCacheArticle(); err != nil {
 		t.Fatalf("ClearAllCacheArticle 失败: %v", err)
 	}
-	if redis_article.GetCacheView(1) != 0 || redis_article.GetCacheDigg(1) != 0 || redis_article.GetCacheFavorite(1) != 0 {
+	if redis_article.GetCacheView(1) != 0 ||
+		redis_article.GetCacheDigg(1) != 0 ||
+		redis_article.GetCacheFavorite(1) != 0 ||
+		redis_article.GetCacheComment(1) != 0 {
 		t.Fatal("清理后计数应为 0")
 	}
 }

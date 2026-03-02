@@ -77,14 +77,20 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 
 	// 构建响应数据
 	responseList := make([]ArticleListResponse, 0, len(_list))
-	favorMap := redis_article.GetAllCacheFavorite()
-	diggMap := redis_article.GetAllCacheDigg()
-	viewMap := redis_article.GetAllCacheView()
+	articleIDs := make([]uint, 0, len(_list))
+	for _, model := range _list {
+		articleIDs = append(articleIDs, model.ID)
+	}
+	favorMap := redis_article.GetBatchCacheFavorite(articleIDs)
+	diggMap := redis_article.GetBatchCacheDigg(articleIDs)
+	viewMap := redis_article.GetBatchCacheView(articleIDs)
+	commentMap := redis_article.GetBatchCacheComment(articleIDs)
 
 	for _, model := range _list {
 		model.DiggCount = model.DiggCount + diggMap[model.ID]
 		model.FavorCount = model.FavorCount + favorMap[model.ID]
 		model.ViewCount = model.ViewCount + viewMap[model.ID]
+		model.CommentCount = model.CommentCount + commentMap[model.ID]
 
 		data := ArticleListResponse{
 			ArticleModel: model,

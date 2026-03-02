@@ -6,6 +6,7 @@ import (
 	"myblogx/api/article_api"
 	"myblogx/api/banner_api"
 	"myblogx/api/captcha_api"
+	"myblogx/api/comment_api"
 	"myblogx/api/image_api"
 	"myblogx/api/log_api"
 	"myblogx/api/site_api"
@@ -20,6 +21,7 @@ type Api struct {
 	ImageCaptchaApi captcha_api.ImageCaptchaApi
 	UserApi         user_api.UserApi
 	ArticleApi      article_api.ArticleApi
+	CommentApi      comment_api.CommentApi
 }
 
 var App = Api{}

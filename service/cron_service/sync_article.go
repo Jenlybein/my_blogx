@@ -71,11 +71,12 @@ func SyncArticle() {
 	// 任务结束后释放锁。
 	defer unlock()
 
-	// 定义三类统计指标与 Redis/DB 的映射关系。
+	// 定义统计指标与 Redis/DB 的映射关系。
 	metrics := []articleSyncMetric{
 		{name: "收藏数", activeKey: string(redis_article.ArticleCacheFavorite), syncKey: "article_favorite:syncing", column: "favor_count"},
 		{name: "点赞数", activeKey: string(redis_article.ArticleCacheDigg), syncKey: "article_digg:syncing", column: "digg_count"},
 		{name: "浏览数", activeKey: string(redis_article.ArticleCacheView), syncKey: "article_view:syncing", column: "view_count"},
+		{name: "评论数", activeKey: string(redis_article.ArticleCacheComment), syncKey: "article_comment:syncing", column: "comment_count"},
 	}
 
 	// 逐类同步，互不影响；某一类失败不阻塞其他类。
