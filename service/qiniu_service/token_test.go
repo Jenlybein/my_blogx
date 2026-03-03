@@ -31,3 +31,20 @@ func TestGenUpToken(t *testing.T) {
 		t.Fatalf("token 格式异常: %s", token)
 	}
 }
+
+func TestGenUpTokenInvalidConfig(t *testing.T) {
+	testutil.InitGlobals()
+	global.Config = &conf.Config{
+		QiNiu: conf.QiNiu{
+			AccessKey: "ak",
+			SecretKey: "sk",
+			Bucket:    "",
+			Expiry:    3600,
+		},
+	}
+
+	token, err := qiniu_service.GenUpToken("test-key")
+	if err == nil {
+		t.Fatalf("bucket 为空时应失败, token=%s", token)
+	}
+}
