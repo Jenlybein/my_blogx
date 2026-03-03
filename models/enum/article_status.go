@@ -7,4 +7,5 @@ const (
 	ArticleStatusExamining                          // 审核中
 	ArticleStatusPublished                          // 已发布
 	ArticleStatusRejected                           // 已拒绝
+	ArticleStatusDeleted                            // 已删除
 )

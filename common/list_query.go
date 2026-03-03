@@ -15,21 +15,42 @@ type PageInfo struct {
 	Order string `form:"order"` // 前端可覆盖
 }
 
-func (p PageInfo) GetPage() int {
-	// TODO：分页范围需修改
-	if p.Page > 20 || p.Page <= 0 {
-		p.Page = 1
+func (p PageInfo) GetPage(count ...int) int {
+	page := p.Page
+	if page <= 0 {
+		page = 1
 	}
-	return p.Page
+
+	// 兼容旧行为：未传总数时按历史规则限制最大页为20。
+	if len(count) == 0 {
+		if page > 20 {
+			return 1
+		}
+		return page
+	}
+
+	total := count[0]
+	if total <= 0 {
+		return 1
+	}
+
+	limit := p.GetLimit()
+	max := (total + limit - 1) / limit
+	if page > max {
+		return max
+	}
+	return page
 }
+
 func (p PageInfo) GetLimit() int {
 	if p.Limit <= 0 || p.Limit > 100 {
 		p.Limit = 10
 	}
 	return p.Limit
 }
-func (p PageInfo) GetOffset() int {
-	return (p.GetPage() - 1) * p.GetLimit()
+
+func (p PageInfo) GetOffset(count ...int) int {
+	return (p.GetPage(count...) - 1) * p.GetLimit()
 }
 
 type Options struct {
@@ -74,7 +95,7 @@ func ListQuery[T any](model T, option Options) (list []T, count int, err error) 
 
 	// 分页
 	limit := option.PageInfo.GetLimit()
-	offset := option.PageInfo.GetOffset()
+	offset := option.PageInfo.GetOffset(count)
 	query.Limit(limit).Offset(offset)
 
 	// 排序

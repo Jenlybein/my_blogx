@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
+	"myblogx/service/redis_service/redis_comment"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
 	"net/http/httptest"
@@ -20,12 +22,18 @@ func newCommentCtx() (*gin.Context, *httptest.ResponseRecorder) {
 	return c, w
 }
 
-func readBizCode(t *testing.T, w *httptest.ResponseRecorder) int {
+func readBizBody(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
 	t.Helper()
 	var body map[string]any
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("解析响应失败: %v body=%s", err, w.Body.String())
 	}
+	return body
+}
+
+func readBizCode(t *testing.T, w *httptest.ResponseRecorder) int {
+	t.Helper()
+	body := readBizBody(t, w)
 	return int(body["code"].(float64))
 }
 
@@ -38,9 +46,12 @@ func setupCommentEnv(t *testing.T) *models.UserModel {
 		&models.ArticleModel{},
 		&models.CommentModel{},
 	)
+	global.Config.Site.Comment.SkipExamining = true
+
 	user := &models.UserModel{
 		Username: "comment_u",
 		Password: "x",
+		Role:     enum.RoleUser,
 	}
 	if err := db.Create(user).Error; err != nil {
 		t.Fatalf("创建用户失败: %v", err)
@@ -51,7 +62,7 @@ func setupCommentEnv(t *testing.T) *models.UserModel {
 func TestCommentCreateView(t *testing.T) {
 	user := setupCommentEnv(t)
 	api := CommentApi{}
-	claims := &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Username: user.Username}}
+	claims := &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Username: user.Username, Role: enum.RoleUser}}
 
 	t.Run("文章不存在", func(t *testing.T) {
 		c, w := newCommentCtx()
@@ -82,7 +93,7 @@ func TestCommentCreateView(t *testing.T) {
 		c.Set("requestJson", CommentCreateRequest{ArticleID: closedArticle.ID, Content: "x"})
 		api.CommentCreateView(c)
 		if code := readBizCode(t, w); code == 0 {
-			t.Fatalf("关闭评论应失败, body=%s", w.Body.String())
+			t.Fatalf("关闭评论应失败 body=%s", w.Body.String())
 		}
 	})
 
@@ -96,6 +107,7 @@ func TestCommentCreateView(t *testing.T) {
 		t.Fatalf("创建可评论文章失败: %v", err)
 	}
 
+	var first models.CommentModel
 	t.Run("一级评论成功并写入缓存", func(t *testing.T) {
 		c, w := newCommentCtx()
 		c.Set("claims", claims)
@@ -105,101 +117,167 @@ func TestCommentCreateView(t *testing.T) {
 			t.Fatalf("一级评论应成功, body=%s", w.Body.String())
 		}
 
-		var cm models.CommentModel
-		if err := global.DB.Last(&cm).Error; err != nil {
+		if err := global.DB.Last(&first).Error; err != nil {
 			t.Fatalf("查询评论失败: %v", err)
 		}
-		if cm.ParentID != nil || cm.RootParentID != nil {
-			t.Fatalf("一级评论 parent/root 应为空: %+v", cm)
+		if first.ReplyId != 0 || first.RootID != 0 {
+			t.Fatalf("一级评论 reply/root 错误: %+v", first)
+		}
+		if first.Status != enum.CommentStatusPublished {
+			t.Fatalf("一级评论状态错误: %d", first.Status)
 		}
 		if redis_article.GetCacheComment(openArticle.ID) != 1 {
 			t.Fatalf("评论缓存计数错误: %d", redis_article.GetCacheComment(openArticle.ID))
 		}
+		if redis_comment.GetCacheReply(first.ID) != 0 {
+			t.Fatalf("一级评论回复缓存初始值应为0: %d", redis_comment.GetCacheReply(first.ID))
+		}
 	})
 
-	var first models.CommentModel
-	if err := global.DB.Where("article_id = ? and parent_id is null", openArticle.ID).First(&first).Error; err != nil {
-		t.Fatalf("获取一级评论失败: %v", err)
-	}
-
-	t.Run("回复一级评论成功", func(t *testing.T) {
+	var second models.CommentModel
+	t.Run("回复一级评论成功并累加ReplyCount缓存", func(t *testing.T) {
 		c, w := newCommentCtx()
 		c.Set("claims", claims)
 		c.Set("requestJson", CommentCreateRequest{
 			ArticleID: openArticle.ID,
-			Content:   "reply",
-			ParentID:  &first.ID,
+			Content:   "reply-level2",
+			ReplyId:   &first.ID,
 		})
 		api.CommentCreateView(c)
 		if code := readBizCode(t, w); code != 0 {
-			t.Fatalf("回复评论应成功, body=%s", w.Body.String())
+			t.Fatalf("回复评论应成功 body=%s", w.Body.String())
+		}
+
+		if err := global.DB.Last(&second).Error; err != nil {
+			t.Fatalf("查询回复评论失败: %v", err)
+		}
+		if second.ReplyId != first.ID {
+			t.Fatalf("reply_id 错误: %+v", second)
+		}
+		if second.RootID != first.ID {
+			t.Fatalf("root_id 错误: %+v", second)
+		}
+		if second.Status != enum.CommentStatusPublished {
+			t.Fatalf("回复评论状态错误: %d", second.Status)
+		}
+		if redis_article.GetCacheComment(openArticle.ID) != 2 {
+			t.Fatalf("评论缓存计数错误: %d", redis_article.GetCacheComment(openArticle.ID))
+		}
+		if redis_comment.GetCacheReply(first.ID) != 1 {
+			t.Fatalf("一级评论ReplyCount缓存错误: %d", redis_comment.GetCacheReply(first.ID))
+		}
+	})
+
+	t.Run("回复二级评论仍归属于同一个一级评论", func(t *testing.T) {
+		c, w := newCommentCtx()
+		c.Set("claims", claims)
+		c.Set("requestJson", CommentCreateRequest{
+			ArticleID: openArticle.ID,
+			Content:   "reply-level2-again",
+			ReplyId:   &second.ID,
+		})
+		api.CommentCreateView(c)
+		if code := readBizCode(t, w); code != 0 {
+			t.Fatalf("回复二级评论应成功 body=%s", w.Body.String())
 		}
 
 		var reply models.CommentModel
 		if err := global.DB.Last(&reply).Error; err != nil {
 			t.Fatalf("查询回复评论失败: %v", err)
 		}
-		if reply.ParentID == nil || *reply.ParentID != first.ID {
-			t.Fatalf("回复评论 parent_id 错误: %+v", reply)
+		if reply.ReplyId != second.ID {
+			t.Fatalf("reply_id 错误: %+v", reply)
 		}
-		if reply.RootParentID == nil || *reply.RootParentID != first.ID {
-			t.Fatalf("回复评论 root_parent_id 错误: %+v", reply)
+		if reply.RootID != first.ID {
+			t.Fatalf("root_id 应保持一级评论ID: %+v", reply)
+		}
+		if redis_comment.GetCacheReply(first.ID) != 2 {
+			t.Fatalf("一级评论ReplyCount缓存错误: %d", redis_comment.GetCacheReply(first.ID))
 		}
 	})
 
-	t.Run("父评论不存在", func(t *testing.T) {
+	t.Run("回复评论不存在", func(t *testing.T) {
 		missing := uint(123456)
 		c, w := newCommentCtx()
 		c.Set("claims", claims)
 		c.Set("requestJson", CommentCreateRequest{
 			ArticleID: openArticle.ID,
 			Content:   "bad",
-			ParentID:  &missing,
+			ReplyId:   &missing,
 		})
 		api.CommentCreateView(c)
 		if code := readBizCode(t, w); code == 0 {
-			t.Fatalf("父评论不存在应失败, body=%s", w.Body.String())
+			t.Fatalf("回复评论不存在应失败 body=%s", w.Body.String())
 		}
 	})
-}
 
-func TestFindRootParentID(t *testing.T) {
-	user := setupCommentEnv(t)
-	article := models.ArticleModel{
-		Title:          "a",
-		Content:        "c",
-		AuthorID:       user.ID,
-		CommentsToggle: true,
-	}
-	if err := global.DB.Create(&article).Error; err != nil {
-		t.Fatalf("创建文章失败: %v", err)
-	}
+	t.Run("免审核关闭时普通用户评论进审核中且不计数", func(t *testing.T) {
+		global.Config.Site.Comment.SkipExamining = false
+		t.Cleanup(func() {
+			global.Config.Site.Comment.SkipExamining = true
+		})
 
-	root := models.CommentModel{
-		Content:   "root",
-		UserID:    user.ID,
-		ArticleID: article.ID,
-	}
-	if err := global.DB.Create(&root).Error; err != nil {
-		t.Fatalf("创建根评论失败: %v", err)
-	}
+		beforeCommentCount := redis_article.GetCacheComment(openArticle.ID)
+		beforeReplyCount := redis_comment.GetCacheReply(first.ID)
 
-	child := models.CommentModel{
-		Content:      "child",
-		UserID:       user.ID,
-		ArticleID:    article.ID,
-		ParentID:     &root.ID,
-		RootParentID: &root.ID,
-	}
-	if err := global.DB.Create(&child).Error; err != nil {
-		t.Fatalf("创建子评论失败: %v", err)
-	}
+		c, w := newCommentCtx()
+		c.Set("claims", claims)
+		c.Set("requestJson", CommentCreateRequest{
+			ArticleID: openArticle.ID,
+			Content:   "need-examining",
+			ReplyId:   &first.ID,
+		})
+		api.CommentCreateView(c)
+		if code := readBizCode(t, w); code != 0 {
+			t.Fatalf("评论提交应成功 body=%s", w.Body.String())
+		}
 
-	got, err := findRootParentID(article.ID, child.ID)
-	if err != nil {
-		t.Fatalf("findRootParentID 失败: %v", err)
-	}
-	if got == nil || *got != root.ID {
-		t.Fatalf("根评论 id 错误: got=%v want=%d", got, root.ID)
-	}
+		var last models.CommentModel
+		if err := global.DB.Last(&last).Error; err != nil {
+			t.Fatalf("查询评论失败: %v", err)
+		}
+		if last.Status != enum.CommentStatusExamining {
+			t.Fatalf("评论状态应为审核中: %d", last.Status)
+		}
+		if redis_article.GetCacheComment(openArticle.ID) != beforeCommentCount {
+			t.Fatalf("审核中评论不应增加文章评论缓存")
+		}
+		if redis_comment.GetCacheReply(first.ID) != beforeReplyCount {
+			t.Fatalf("审核中评论不应增加回复缓存")
+		}
+	})
+
+	t.Run("管理员评论直接发布并计数", func(t *testing.T) {
+		global.Config.Site.Comment.SkipExamining = false
+		adminClaims := &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Username: user.Username, Role: enum.RoleAdmin}}
+
+		beforeCommentCount := redis_article.GetCacheComment(openArticle.ID)
+		beforeReplyCount := redis_comment.GetCacheReply(first.ID)
+
+		c, w := newCommentCtx()
+		c.Set("claims", adminClaims)
+		c.Set("requestJson", CommentCreateRequest{
+			ArticleID: openArticle.ID,
+			Content:   "admin-pass",
+			ReplyId:   &first.ID,
+		})
+		api.CommentCreateView(c)
+		if code := readBizCode(t, w); code != 0 {
+			t.Fatalf("管理员评论应成功 body=%s", w.Body.String())
+		}
+
+		var last models.CommentModel
+		if err := global.DB.Last(&last).Error; err != nil {
+			t.Fatalf("查询评论失败: %v", err)
+		}
+		if last.Status != enum.CommentStatusPublished {
+			t.Fatalf("管理员评论应直接发布: %d", last.Status)
+		}
+		if redis_article.GetCacheComment(openArticle.ID) != beforeCommentCount+1 {
+			t.Fatalf("管理员评论应增加文章评论缓存")
+		}
+		if redis_comment.GetCacheReply(first.ID) != beforeReplyCount+1 {
+			t.Fatalf("管理员评论应增加回复缓存")
+		}
+	})
 }

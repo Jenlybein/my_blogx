@@ -9,6 +9,11 @@ import (
 
 type CronService struct{}
 
+func syncCounters() {
+	SyncArticle()
+	SyncCommentReply()
+}
+
 func Cron() {
 	// 创建调度器，指定上海时区（对应原代码的WithLocation）
 	timezone, _ := time.LoadLocation("Asia/Shanghai")
@@ -29,7 +34,7 @@ func Cron() {
 		// gocron.CronJob("0 0 2 * * *", false),
 
 		// 指定要执行的任务函数
-		gocron.NewTask(SyncArticle),
+		gocron.NewTask(syncCounters),
 	)
 	if err != nil {
 		global.Logger.Errorf("添加同步文章任务失败: %v", err)

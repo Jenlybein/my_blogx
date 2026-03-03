@@ -56,3 +56,7 @@ type IndexRight struct {
 type Article struct {
 	SkipExamining bool `yaml:"skip_examining" json:"skip_examining"` // 免审核
 }
+
+type Comment struct {
+	SkipExamining bool `yaml:"skip_examining" json:"skip_examining"` // 免审核
+}

@@ -6,7 +6,9 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
+	"myblogx/service/redis_service/redis_comment"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +18,7 @@ import (
 type CommentCreateRequest struct {
 	Content   string `json:"content" binding:"required"`
 	ArticleID uint   `json:"article_id" binding:"required"`
-	ParentID  *uint  `json:"parent_id"` // 父级评论id
+	ReplyId   *uint  `json:"reply_id"`
 }
 
 func (CommentApi) CommentCreateView(c *gin.Context) {
@@ -33,46 +35,64 @@ func (CommentApi) CommentCreateView(c *gin.Context) {
 	}
 
 	claims := jwts.MustGetClaimsByGin(c)
+
+	status := enum.CommentStatusExamining
 	model := models.CommentModel{
 		Content:   cr.Content,
 		UserID:    claims.UserID,
 		ArticleID: cr.ArticleID,
+		Status:    status,
 	}
+	var rootCommentID uint
 
-	if cr.ParentID != nil {
-		rootParentID, err := findRootParentID(cr.ArticleID, *cr.ParentID)
-		if err != nil {
+	// 只做两级评论：回复二级评论时，仍挂到同一个一级评论下
+	if cr.ReplyId != nil {
+		var replyComment models.CommentModel
+		if err := global.DB.Take(&replyComment, "id = ? and article_id = ? and status = ?", *cr.ReplyId, cr.ArticleID, enum.CommentStatusPublished).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				res.FailWithMsg("父评论不存在", c)
+				res.FailWithMsg("回复的评论不存在", c)
 				return
 			}
-			res.FailWithMsg("查询父评论失败", c)
+			res.FailWithMsg("查询回复评论失败", c)
 			return
 		}
-		model.ParentID = cr.ParentID
-		model.RootParentID = rootParentID
+
+		model.ReplyId = *cr.ReplyId
+		if replyComment.RootID != 0 {
+			model.RootID = replyComment.RootID
+		} else {
+			model.RootID = replyComment.ID
+		}
+		rootCommentID = model.RootID
 	}
 
 	if err := global.DB.Create(&model).Error; err != nil {
 		res.FailWithMsg("评论失败", c)
 		return
 	}
-	if err := redis_article.SetCacheComment(cr.ArticleID, 1); err != nil {
-		global.Logger.Errorf("写入评论计数缓存失败 article_id=%d err=%v", cr.ArticleID, err)
+
+	// 临时审核
+	if (claims != nil && claims.IsAdmin()) || global.Config.Site.Comment.SkipExamining {
+		status = enum.CommentStatusPublished
+		if err := global.DB.Model(&model).Update("status", status).Error; err != nil {
+			res.FailWithMsg("审核失败", c)
+			return
+		}
+
+		// 只有已发布评论才计入前台计数
+		if err := redis_article.SetCacheComment(cr.ArticleID, 1); err != nil {
+			global.Logger.Errorf("写入评论计数缓存失败 article_id=%d err=%v", cr.ArticleID, err)
+		}
+		if rootCommentID != 0 {
+			if err := redis_comment.SetCacheReply(rootCommentID, 1); err != nil {
+				global.Logger.Errorf("写入回复数缓存失败 root_comment_id=%d err=%v", rootCommentID, err)
+			}
+		}
+		res.OkWithMsg("评论成功", c)
+		return
+	} else {
+		// 进入审核
 	}
 
-	res.OkWithMsg("评论成功", c)
-}
-
-// 找到父评论所属的根评论ID。
-// 一级评论的回复：根评论=父评论ID；回复楼中楼：根评论沿用父评论的 RootParentID。
-func findRootParentID(articleID, parentID uint) (*uint, error) {
-	var parent models.CommentModel
-	if err := global.DB.Take(&parent, "id = ? and article_id = ?", parentID, articleID).Error; err != nil {
-		return nil, err
-	}
-	if parent.RootParentID != nil {
-		return parent.RootParentID, nil
-	}
-	return &parent.ID, nil
+	res.OkWithMsg("评论已提交，等待审核", c)
 }

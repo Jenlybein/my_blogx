@@ -124,6 +124,8 @@ site:
     list: []
   article:
     skip_examining: true
+  comment:
+    skip_examining: true
 email:
   domain: ******_domain1
   port: ******_port5
