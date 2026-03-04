@@ -1,0 +1,129 @@
+// 获取评论管理列表
+package comment_api
+
+import (
+	"myblogx/common"
+	"myblogx/common/res"
+	"myblogx/global"
+	"myblogx/middleware"
+	"myblogx/models"
+	"myblogx/models/enum"
+	"myblogx/service/redis_service/redis_comment"
+	"myblogx/utils/jwts"
+
+	"github.com/gin-gonic/gin"
+)
+
+type CommentManListRequest struct {
+	common.PageInfo
+	ArticleID uint               `form:"article_id"`
+	UserID    uint               `form:"user_id"`
+	Status    enum.CommentStatus `form:"status"`
+	Type      int8               `form:"type" binding:"required,oneof=1 2 3"`
+	// 1 查我文章下的评论 2 查我发的评论 3 管理员查所有评论
+}
+
+type CommentManListResponse struct {
+	ID           uint   `json:"id"`
+	CreatedAt    string `json:"created_at"`
+	Content      string `json:"content"`
+	DiggCount    int    `json:"digg_count"`
+	ReplyCount   int    `json:"reply_count"`
+	UserID       uint   `json:"user_id"`
+	UserNickname string `json:"user_nickname"`
+	UserAvatar   string `json:"user_avatar"`
+	ArticleID    uint   `json:"article_id"`
+	ArticleTitle string `json:"article_title"`
+	ArticleCover string `json:"article_cover"`
+}
+
+func (CommentApi) CommentManListView(c *gin.Context) {
+	cr := middleware.GetBindQuery[CommentManListRequest](c)
+	claims := jwts.MustGetClaimsByGin(c)
+
+	query := global.DB.Where("")
+
+	switch cr.Type {
+	case 1: // 查我文章下的评论
+		articleQuery := global.DB.Model(&models.ArticleModel{}).
+			Select("id").
+			Where("author_id = ?", claims.UserID)
+		query = query.Where("article_id IN (?)", articleQuery)
+
+		if cr.ArticleID != 0 {
+			query = query.Where("article_id = ?", cr.ArticleID)
+		}
+		if cr.UserID != 0 {
+			query = query.Where("user_id = ?", cr.UserID)
+		}
+	case 2: // 查我发的评论
+		query = query.Where("user_id = ?", claims.UserID)
+		if cr.ArticleID != 0 {
+			query = query.Where("article_id = ?", cr.ArticleID)
+		}
+	case 3: // 管理员查所有评论
+		if claims.Role != enum.RoleAdmin {
+			res.FailWithMsg("权限错误", c)
+			return
+		}
+		if cr.ArticleID != 0 {
+			query = query.Where("article_id = ?", cr.ArticleID)
+		}
+		if cr.UserID != 0 {
+			query = query.Where("user_id = ?", cr.UserID)
+		}
+	}
+
+	commentList, count, err := common.ListQuery(models.CommentModel{
+		Status: cr.Status,
+	}, common.Options{
+		PageInfo: cr.PageInfo,
+		Likes:    []string{"content"},
+		Where:    query,
+		Select: []string{
+			"id",
+			"created_at",
+			"content",
+			"digg_count",
+			"reply_count",
+			"user_id",
+			"article_id",
+			"status",
+		},
+		DefaultOrder: "created_at desc",
+		ExactPreloads: map[string][]string{
+			"ArticleModel": {"id", "title", "cover"},
+			"UserModel":    {"id", "nickname", "avatar"},
+		},
+	})
+	if err != nil {
+		res.FailWithMsg("查询评论失败 "+err.Error(), c)
+		return
+	}
+
+	commentIDs := make([]uint, 0, len(commentList))
+	for _, item := range commentList {
+		commentIDs = append(commentIDs, item.ID)
+	}
+	replyCountMap := redis_comment.GetBatchCacheReply(commentIDs)
+
+	list := make([]CommentManListResponse, 0, len(commentList))
+	for _, item := range commentList {
+		item.ReplyCount += replyCountMap[item.ID]
+		list = append(list, CommentManListResponse{
+			ID:           item.ID,
+			CreatedAt:    item.CreatedAt.Format("2006-01-02 15:04:05"),
+			Content:      item.Content,
+			DiggCount:    item.DiggCount,
+			ReplyCount:   item.ReplyCount,
+			UserID:       item.UserID,
+			UserNickname: item.UserModel.Nickname,
+			UserAvatar:   item.UserModel.Avatar,
+			ArticleID:    item.ArticleID,
+			ArticleTitle: item.ArticleModel.Title,
+			ArticleCover: item.ArticleModel.Cover,
+		})
+	}
+
+	res.OkWithList(list, count, c)
+}

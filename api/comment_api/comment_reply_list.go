@@ -10,7 +10,6 @@ import (
 	"myblogx/service/redis_service/redis_comment"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type CommentReplyListRequest struct {
@@ -40,35 +39,32 @@ func (CommentApi) CommentReplyListView(c *gin.Context) {
 		return
 	}
 
-	query := global.DB.Model(&models.CommentModel{}).Where(models.CommentModel{
+	list, count, err := common.ListQuery(models.CommentModel{
 		ArticleID: cr.ArticleID,
 		RootID:    cr.RootID,
 		Status:    enum.CommentStatusPublished,
+	}, common.Options{
+		PageInfo:     cr.PageInfo,
+		DefaultOrder: "created_at asc",
+		Select: []string{
+			"id",
+			"created_at",
+			"updated_at",
+			"content",
+			"user_id",
+			"article_id",
+			"reply_id",
+			"root_id",
+			"digg_count",
+			"reply_count",
+			"status",
+		},
+		ExactPreloads: map[string][]string{
+			"UserModel":             {"id", "nickname", "avatar"},
+			"ParentModel":           {"id", "user_id"},
+			"ParentModel.UserModel": {"id", "nickname"},
+		},
 	})
-
-	var total int64
-	if err := query.Count(&total).Error; err != nil {
-		res.FailWithMsg("查询二级评论失败 "+err.Error(), c)
-		return
-	}
-	count := int(total)
-
-	var list []models.CommentModel
-	err := query.
-		Select("id", "content", "user_id", "article_id", "reply_id", "root_id", "digg_count", "reply_count", "status", "created_at", "updated_at").
-		Order("created_at asc").
-		Limit(cr.GetLimit()).
-		Offset(cr.GetOffset(count)).
-		Preload("UserModel", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "nickname", "avatar")
-		}).
-		Preload("ParentModel", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "user_id")
-		}).
-		Preload("ParentModel.UserModel", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "nickname")
-		}).
-		Find(&list).Error
 	if err != nil {
 		res.FailWithMsg("查询二级评论失败 "+err.Error(), c)
 		return

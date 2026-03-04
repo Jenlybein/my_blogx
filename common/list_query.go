@@ -21,7 +21,7 @@ func (p PageInfo) GetPage(count ...int) int {
 		page = 1
 	}
 
-	// 兼容旧行为：未传总数时按历史规则限制最大页为20。
+	// 兼容历史行为：不传总数时最大页限制为 20。
 	if len(count) == 0 {
 		if page > 20 {
 			return 1
@@ -55,52 +55,47 @@ func (p PageInfo) GetOffset(count ...int) int {
 
 type Options struct {
 	PageInfo
-	Likes        []string
-	Preloads     []string
-	Where        *gorm.DB
-	Debug        bool
-	OrderMap     map[string]bool
-	DefaultOrder string
+	Select        []string
+	Likes         []string
+	Preloads      []string
+	ExactPreloads map[string][]string
+	Where         *gorm.DB
+	Debug         bool
+	OrderMap      map[string]bool
+	DefaultOrder  string
 }
 
 func ListQuery[T any](model T, option Options) (list []T, count int, err error) {
-	// 查询基础
 	query := global.DB.Model(model).Where(model)
 
-	// 日志显示
 	if option.Debug {
 		query = query.Debug()
 	}
 
-	// 模糊匹配
 	if len(option.Likes) > 0 && option.PageInfo.Key != "" {
 		likes := query.Where("")
 		for _, column := range option.Likes {
 			likes = likes.Or(
 				fmt.Sprintf("%s LIKE ?", column),
-				"%"+option.PageInfo.Key+"%")
+				"%"+option.PageInfo.Key+"%",
+			)
 		}
 		query = query.Where(likes)
 	}
 
-	// 定制化查询
 	if option.Where != nil {
-		query.Where(option.Where)
+		query = query.Where(option.Where)
 	}
 
-	// 查总数
 	var _c int64
 	query.Count(&_c)
 	count = int(_c)
 
-	// 分页
 	limit := option.PageInfo.GetLimit()
 	offset := option.PageInfo.GetOffset(count)
-	query.Limit(limit).Offset(offset)
+	query = query.Limit(limit).Offset(offset)
 
-	// 排序
 	if option.PageInfo.Order != "" {
-		// 前端已配置排序
 		if option.OrderMap != nil && option.OrderMap[option.PageInfo.Order] {
 			query = query.Order(option.PageInfo.Order)
 		} else {
@@ -108,13 +103,22 @@ func ListQuery[T any](model T, option Options) (list []T, count int, err error) 
 			return
 		}
 	} else if option.DefaultOrder != "" {
-		// 前端未配置排序，使用默认排序
 		query = query.Order(option.DefaultOrder)
 	}
 
-	// 预加载
+	// Select 只影响列表查询，不影响 count。
+	if len(option.Select) > 0 {
+		query = query.Select(option.Select)
+	}
+
 	for _, preload := range option.Preloads {
 		query = query.Preload(preload)
+	}
+
+	for preload, fields := range option.ExactPreloads {
+		query = query.Preload(preload, func(db *gorm.DB) *gorm.DB {
+			return db.Select(fields)
+		})
 	}
 
 	err = query.Find(&list).Error

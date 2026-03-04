@@ -71,3 +71,31 @@ func TestListQueryInvalidOrder(t *testing.T) {
 		t.Fatal("非法排序字段应报错")
 	}
 }
+
+func TestListQuerySelect(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.BannerModel{})
+	item := models.BannerModel{Show: true, Cover: "cover-x", Href: "/x"}
+	if err := db.Create(&item).Error; err != nil {
+		t.Fatalf("创建数据失败: %v", err)
+	}
+
+	list, count, err := common.ListQuery(
+		models.BannerModel{},
+		common.Options{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+			Select:   []string{"id", "cover"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("ListQuery Select 查询失败: %v", err)
+	}
+	if count != 1 || len(list) != 1 {
+		t.Fatalf("查询数量异常 count=%d len=%d", count, len(list))
+	}
+	if list[0].Cover != "cover-x" {
+		t.Fatalf("Cover 字段未正确返回: %+v", list[0])
+	}
+	if list[0].Href != "" {
+		t.Fatalf("未选中字段 Href 应为空: %+v", list[0])
+	}
+}
