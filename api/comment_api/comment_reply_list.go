@@ -8,6 +8,7 @@ import (
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_comment"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,10 +20,16 @@ type CommentReplyListRequest struct {
 }
 
 type CommentReplyListResponse struct {
-	models.CommentModel
-	UserNickname      string `json:"user_nickname"`
-	UserAvatar        string `json:"user_avatar"`
-	ReplyUserNickname string `json:"reply_user_nickname"`
+	CreatedAt         time.Time          `json:"created_at"`
+	Content           string             `json:"content"`
+	UserID            uint               `json:"user_id"`
+	ReplyId           uint               `json:"reply_id"`
+	DiggCount         int                `json:"digg_count"`
+	ReplyCount        int                `json:"reply_count"`
+	Status            enum.CommentStatus `json:"status"`
+	UserNickname      string             `json:"user_nickname"`
+	UserAvatar        string             `json:"user_avatar"`
+	ReplyUserNickname string             `json:"reply_user_nickname"`
 }
 
 func (CommentApi) CommentReplyListView(c *gin.Context) {
@@ -80,7 +87,13 @@ func (CommentApi) CommentReplyListView(c *gin.Context) {
 	for _, item := range list {
 		item.ReplyCount += replyCountMap[item.ID]
 		resp := CommentReplyListResponse{
-			CommentModel: item,
+			CreatedAt:    item.CreatedAt,
+			Content:      item.Content,
+			UserID:       item.UserID,
+			ReplyId:      item.ReplyId,
+			DiggCount:    item.DiggCount,
+			ReplyCount:   item.ReplyCount,
+			Status:       item.Status,
 			UserNickname: item.UserModel.Nickname,
 			UserAvatar:   item.UserModel.Avatar,
 		}

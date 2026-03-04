@@ -71,7 +71,7 @@ func (CommentApi) CommentCreateView(c *gin.Context) {
 		return
 	}
 
-	// 临时审核
+	// 临时审核（模拟审核过程，之后再修改）
 	if (claims != nil && claims.IsAdmin()) || global.Config.Site.Comment.SkipExamining {
 		status = enum.CommentStatusPublished
 		if err := global.DB.Model(&model).Update("status", status).Error; err != nil {

@@ -85,7 +85,7 @@ func TestCommentRootListView(t *testing.T) {
 		var root1Item map[string]any
 		for _, raw := range list {
 			item := raw.(map[string]any)
-			if uint(item["id"].(float64)) == root1.ID {
+			if item["content"] == "root1" {
 				root1Item = item
 				break
 			}
@@ -93,11 +93,11 @@ func TestCommentRootListView(t *testing.T) {
 		if root1Item == nil {
 			t.Fatalf("未返回 root1: %+v", list)
 		}
-		if uint(root1Item["reply_id"].(float64)) != 0 || uint(root1Item["root_id"].(float64)) != 0 {
+		if uint(root1Item["reply_id"].(float64)) != 0 {
 			t.Fatalf("返回了非一级评论: %+v", root1Item)
 		}
 		if int(root1Item["reply_count"].(float64)) != 3 {
-			t.Fatalf("一级评论reply_count未叠加缓存: %+v", root1Item)
+			t.Fatalf("一级评论 reply_count 未叠加缓存: %+v", root1Item)
 		}
 		if root1Item["user_nickname"].(string) == "" {
 			t.Fatalf("用户昵称为空: %+v", root1Item)

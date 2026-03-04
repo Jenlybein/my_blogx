@@ -18,7 +18,7 @@ type CommentManListRequest struct {
 	common.PageInfo
 	ArticleID uint               `form:"article_id"`
 	UserID    uint               `form:"user_id"`
-	Status    enum.CommentStatus `form:"status"`
+	Status    enum.CommentStatus `form:"status" binding:"oneof=1 2 3"`
 	Type      int8               `form:"type" binding:"required,oneof=1 2 3"`
 	// 1 查我文章下的评论 2 查我发的评论 3 管理员查所有评论
 }
@@ -49,29 +49,21 @@ func (CommentApi) CommentManListView(c *gin.Context) {
 			Select("id").
 			Where("author_id = ?", claims.UserID)
 		query = query.Where("article_id IN (?)", articleQuery)
-
-		if cr.ArticleID != 0 {
-			query = query.Where("article_id = ?", cr.ArticleID)
-		}
-		if cr.UserID != 0 {
-			query = query.Where("user_id = ?", cr.UserID)
-		}
+		cr.Status = enum.CommentStatusPublished
 	case 2: // 查我发的评论
-		query = query.Where("user_id = ?", claims.UserID)
-		if cr.ArticleID != 0 {
-			query = query.Where("article_id = ?", cr.ArticleID)
-		}
+		cr.UserID = claims.UserID
 	case 3: // 管理员查所有评论
-		if claims.Role != enum.RoleAdmin {
+		if !claims.IsAdmin() {
 			res.FailWithMsg("权限错误", c)
 			return
 		}
-		if cr.ArticleID != 0 {
-			query = query.Where("article_id = ?", cr.ArticleID)
-		}
-		if cr.UserID != 0 {
-			query = query.Where("user_id = ?", cr.UserID)
-		}
+	}
+
+	if cr.ArticleID != 0 {
+		query = query.Where("article_id = ?", cr.ArticleID)
+	}
+	if cr.UserID != 0 {
+		query = query.Where("user_id = ?", cr.UserID)
 	}
 
 	commentList, count, err := common.ListQuery(models.CommentModel{

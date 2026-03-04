@@ -9,6 +9,7 @@ import (
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_comment"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,9 +20,17 @@ type CommentRootListRequest struct {
 }
 
 type CommentRootListResponse struct {
-	models.CommentModel
-	UserNickname string `json:"user_nickname"`
-	UserAvatar   string `json:"user_avatar"`
+	ID           uint               `json:"id"`
+	CreatedAt    time.Time          `json:"created_at"`
+	Content      string             `json:"content"`
+	UserID       uint               `json:"user_id"`
+	ReplyId      uint               `json:"reply_id"`
+	RootID       uint               `json:"root_id"`
+	DiggCount    int                `json:"digg_count"`
+	ReplyCount   int                `json:"reply_count"`
+	Status       enum.CommentStatus `json:"status"`
+	UserNickname string             `json:"user_nickname"`
+	UserAvatar   string             `json:"user_avatar"`
 }
 
 func (CommentApi) CommentRootListView(c *gin.Context) {
@@ -33,7 +42,7 @@ func (CommentApi) CommentRootListView(c *gin.Context) {
 		return
 	}
 
-	// 注意：reply_id/root_id 的零值条件不能依赖结构体过滤，需要显式 Where。
+	// reply_id/root_id 的零值条件不能依赖结构体过滤，需要显式 Where。
 	list, count, err := common.ListQuery(models.CommentModel{
 		ArticleID: cr.ArticleID,
 		Status:    enum.CommentStatusPublished,
@@ -44,7 +53,6 @@ func (CommentApi) CommentRootListView(c *gin.Context) {
 		Select: []string{
 			"id",
 			"created_at",
-			"updated_at",
 			"content",
 			"user_id",
 			"article_id",
@@ -67,13 +75,24 @@ func (CommentApi) CommentRootListView(c *gin.Context) {
 	for _, item := range list {
 		commentIDs = append(commentIDs, item.ID)
 	}
-	replyCountMap := redis_comment.GetBatchCacheReply(commentIDs)
+	replyCountMap := map[uint]int{}
+	if len(commentIDs) > 0 {
+		replyCountMap = redis_comment.GetBatchCacheReply(commentIDs)
+	}
 
 	responseList := make([]CommentRootListResponse, 0, len(list))
 	for _, item := range list {
 		item.ReplyCount += replyCountMap[item.ID]
 		responseList = append(responseList, CommentRootListResponse{
-			CommentModel: item,
+			ID:           item.ID,
+			CreatedAt:    item.CreatedAt,
+			Content:      item.Content,
+			UserID:       item.UserID,
+			ReplyId:      item.ReplyId,
+			RootID:       item.RootID,
+			DiggCount:    item.DiggCount,
+			ReplyCount:   item.ReplyCount,
+			Status:       item.Status,
 			UserNickname: item.UserModel.Nickname,
 			UserAvatar:   item.UserModel.Avatar,
 		})

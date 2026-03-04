@@ -17,5 +17,6 @@ func CommentRouter(r *gin.RouterGroup) {
 
 	Group.GET("", mw.BindQuery[comment_api.CommentRootListRequest], app.CommentRootListView)
 	Group.GET("/replies", mw.BindQuery[comment_api.CommentReplyListRequest], app.CommentReplyListView)
+	authGroup.GET("/man", mw.BindQuery[comment_api.CommentManListRequest], app.CommentManListView)
 	authGroup.POST("", mw.BindJson[comment_api.CommentCreateRequest], app.CommentCreateView)
 }

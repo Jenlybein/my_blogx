@@ -14,7 +14,14 @@ func TestCommentReplyListView(t *testing.T) {
 	user := setupCommentEnv(t)
 	api := CommentApi{}
 
-	user2 := &models.UserModel{Username: "reply_u", Password: "x", Role: enum.RoleUser}
+	if err := global.DB.Model(user).Updates(map[string]any{
+		"nickname": "u1",
+		"avatar":   "/u1.png",
+	}).Error; err != nil {
+		t.Fatalf("更新用户资料失败: %v", err)
+	}
+
+	user2 := &models.UserModel{Username: "reply_u", Nickname: "u2", Avatar: "/u2.png", Password: "x", Role: enum.RoleUser}
 	if err := global.DB.Create(user2).Error; err != nil {
 		t.Fatalf("创建第二个用户失败: %v", err)
 	}
@@ -46,11 +53,6 @@ func TestCommentReplyListView(t *testing.T) {
 		t.Fatalf("创建待审核二级评论失败: %v", err)
 	}
 
-	otherRoot := models.CommentModel{Content: "other", UserID: user.ID, ArticleID: article.ID, Status: enum.CommentStatusPublished}
-	if err := global.DB.Create(&otherRoot).Error; err != nil {
-		t.Fatalf("创建其他一级评论失败: %v", err)
-	}
-
 	unpublishedRoot := models.CommentModel{Content: "root-pending", UserID: user.ID, ArticleID: article.ID, Status: enum.CommentStatusExamining}
 	if err := global.DB.Create(&unpublishedRoot).Error; err != nil {
 		t.Fatalf("创建待审核一级评论失败: %v", err)
@@ -73,7 +75,7 @@ func TestCommentReplyListView(t *testing.T) {
 
 		api.CommentReplyListView(c)
 		if code := readBizCode(t, w); code != 0 {
-			t.Fatalf("获取二级评论应成功 body=%s", w.Body.String())
+			t.Fatalf("获取二级评论应成功，body=%s", w.Body.String())
 		}
 
 		var body map[string]any
@@ -95,7 +97,7 @@ func TestCommentReplyListView(t *testing.T) {
 		var reply1Item map[string]any
 		for _, raw := range list {
 			item := raw.(map[string]any)
-			if uint(item["id"].(float64)) == reply1.ID {
+			if item["content"] == "reply1" {
 				reply1Item = item
 				break
 			}
@@ -103,11 +105,11 @@ func TestCommentReplyListView(t *testing.T) {
 		if reply1Item == nil {
 			t.Fatalf("未返回 reply1: %+v", list)
 		}
-		if uint(reply1Item["root_id"].(float64)) != root.ID {
-			t.Fatalf("root_id 错误: %+v", reply1Item)
+		if int(reply1Item["reply_id"].(float64)) != int(root.ID) {
+			t.Fatalf("reply_id 错误: %+v", reply1Item)
 		}
 		if int(reply1Item["reply_count"].(float64)) != 4 {
-			t.Fatalf("二级评论reply_count未叠加缓存: %+v", reply1Item)
+			t.Fatalf("二级评论 reply_count 未叠加缓存: %+v", reply1Item)
 		}
 	})
 
@@ -121,7 +123,7 @@ func TestCommentReplyListView(t *testing.T) {
 
 		api.CommentReplyListView(c)
 		if code := readBizCode(t, w); code == 0 {
-			t.Fatalf("二级评论作为root_id应失败 body=%s", w.Body.String())
+			t.Fatalf("二级评论作为 root_id 应失败，body=%s", w.Body.String())
 		}
 	})
 
