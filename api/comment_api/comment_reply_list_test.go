@@ -59,10 +59,13 @@ func TestCommentReplyListView(t *testing.T) {
 	}
 
 	if err := redis_comment.SetCacheReply(root.ID, 1); err != nil {
-		t.Fatalf("写入root回复缓存失败: %v", err)
+		t.Fatalf("写入 root 回复缓存失败: %v", err)
 	}
 	if err := redis_comment.SetCacheReply(reply1.ID, 4); err != nil {
 		t.Fatalf("写入二级评论回复缓存失败: %v", err)
+	}
+	if err := redis_comment.SetCacheDigg(reply1.ID, 3); err != nil {
+		t.Fatalf("写入二级评论点赞缓存失败: %v", err)
 	}
 
 	t.Run("分页获取已发布二级评论成功", func(t *testing.T) {
@@ -110,6 +113,9 @@ func TestCommentReplyListView(t *testing.T) {
 		}
 		if int(reply1Item["reply_count"].(float64)) != 4 {
 			t.Fatalf("二级评论 reply_count 未叠加缓存: %+v", reply1Item)
+		}
+		if int(reply1Item["digg_count"].(float64)) != 3 {
+			t.Fatalf("二级评论 digg_count 未叠加缓存: %+v", reply1Item)
 		}
 	})
 

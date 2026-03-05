@@ -45,6 +45,7 @@ func setupCommentEnv(t *testing.T) *models.UserModel {
 		&models.UserConfModel{},
 		&models.ArticleModel{},
 		&models.CommentModel{},
+		&models.CommentDiggModel{},
 	)
 	global.Config.Site.Comment.SkipExamining = true
 

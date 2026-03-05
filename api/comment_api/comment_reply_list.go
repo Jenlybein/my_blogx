@@ -82,10 +82,12 @@ func (CommentApi) CommentReplyListView(c *gin.Context) {
 		commentIDs = append(commentIDs, item.ID)
 	}
 	replyCountMap := redis_comment.GetBatchCacheReply(commentIDs)
+	diggCountMap := redis_comment.GetBatchCacheDigg(commentIDs)
 
 	responseList := make([]CommentReplyListResponse, 0, len(list))
 	for _, item := range list {
 		item.ReplyCount += replyCountMap[item.ID]
+		item.DiggCount += diggCountMap[item.ID]
 		resp := CommentReplyListResponse{
 			CreatedAt:    item.CreatedAt,
 			Content:      item.Content,

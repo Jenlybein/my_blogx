@@ -12,6 +12,7 @@ type CronService struct{}
 func syncCounters() {
 	SyncArticle()
 	SyncCommentReply()
+	SyncCommentDigg()
 }
 
 func Cron() {

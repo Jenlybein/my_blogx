@@ -56,6 +56,9 @@ func TestCommentRootListView(t *testing.T) {
 	if err := redis_comment.SetCacheReply(root1.ID, 1); err != nil {
 		t.Fatalf("写入一级评论回复缓存失败: %v", err)
 	}
+	if err := redis_comment.SetCacheDigg(root1.ID, 2); err != nil {
+		t.Fatalf("写入一级评论点赞缓存失败: %v", err)
+	}
 
 	t.Run("分页获取一级评论成功", func(t *testing.T) {
 		c, w := newCommentCtx()
@@ -98,6 +101,9 @@ func TestCommentRootListView(t *testing.T) {
 		}
 		if int(root1Item["reply_count"].(float64)) != 3 {
 			t.Fatalf("一级评论 reply_count 未叠加缓存: %+v", root1Item)
+		}
+		if int(root1Item["digg_count"].(float64)) != 2 {
+			t.Fatalf("一级评论 digg_count 未叠加缓存: %+v", root1Item)
 		}
 		if root1Item["user_nickname"].(string) == "" {
 			t.Fatalf("用户昵称为空: %+v", root1Item)

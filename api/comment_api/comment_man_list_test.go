@@ -67,6 +67,9 @@ func TestCommentManListView(t *testing.T) {
 	if err := redis_comment.SetCacheReply(minePublished1.ID, 2); err != nil {
 		t.Fatalf("写入 reply 缓存失败: %v", err)
 	}
+	if err := redis_comment.SetCacheDigg(minePublished1.ID, 3); err != nil {
+		t.Fatalf("写入 digg 缓存失败: %v", err)
+	}
 
 	t.Run("type=1 查询我文章下评论", func(t *testing.T) {
 		c, w := newCommentCtx()
@@ -108,6 +111,9 @@ func TestCommentManListView(t *testing.T) {
 		}
 		if int(contentMap["mine_p1"]["reply_count"].(float64)) != 3 {
 			t.Fatalf("mine_p1 reply_count 未叠加缓存: %+v", contentMap["mine_p1"])
+		}
+		if int(contentMap["mine_p1"]["digg_count"].(float64)) != 3 {
+			t.Fatalf("mine_p1 digg_count 未叠加缓存: %+v", contentMap["mine_p1"])
 		}
 	})
 
