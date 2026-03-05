@@ -1,4 +1,4 @@
-package store_test
+package redis_email_test
 
 import (
 	redis_email "myblogx/service/redis_service/redis_email"

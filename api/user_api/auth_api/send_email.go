@@ -7,6 +7,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/service/email_service"
+	redis_email "myblogx/service/redis_service/redis_email"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mojocn/base64Captcha"
@@ -70,7 +71,11 @@ func (AuthApi) SendEmailView(c *gin.Context) {
 	}
 
 	id := base64Captcha.RandomId()
-	global.EmailVerifyStore.Store(id, cr.Email, code)
+	if err = redis_email.Store(id, cr.Email, code, timeout, 3); err != nil {
+		global.Logger.Errorf("邮件验证码存储失败: %v", err)
+		res.FailWithMsg("邮件发送失败", c)
+		return
+	}
 
 	res.OkWithData(SendEmailResponse{ID: id}, c)
 }

@@ -3,7 +3,7 @@ package middleware
 import (
 	"myblogx/common/res"
 	"myblogx/global"
-
+	redis_email "myblogx/service/redis_service/redis_email"
 	"myblogx/utils/io_util"
 
 	"github.com/gin-gonic/gin"
@@ -24,13 +24,18 @@ func EmailVerifyMiddleware(c *gin.Context) {
 		return
 	}
 
-	// 进行邮箱验证
-	info, ok := global.EmailVerifyStore.Verify(cr.EmailID, cr.EmailCode)
+	email, ok, err := redis_email.Verify(cr.EmailID, cr.EmailCode)
+	if err != nil {
+		global.Logger.Errorf("邮箱验证失败：校验异常：%v", err)
+		res.FailWithMsg("邮箱验证失败", c)
+		c.Abort()
+		return
+	}
 	if !ok {
-		res.FailWithMsg("邮箱验证失败：验证码不存在", c)
+		res.FailWithMsg("邮箱验证失败：验证码不存在或错误", c)
 		c.Abort()
 		return
 	}
 
-	c.Set("email", info.Email)
+	c.Set("email", email)
 }

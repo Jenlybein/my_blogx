@@ -7,8 +7,8 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models/enum"
+	redis_email "myblogx/service/redis_service/redis_email"
 	redis_jwt "myblogx/service/redis_service/redis_jwt"
-	"myblogx/store/email_store"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
 	"net/http"
@@ -80,7 +80,6 @@ func setupAuthEnv(t *testing.T) {
 			Login: confsite.Login{Captcha: false},
 		},
 	}
-	global.EmailVerifyStore = email_store.NewEmailVerifyStore(3, 1)
 }
 
 func TestAuthAndAdminMiddleware(t *testing.T) {
@@ -197,8 +196,9 @@ func TestCaptchaAndEmailVerifyMiddleware(t *testing.T) {
 		}
 	}
 
-	// 邮箱验证码成功
-	global.EmailVerifyStore.Store("eid", "u@example.com", "8888")
+	if err := redis_email.Store("eid", "u@example.com", "8888", 1, 3); err != nil {
+		t.Fatalf("存储邮箱验证码失败: %v", err)
+	}
 	{
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/email", strings.NewReader(`{"email_id":"eid","email_code":"8888"}`))
