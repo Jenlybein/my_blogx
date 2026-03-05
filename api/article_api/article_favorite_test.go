@@ -1,6 +1,7 @@
 package article_api
 
 import (
+	"myblogx/api/article_api/favorite"
 	"myblogx/common"
 	"myblogx/global"
 	"myblogx/models"
@@ -45,7 +46,7 @@ func TestFavoriteCreateUpdateListDelete(t *testing.T) {
 	{
 		c, w := newCtx()
 		c.Set("claims", claims)
-		c.Set("requestJson", FavoriteRequest{
+		c.Set("requestJson", favorite.FavoriteRequest{
 			Title:    "my favorite",
 			Abstract: "desc",
 			Cover:    "cover.png",
@@ -59,7 +60,7 @@ func TestFavoriteCreateUpdateListDelete(t *testing.T) {
 	{
 		c, w := newCtx()
 		c.Set("claims", claims)
-		c.Set("requestJson", FavoriteRequest{
+		c.Set("requestJson", favorite.FavoriteRequest{
 			Title:    "my favorite",
 			Abstract: "desc2",
 		})
@@ -77,7 +78,7 @@ func TestFavoriteCreateUpdateListDelete(t *testing.T) {
 	{
 		c, w := newCtx()
 		c.Set("claims", claims)
-		c.Set("requestJson", FavoriteRequest{
+		c.Set("requestJson", favorite.FavoriteRequest{
 			ID:       fav.ID,
 			Title:    "my favorite 2",
 			Abstract: "desc3",
@@ -92,7 +93,7 @@ func TestFavoriteCreateUpdateListDelete(t *testing.T) {
 	{
 		c, w := newCtx()
 		c.Set("claims", claims)
-		c.Set("requestQuery", FavoriteListRequest{
+		c.Set("requestQuery", favorite.FavoriteListRequest{
 			PageInfo: common.PageInfo{Page: 1, Limit: 10},
 			Type:     1,
 		})

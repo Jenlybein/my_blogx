@@ -3,6 +3,9 @@ package router
 import (
 	"myblogx/api"
 	"myblogx/api/article_api"
+	"myblogx/api/article_api/category"
+	"myblogx/api/article_api/favorite"
+	"myblogx/api/article_api/view_history"
 	"myblogx/middleware"
 	mw "myblogx/middleware"
 	"myblogx/models"
@@ -26,18 +29,18 @@ func ArticleRouter(r *gin.RouterGroup) {
 	authGroup.PUT(":id/digg", mw.BindUri[models.IDRequest], app.ArticleDiggView)
 	authGroup.POST("favorite", mw.BindJson[article_api.ArticleFavoriteRequest], app.ArticleFavoriteSaveView)
 	authGroup.DELETE(":id", middleware.BindUri[models.IDRequest], app.ArticleRemoveUserView)
-	authGroup.GET("history", mw.BindQuery[article_api.ArticleViewHistoryRequest], app.ArticleViewHistoryView)
+	authGroup.GET("history", mw.BindQuery[view_history.ArticleViewHistoryRequest], app.ArticleViewHistoryView)
 	authGroup.DELETE("history", mw.BindJson[models.RemoveRequest], app.ArticleViewHistoryRemoveView)
 
 	adminGroup.POST(":id/examine", mw.BindUri[models.IDRequest], mw.BindJson[article_api.ArticleExamineRequest], app.ArticleExamineView)
 	adminGroup.DELETE("", mw.BindJson[models.RemoveRequest], app.ArticleRemoveView)
 
-	Group.GET("category", mw.BindQuery[article_api.CategoryListRequest], app.CategoryListView)
-	authGroup.POST("category", mw.BindJson[article_api.CategoryRequest], app.CategoryCreateUpdateView)
+	Group.GET("category", mw.BindQuery[category.CategoryListRequest], app.CategoryListView)
+	authGroup.POST("category", mw.BindJson[category.CategoryRequest], app.CategoryCreateUpdateView)
 	authGroup.DELETE("category", mw.BindJson[models.RemoveRequest], app.CategoryDeleteView)
 
-	Group.GET("favorite", mw.BindQuery[article_api.FavoriteListRequest], app.FavoriteListView)
-	authGroup.PUT("favorite", mw.BindJson[article_api.FavoriteRequest], app.FavoriteCreateUpdateView)
+	Group.GET("favorite", mw.BindQuery[favorite.FavoriteListRequest], app.FavoriteListView)
+	authGroup.PUT("favorite", mw.BindJson[favorite.FavoriteRequest], app.FavoriteCreateUpdateView)
 	authGroup.DELETE("favorite", mw.BindJson[models.RemoveRequest], app.FavoriteDeleteView)
 
 }
