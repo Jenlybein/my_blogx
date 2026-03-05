@@ -38,6 +38,7 @@ func ArticleRouter(r *gin.RouterGroup) {
 	Group.GET("category", mw.BindQuery[category.CategoryListRequest], app.CategoryListView)
 	authGroup.POST("category", mw.BindJson[category.CategoryRequest], app.CategoryCreateUpdateView)
 	authGroup.DELETE("category", mw.BindJson[models.RemoveRequest], app.CategoryDeleteView)
+	authGroup.GET("category/options", app.CategoryOptionsView)
 
 	Group.GET("favorite", mw.BindQuery[favorite.FavoriteListRequest], app.FavoriteListView)
 	authGroup.PUT("favorite", mw.BindJson[favorite.FavoriteRequest], app.FavoriteCreateUpdateView)
