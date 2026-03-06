@@ -42,6 +42,8 @@ func setupArticleEnv(t *testing.T) *models.UserModel {
 		&models.UserConfModel{},
 		&models.CategoryModel{},
 		&models.ArticleModel{},
+		&models.TagModel{},
+		&models.ArticleTagModel{},
 		&models.ArticleDiggModel{},
 		&models.FavoriteModel{},
 		&models.UserArticleFavorModel{},
@@ -77,9 +79,14 @@ func TestValidateRequestAndList(t *testing.T) {
 
 	{
 		c, _ := newCtx()
-		if err := validateRequest(ArticleListRequest{Type: 1}, nil, c); err == nil {
-			t.Fatal("Type=1 且 user_id 为空应失败")
+		if _, err := validateRequest(ArticleListRequest{Type: 1}, nil, c); err == nil {
+			t.Fatal("Type=1 且 user_id 为空时应失败")
 		}
+	}
+
+	tag := models.TagModel{Title: "Go", IsEnabled: true}
+	if err := global.DB.Create(&tag).Error; err != nil {
+		t.Fatalf("创建标签失败: %v", err)
 	}
 
 	article := models.ArticleModel{
@@ -91,6 +98,9 @@ func TestValidateRequestAndList(t *testing.T) {
 	if err := global.DB.Create(&article).Error; err != nil {
 		t.Fatalf("创建文章失败: %v", err)
 	}
+	if err := global.DB.Create(&models.ArticleTagModel{ArticleID: article.ID, TagID: tag.ID}).Error; err != nil {
+		t.Fatalf("创建文章标签关系失败: %v", err)
+	}
 
 	{
 		c, w := newCtx()
@@ -99,6 +109,7 @@ func TestValidateRequestAndList(t *testing.T) {
 			PageInfo: common.PageInfo{Page: 1, Limit: 10},
 			Type:     1,
 			UserID:   user.ID,
+			TagID:    &tag.ID,
 			Status:   enum.ArticleStatusPublished,
 		})
 		ArticleApi{}.ArticleListView(c)
@@ -116,6 +127,10 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 	if err := db.Create(&cat).Error; err != nil {
 		t.Fatalf("创建分类失败: %v", err)
 	}
+	tag := models.TagModel{Title: "Golang", IsEnabled: true}
+	if err := db.Create(&tag).Error; err != nil {
+		t.Fatalf("创建标签失败: %v", err)
+	}
 
 	api := ArticleApi{}
 	claims := &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Role: enum.RoleUser, Username: user.Username}}
@@ -127,6 +142,7 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 			Title:          "t1",
 			Content:        "content",
 			CategoryID:     &cat.ID,
+			TagIDs:         []uint{tag.ID},
 			CommentsToggle: true,
 			Status:         enum.ArticleStatusExamining,
 		})
@@ -141,6 +157,16 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 		t.Fatalf("查询创建文章失败: %v", err)
 	}
 
+	var relationCount int64
+	if err := db.Model(&models.ArticleTagModel{}).
+		Where("article_id = ? AND tag_id = ?", created.ID, tag.ID).
+		Count(&relationCount).Error; err != nil {
+		t.Fatalf("查询文章标签关系失败: %v", err)
+	}
+	if relationCount != 1 {
+		t.Fatalf("文章标签关系应已创建, count=%d", relationCount)
+	}
+
 	{
 		c, w := newCtx()
 		c.Set("claims", claims)
@@ -149,6 +175,7 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 			Title:          "t1-updated",
 			Content:        "new content",
 			CategoryID:     &cat.ID,
+			TagIDs:         []uint{tag.ID},
 			CommentsToggle: false,
 		})
 		api.ArticleUpdateView(c)
@@ -182,6 +209,11 @@ func TestArticleDiggFavoriteVisitDetailRemoveUser(t *testing.T) {
 	db := global.DB
 	api := ArticleApi{}
 
+	tag := models.TagModel{Title: "Backend", IsEnabled: true}
+	if err := db.Create(&tag).Error; err != nil {
+		t.Fatalf("创建标签失败: %v", err)
+	}
+
 	article := models.ArticleModel{
 		Title:    "a1",
 		Content:  "content",
@@ -190,6 +222,9 @@ func TestArticleDiggFavoriteVisitDetailRemoveUser(t *testing.T) {
 	}
 	if err := db.Create(&article).Error; err != nil {
 		t.Fatalf("创建文章失败: %v", err)
+	}
+	if err := db.Create(&models.ArticleTagModel{ArticleID: article.ID, TagID: tag.ID}).Error; err != nil {
+		t.Fatalf("创建文章标签关系失败: %v", err)
 	}
 
 	claims := &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Role: enum.RoleUser, Username: user.Username}}
@@ -233,13 +268,12 @@ func TestArticleDiggFavoriteVisitDetailRemoveUser(t *testing.T) {
 	}
 
 	{
-		// 未登录且缺失 UA 时，走跳过统计分支
 		c, w := newCtx()
 		c.Request = httptest.NewRequest(http.MethodPost, "/", nil)
 		c.Set("requestJson", ArticleViewCountRequest{ArticleID: article.ID})
 		api.ArticleVisitView(c)
 		if code := readCode(t, w); code != 0 {
-			t.Fatalf("访问计数分支失败, code=%d body=%s", code, w.Body.String())
+			t.Fatalf("访问计数失败, code=%d body=%s", code, w.Body.String())
 		}
 	}
 

@@ -1,6 +1,7 @@
 package validate_test
 
 import (
+	"encoding/json"
 	"io"
 	"myblogx/utils/validate"
 	"testing"
@@ -11,16 +12,32 @@ import (
 
 func TestValidateErrorHelpers(t *testing.T) {
 	msg := validate.ValidateErr(io.EOF)
-	if msg == "" {
-		t.Fatal("ValidateErr 返回空字符串")
+	if msg != "请求体不能为空" {
+		t.Fatalf("EOF 提示错误: %s", msg)
 	}
 
 	data, msg2 := validate.ValidateError(io.EOF)
-	if data != nil {
-		t.Fatalf("普通错误 data 应为 nil: %+v", data)
+	if data["body"] != "请求体不能为空" {
+		t.Fatalf("EOF data 错误: %+v", data)
 	}
-	if msg2 == "" {
-		t.Fatal("ValidateError msg 不应为空")
+	if msg2 != "请求体不能为空" {
+		t.Fatalf("ValidateError msg 错误: %s", msg2)
+	}
+}
+
+func TestValidateErrorWithJSONSyntaxError(t *testing.T) {
+	var obj map[string]any
+	err := json.Unmarshal([]byte(`{"name":}`), &obj)
+	if err == nil {
+		t.Fatal("期望产生 JSON 语法错误")
+	}
+
+	data, msg := validate.ValidateError(err)
+	if data["body"] == nil {
+		t.Fatalf("JSON 语法错误应返回 body 提示: %+v", data)
+	}
+	if msg == "" {
+		t.Fatal("JSON 语法错误提示不能为空")
 	}
 }
 
@@ -38,7 +55,7 @@ func TestValidateErrWithValidationErrors(t *testing.T) {
 
 	msg := validate.ValidateErr(err)
 	if msg == "" {
-		t.Fatal("ValidateErr 返回为空")
+		t.Fatal("ValidateErr 返回不能为空")
 	}
 
 	data, m := validate.ValidateError(err)

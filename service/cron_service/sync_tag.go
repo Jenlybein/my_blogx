@@ -1,0 +1,45 @@
+package cron_service
+
+import (
+	"context"
+	"time"
+
+	"myblogx/global"
+	"myblogx/models"
+	"myblogx/service/redis_service/redis_tag"
+
+	"gorm.io/gorm"
+)
+
+const (
+	tagSyncLockKey = "cron:sync_tag:lock"
+	tagSyncLockTTL = 30 * time.Minute
+)
+
+func SyncTag() {
+	runLockedSyncTask("同步标签任务", tagSyncLockKey, tagSyncLockTTL, func(ctx context.Context) (int, error) {
+		return syncHashCounterMetric(ctx, hashCounterSyncConfig{
+			taskName:   "同步标签任务",
+			metricName: "文章数",
+			activeKey:  redis_tag.TagCacheArticleCount,
+			syncKey:    "tag_article_count:syncing",
+			idName:     "tag_id",
+			applyDelta: applyTagArticleCountDeltaToDB,
+		})
+	})
+}
+
+func applyTagArticleCountDeltaToDB(tagID uint, delta int) error {
+	expr := "CASE WHEN article_count + ? < 0 THEN 0 ELSE article_count + ? END"
+	db := global.DB.Model(&models.TagModel{}).
+		Where("id = ?", tagID).
+		UpdateColumn("article_count", gorm.Expr(expr, delta, delta))
+
+	if db.Error != nil {
+		return db.Error
+	}
+	if db.RowsAffected == 0 {
+		global.Logger.Warnf("同步标签任务更新行不存在 tag_id=%d delta=%d", tagID, delta)
+	}
+	return nil
+}

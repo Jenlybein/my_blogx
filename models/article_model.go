@@ -1,17 +1,15 @@
-// 文章模型
-
 package models
 
 import (
 	_ "embed"
 	"myblogx/global"
-	"myblogx/models/ctype"
 	"myblogx/models/enum"
+	"myblogx/service/redis_service/redis_tag"
 
 	"gorm.io/gorm"
 )
 
-// 文章表
+// ArticleModel 文章表
 type ArticleModel struct {
 	Model
 	Title          string             `gorm:"size:256" json:"title"`
@@ -19,17 +17,17 @@ type ArticleModel struct {
 	Content        string             `gorm:"type:longtext" json:"content"`
 	HtmlContent    string             `gorm:"type:longtext" json:"html_content"`
 	CategoryID     *uint              `gorm:"index" json:"category_id"`
-	TagList        ctype.List         `gorm:"type:longtext" json:"tag_list"`
 	Cover          string             `gorm:"size:256" json:"cover"`
 	AuthorID       uint               `gorm:"index" json:"author_id"`
-	ViewCount      int                `gorm:"default:0" json:"view_count"`         // 查看次数
-	DiggCount      int                `gorm:"default:0" json:"digg_count"`         // 点赞次数
-	CommentCount   int                `gorm:"default:0" json:"comment_count"`      // 评论次数
-	FavorCount     int                `gorm:"default:0" json:"favor_count"`        // 收藏次数
-	CommentsToggle bool               `gorm:"default:true" json:"comments_toggle"` // 是否允许评论
+	ViewCount      int                `gorm:"default:0" json:"view_count"`
+	DiggCount      int                `gorm:"default:0" json:"digg_count"`
+	CommentCount   int                `gorm:"default:0" json:"comment_count"`
+	FavorCount     int                `gorm:"default:0" json:"favor_count"`
+	CommentsToggle bool               `gorm:"default:true" json:"comments_toggle"`
 	Status         enum.ArticleStatus `gorm:"default:0" json:"status"`
 	UserModel      UserModel          `gorm:"foreignKey:AuthorID;references:ID" json:"-"`
 	CategoryModel  *CategoryModel     `gorm:"foreignKey:CategoryID;references:ID" json:"-"`
+	Tags           []TagModel         `gorm:"many2many:article_tag_models;joinForeignKey:ArticleID;joinReferences:TagID" json:"tags"`
 }
 
 //go:embed es_settings/article_mapping.json
@@ -55,7 +53,6 @@ func (ArticleModel) PipelineName() string {
 }
 
 func (a *ArticleModel) BeforeDelete(tx *gorm.DB) (err error) {
-	// 评论、点赞、收藏、置顶、浏览量
 	var commentList []CommentModel
 	tx.Find(&commentList, "article_id = ?", a.ID).Delete(&commentList)
 
@@ -71,7 +68,26 @@ func (a *ArticleModel) BeforeDelete(tx *gorm.DB) (err error) {
 	var viewList []UserArticleViewHistoryModel
 	tx.Find(&viewList, "article_id = ?", a.ID).Delete(&viewList)
 
-	global.Logger.Infof("删除文章 %d 时，删除了 %d 条评论、%d 条点赞、%d 条收藏、%d 条置顶、%d 条浏览记录", a.ID, len(commentList), len(diggList), len(favoriteList), len(topList), len(viewList))
+	var articleTagList []ArticleTagModel
+	tx.Find(&articleTagList, "article_id = ?", a.ID).Delete(&articleTagList)
+	if global.Redis != nil {
+		for _, relation := range articleTagList {
+			if cacheErr := redis_tag.SetCacheArticleCount(relation.TagID, -1); cacheErr != nil {
+				global.Logger.Errorf("标签文章数缓存减少失败 tag_id=%d err=%v", relation.TagID, cacheErr)
+			}
+		}
+	}
 
-	return
+	global.Logger.Infof(
+		"删除文章 %d 时，删除了 %d 条评论、%d 条点赞、%d 条收藏、%d 条置顶、%d 条浏览记录、%d 条标签关系",
+		a.ID,
+		len(commentList),
+		len(diggList),
+		len(favoriteList),
+		len(topList),
+		len(viewList),
+		len(articleTagList),
+	)
+
+	return nil
 }

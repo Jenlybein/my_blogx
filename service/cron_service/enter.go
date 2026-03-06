@@ -2,10 +2,11 @@ package cron_service
 
 import (
 	"context"
-	"myblogx/global"
-	"myblogx/service/redis_service"
 	"strconv"
 	"time"
+
+	"myblogx/global"
+	"myblogx/service/redis_service"
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/go-redis/redis/v8"
@@ -14,7 +15,6 @@ import (
 type CronService struct{}
 
 var (
-	// 原子切换 active/syncing 桶，保证同步使用稳定快照。
 	prepareSyncBucketScript = redis.NewScript(`
 if redis.call("EXISTS", KEYS[2]) == 1 then
 	return 1
@@ -38,6 +38,7 @@ type hashCounterSyncConfig struct {
 
 func syncCounters() {
 	SyncArticle()
+	SyncTag()
 	SyncCommentReply()
 	SyncCommentDigg()
 }

@@ -5,12 +5,12 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
-	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/utils/jwts"
 	"myblogx/utils/markdown"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type ArticleCreateRequest struct {
@@ -18,7 +18,7 @@ type ArticleCreateRequest struct {
 	Abstract       string             `json:"abstract"`
 	Content        string             `json:"content" binding:"required"`
 	CategoryID     *uint              `json:"category_id"`
-	TagList        ctype.List         `json:"tag_list"`
+	TagIDs         []uint             `json:"tag_ids"`
 	Cover          string             `json:"cover"`
 	CommentsToggle bool               `json:"comments_toggle"`
 	Status         enum.ArticleStatus `json:"status" binding:"required,oneof=1 2"`
@@ -26,8 +26,8 @@ type ArticleCreateRequest struct {
 
 func (ArticleApi) ArticleCreateView(c *gin.Context) {
 	cr := middleware.GetBindJson[ArticleCreateRequest](c)
-
 	claims := jwts.MustGetClaimsByGin(c)
+
 	if err := global.DB.Take(&models.UserModel{}, claims.UserID).Error; err != nil {
 		res.FailWithMsg("用户不存在", c)
 		return
@@ -38,48 +38,50 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 		return
 	}
 
-	// 判断分类id是否存在
-	if cr.CategoryID != nil {
-		var category models.CategoryModel
-		if err := global.DB.Take(&category, "id = ? AND user_id = ?", *cr.CategoryID, claims.UserID).Error; err != nil {
-			res.FailWithMsg("分类不存在", c)
-			return
-		}
+	if err := validateArticleCategory(global.DB, claims.UserID, cr.CategoryID); err != nil {
+		res.FailWithMsg("分类不存在", c)
+		return
 	}
-	// 文章正文防止 xss 注入，安全转为 html 格式
-	htmlContent := markdown.MdToHTMLSafe(cr.Content)
 
-	// 不传简介，则从正文中提取前 200 个字符
+	tagList, err := loadEnabledTagsByIDs(global.DB, cr.TagIDs)
+	if err != nil {
+		res.FailWithMsg(err.Error(), c)
+		return
+	}
+
+	htmlContent := markdown.MdToHTMLSafe(cr.Content)
 	if cr.Abstract == "" {
 		textContent := markdown.MdToText(cr.Content)
 		cr.Abstract = markdown.ExtractText(textContent, 200)
 	}
 
-	var article = models.ArticleModel{
+	article := models.ArticleModel{
 		AuthorID:       claims.UserID,
 		Title:          cr.Title,
 		Abstract:       cr.Abstract,
 		Content:        cr.Content,
 		HtmlContent:    htmlContent,
 		CategoryID:     cr.CategoryID,
-		TagList:        cr.TagList,
 		Cover:          cr.Cover,
 		CommentsToggle: cr.CommentsToggle,
 		Status:         cr.Status,
 	}
 
-	if global.Config.Site.Article.SkipExamining {
-		if cr.Status == enum.ArticleStatusExamining {
-			article.Status = enum.ArticleStatusPublished
-		}
-		// TODO：审核 textContent 内容，判断是否包含违规内容
+	if global.Config.Site.Article.SkipExamining && cr.Status == enum.ArticleStatusExamining {
+		article.Status = enum.ArticleStatusPublished
 	}
 
-	if err := global.DB.Create(&article).Error; err != nil {
+	tagIDs := extractTagIDs(tagList)
+	if err := global.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&article).Error; err != nil {
+			return err
+		}
+		return tx.Model(&article).Association("Tags").Replace(tagList)
+	}); err != nil {
 		res.FailWithMsg("创建文章失败", c)
 		return
 	}
 
-	// 可以返回文章id
+	applyTagArticleCountDelta(buildTagArticleCountDelta(nil, tagIDs))
 	res.OkWithMsg("创建文章成功", c)
 }

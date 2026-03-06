@@ -54,9 +54,6 @@
       "category_id": {
         "type": "integer"
       },
-      "tag_list": {
-        "type": "keyword"
-      },
       "cover": {
         "type": "keyword"
       },

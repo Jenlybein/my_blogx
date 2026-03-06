@@ -7,8 +7,8 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models/enum"
-	redis_email "myblogx/service/redis_service/redis_email"
-	redis_jwt "myblogx/service/redis_service/redis_jwt"
+	redisEmail "myblogx/service/redis_service/redis_email"
+	redisJWT "myblogx/service/redis_service/redis_jwt"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
 	"net/http"
@@ -47,6 +47,18 @@ func TestBindMiddlewares(t *testing.T) {
 		r.ServeHTTP(w, req)
 		if w.Code != http.StatusOK {
 			t.Fatalf("BindJson 状态码异常: %d", w.Code)
+		}
+	}
+	{
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/json", nil)
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+		if !hasBizCode(w, 1002) {
+			t.Fatalf("空 JSON 请求体应返回 1002, body=%s", w.Body.String())
+		}
+		if !strings.Contains(w.Body.String(), "请求体不能为空，请在 Body 中传 JSON 参数") {
+			t.Fatalf("空 JSON 请求体提示不明确, body=%s", w.Body.String())
 		}
 	}
 	{
@@ -135,7 +147,7 @@ func TestAuthAndAdminMiddleware(t *testing.T) {
 	}
 
 	{
-		redis_jwt.TokenBlackList(userToken, redis_jwt.UserBlackType)
+		redisJWT.TokenBlackList(userToken, redisJWT.UserBlackType)
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/auth", nil)
 		req.Header.Set("token", userToken)
@@ -159,7 +171,6 @@ func TestCaptchaAndEmailVerifyMiddleware(t *testing.T) {
 		c.JSON(http.StatusOK, gin.H{"email": email})
 	})
 
-	// 关闭验证码时直接通过
 	global.Config.Site.Login.Captcha = false
 	{
 		w := httptest.NewRecorder()
@@ -171,7 +182,6 @@ func TestCaptchaAndEmailVerifyMiddleware(t *testing.T) {
 		}
 	}
 
-	// 开启验证码 + 正确验证码
 	global.Config.Site.Login.Captcha = true
 	_ = global.ImageCaptchaStore.Set("cid", "1234")
 	{
@@ -184,7 +194,6 @@ func TestCaptchaAndEmailVerifyMiddleware(t *testing.T) {
 		}
 	}
 
-	// 错误验证码
 	_ = global.ImageCaptchaStore.Set("cid2", "5678")
 	{
 		w := httptest.NewRecorder()
@@ -196,7 +205,7 @@ func TestCaptchaAndEmailVerifyMiddleware(t *testing.T) {
 		}
 	}
 
-	if err := redis_email.Store("eid", "u@example.com", "8888", 1, 3); err != nil {
+	if err := redisEmail.Store("eid", "u@example.com", "8888", 1, 3); err != nil {
 		t.Fatalf("存储邮箱验证码失败: %v", err)
 	}
 	{

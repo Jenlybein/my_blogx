@@ -69,8 +69,6 @@ river:
       table: article_models
       index: article_index
       type: _doc
-      field:
-        tag_list: tag_list,list
       filter:
         - id
         - created_at
@@ -79,7 +77,6 @@ river:
         - abstract
         - html_content
         - category_id
-        - tag_list
   charset: "utf8mb4"
   mysqldump: "mysqldump"
   skip_master_data: true

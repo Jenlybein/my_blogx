@@ -5,7 +5,9 @@ import (
 	"io"
 	"myblogx/conf"
 	"myblogx/global"
+	blogmodels "myblogx/models"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -59,6 +61,7 @@ func SetupSQLite(t *testing.T, models ...any) *gorm.DB {
 	}
 
 	if len(models) > 0 {
+		models = appendArticleTagModels(models)
 		if err = db.AutoMigrate(models...); err != nil {
 			t.Fatalf("自动迁移失败: %v", err)
 		}
@@ -66,6 +69,34 @@ func SetupSQLite(t *testing.T, models ...any) *gorm.DB {
 
 	global.DB = db
 	return db
+}
+
+func appendArticleTagModels(list []any) []any {
+	hasArticle := false
+	hasTag := false
+	hasArticleTag := false
+
+	for _, item := range list {
+		switch reflect.TypeOf(item) {
+		case reflect.TypeOf(&blogmodels.ArticleModel{}):
+			hasArticle = true
+		case reflect.TypeOf(&blogmodels.TagModel{}):
+			hasTag = true
+		case reflect.TypeOf(&blogmodels.ArticleTagModel{}):
+			hasArticleTag = true
+		}
+	}
+
+	if !hasArticle {
+		return list
+	}
+	if !hasTag {
+		list = append(list, &blogmodels.TagModel{})
+	}
+	if !hasArticleTag {
+		list = append(list, &blogmodels.ArticleTagModel{})
+	}
+	return list
 }
 
 func NewJSONRequest(method, target, body string) *http.Request {

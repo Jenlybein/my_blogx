@@ -17,7 +17,7 @@ import (
 
 func TestSensitiveWordAndUsernameCheck(t *testing.T) {
 	if word, ok := info_check.IsSensitiveWord("A_d_m_i_n_001"); !ok || word != "admin" {
-		t.Fatalf("敏感词检测失败: word=%s ok=%v", word, ok)
+		t.Fatalf("敏感词检测失败 word=%s ok=%v", word, ok)
 	}
 	if _, ok := info_check.IsSensitiveWord("normal_user_123"); ok {
 		t.Fatal("正常用户名不应被识别为敏感词")
@@ -140,17 +140,16 @@ func TestValidateErrorHelpers(t *testing.T) {
 		t.Fatalf("HTTP 状态码异常: %d", w.Code)
 	}
 
-	// 这里直接验证 validate 处理普通错误分支，避免文案受 i18n 影响导致脆弱断言
 	msg := validate.ValidateErr(io.EOF)
-	if msg == "" {
-		t.Fatal("ValidateErr 返回空字符串")
+	if msg != "请求体不能为空" {
+		t.Fatalf("EOF 提示错误: %s", msg)
 	}
 
 	data, msg2 := validate.ValidateError(io.EOF)
-	if data != nil {
-		t.Fatalf("普通错误 data 应为 nil: %+v", data)
+	if data["body"] != "请求体不能为空" {
+		t.Fatalf("EOF data 错误: %+v", data)
 	}
-	if msg2 == "" {
-		t.Fatal("ValidateError msg 不应为空")
+	if msg2 != "请求体不能为空" {
+		t.Fatalf("ValidateError msg 错误: %s", msg2)
 	}
 }

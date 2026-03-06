@@ -8,11 +8,12 @@ import (
 )
 
 func FlagDB(db *gorm.DB) {
-	// 自动建表
 	err := db.AutoMigrate(
 		&models.UserModel{},
 		&models.UserConfModel{},
 		&models.ArticleModel{},
+		&models.TagModel{},
+		&models.ArticleTagModel{},
 		&models.ArticleDiggModel{},
 		&models.CategoryModel{},
 		&models.FavoriteModel{},
@@ -28,7 +29,7 @@ func FlagDB(db *gorm.DB) {
 		&models.CommentDiggModel{},
 	)
 	if err != nil {
-		global.Logger.Error("数据库迁移失败: ", err)
+		global.Logger.Error("数据库迁移失败", err)
 		return
 	}
 	global.Logger.Info("数据库迁移成功")
