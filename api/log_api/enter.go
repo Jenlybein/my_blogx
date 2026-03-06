@@ -36,7 +36,7 @@ func (l *LogApi) LogListView(c *gin.Context) {
 	// 分页 查询(精确匹配，模糊查询)
 	cr := middleware.GetBindQuery[LogListRequest](c)
 
-	list, count, _ := common.ListQuery(models.LogModel{
+	list, count, err := common.ListQuery(models.LogModel{
 		LogType:     cr.LogType,
 		Level:       cr.Level,
 		UserID:      cr.UserID,
@@ -50,6 +50,10 @@ func (l *LogApi) LogListView(c *gin.Context) {
 		Debug:    true,
 		// DefaultOrder: "created_at DESC",
 	})
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
 
 	var _list = make([]LogListResponse, 0)
 	for _, logModel := range list {

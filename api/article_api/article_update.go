@@ -13,15 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type ArticleUpdateRequest struct {
-	Title          string `json:"title" binding:"required"`
-	Abstract       string `json:"abstract"`
-	Content        string `json:"content" binding:"required"`
-	CategoryID     *uint  `json:"category_id"`
-	TagIDs         []uint `json:"tag_ids"`
-	Cover          string `json:"cover"`
-	CommentsToggle bool   `json:"comments_toggle"`
-}
+
 
 func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 	id := middleware.GetBindUri[models.IDRequest](c)

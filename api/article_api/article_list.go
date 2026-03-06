@@ -2,7 +2,6 @@ package article_api
 
 import (
 	"fmt"
-	"myblogx/common"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
@@ -15,25 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
-
-type ArticleListRequest struct {
-	common.PageInfo
-	// 1 查自己的文章，2 查别人的文章，3 管理员查文章
-	Type       int8               `form:"type" binding:"required,oneof=1 2 3"`
-	UserID     uint               `form:"user_id"`
-	CategoryID *uint              `form:"category_id"`
-	TagID      *uint              `form:"tag_id"`
-	Status     enum.ArticleStatus `form:"status"`
-}
-
-type ArticleListResponse struct {
-	models.ArticleModel
-	UserTop       bool   `json:"user_top"`  // 是否置顶
-	AdminTop      bool   `json:"admin_top"` // 是否管理员置顶
-	CategoryTitle string `json:"category_title"`
-	UserNickname  string `json:"user_nickname"`
-	UserAvatar    string `json:"user_avatar"`
-}
 
 // 排序字段校验
 var orderColumnMap = map[string]string{
@@ -100,9 +80,23 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 	}
 
 	var articleList []models.ArticleModel
-	if err := global.DB.Where("id IN ?", articleIDs).
-		Preload("CategoryModel").
-		Preload("UserModel").
+	if err := global.DB.Select(
+		"ID",
+		"CreatedAt",
+		"UpdatedAt",
+		"Title",
+		"Abstract",
+		"HtmlContent",
+		"Cover",
+		"ViewCount",
+		"DiggCount",
+		"CommentCount",
+		"FavorCount",
+		"CommentsToggle",
+		"Status",
+	).Where("id IN ?", articleIDs).
+		Preload("CategoryModel", func(db *gorm.DB) *gorm.DB { return db.Select("id", "title") }).
+		Preload("UserModel", func(db *gorm.DB) *gorm.DB { return db.Select("id", "nickname", "avatar") }).
 		Preload("Tags", func(db *gorm.DB) *gorm.DB {
 			return db.Order("sort desc, id asc")
 		}).
@@ -134,14 +128,31 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 		model.CommentCount += commentMap[model.ID]
 
 		item := ArticleListResponse{
-			ArticleModel: model,
-			UserTop:      userTopMap[model.ID],
-			AdminTop:     adminTopMap[model.ID],
-			UserNickname: model.UserModel.Nickname,
-			UserAvatar:   model.UserModel.Avatar,
+			ID:             model.ID,
+			CreatedAt:      model.CreatedAt,
+			UpdatedAt:      model.UpdatedAt,
+			Title:          model.Title,
+			Abstract:       model.Abstract,
+			HtmlContent:    model.HtmlContent,
+			Cover:          model.Cover,
+			ViewCount:      model.ViewCount,
+			DiggCount:      model.DiggCount,
+			CommentCount:   model.CommentCount,
+			FavorCount:     model.FavorCount,
+			CommentsToggle: model.CommentsToggle,
+			Status:         model.Status,
+			UserTop:        userTopMap[model.ID],
+			AdminTop:       adminTopMap[model.ID],
+			UserNickname:   model.UserModel.Nickname,
+			UserAvatar:     model.UserModel.Avatar,
 		}
 		if model.CategoryModel != nil {
 			item.CategoryTitle = model.CategoryModel.Title
+		}
+		if model.Tags != nil {
+			for _, tag := range model.Tags {
+				item.Tags = append(item.Tags, tag.Title)
+			}
 		}
 		responseList = append(responseList, item)
 	}

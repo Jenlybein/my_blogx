@@ -99,3 +99,50 @@ func TestListQuerySelect(t *testing.T) {
 		t.Fatalf("未选中字段 Href 应为空: %+v", list[0])
 	}
 }
+
+func TestListQueryLikesAndWhere(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.BannerModel{})
+	records := []models.BannerModel{
+		{Show: true, Cover: "alpha-cover", Href: "/a"},
+		{Show: false, Cover: "alpha-hidden", Href: "/b"},
+		{Show: true, Cover: "beta-cover", Href: "/c"},
+	}
+	if err := db.Create(&records).Error; err != nil {
+		t.Fatalf("插入测试数据失败: %v", err)
+	}
+
+	list, count, err := common.ListQuery(
+		models.BannerModel{},
+		common.Options{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10, Key: "alpha"},
+			Likes:    []string{"cover"},
+			Where:    db.Where("show = ?", true),
+		},
+	)
+	if err != nil {
+		t.Fatalf("ListQuery Likes+Where 查询失败: %v", err)
+	}
+	if count != 1 || len(list) != 1 {
+		t.Fatalf("结果异常 count=%d len=%d", count, len(list))
+	}
+	if list[0].Href != "/a" {
+		t.Fatalf("返回数据错误: %+v", list[0])
+	}
+}
+
+func TestListQueryCountError(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.BannerModel{})
+	if err := db.Create(&models.BannerModel{Show: true, Cover: "cover-x", Href: "/x"}).Error; err != nil {
+		t.Fatalf("创建数据失败: %v", err)
+	}
+
+	_, _, err := common.ListQuery(
+		models.BannerModel{},
+		common.Options{
+			Where: db.Where("not a valid sql fragment"),
+		},
+	)
+	if err == nil {
+		t.Fatal("count 阶段 SQL 错误应返回 error")
+	}
+}

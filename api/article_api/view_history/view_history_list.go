@@ -20,12 +20,16 @@ func (ViewHistoryApi) ArticleViewHistoryView(c *gin.Context) {
 	case 2:
 	}
 
-	_list, count, _ := common.ListQuery(models.UserArticleViewHistoryModel{
+	_list, count, err := common.ListQuery(models.UserArticleViewHistoryModel{
 		UserID: cr.UserID,
 	}, common.Options{
 		PageInfo: cr.PageInfo,
 		Preloads: []string{"UserModel", "ArticleModel"},
 	})
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
 
 	var list = make([]ArticleViewHistoryResponse, 0)
 	for _, item := range _list {

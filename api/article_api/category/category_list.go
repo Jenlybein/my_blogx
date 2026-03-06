@@ -34,13 +34,17 @@ func (CategoryApi) CategoryListView(c *gin.Context) {
 		preloads = append(preloads, "UserModel")
 	}
 
-	_list, count, _ := common.ListQuery(models.CategoryModel{
+	_list, count, err := common.ListQuery(models.CategoryModel{
 		UserID: cr.UserID,
 	}, common.Options{
 		PageInfo: cr.PageInfo,
 		Likes:    []string{"title"},
 		Preloads: preloads,
 	})
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
 
 	var list = make([]CategoryListResponse, 0)
 	for _, item := range _list {

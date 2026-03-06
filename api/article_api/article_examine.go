@@ -5,15 +5,9 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
-	"myblogx/models/enum"
 
 	"github.com/gin-gonic/gin"
 )
-
-type ArticleExamineRequest struct {
-	Status enum.ArticleStatus `json:"status" binding:"required,oneof=3 4"`
-	Reason string             `json:"reason"`
-}
 
 func (ArticleApi) ArticleExamineView(c *gin.Context) {
 	id := middleware.GetBindUri[models.IDRequest](c)

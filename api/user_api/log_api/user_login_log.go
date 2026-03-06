@@ -67,7 +67,7 @@ func (LogApi) UserLoginLogList(c *gin.Context) {
 		query = query.Where("created_at <= ?", endTime)
 	}
 
-	list, count, _ := common.ListQuery(models.UserLoginModel{
+	list, count, err := common.ListQuery(models.UserLoginModel{
 		UserID: cr.UserID,
 		IP:     cr.IP,
 		Addr:   cr.Addr,
@@ -76,6 +76,10 @@ func (LogApi) UserLoginLogList(c *gin.Context) {
 		Where:    query,
 		Preloads: preloads,
 	})
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
 
 	var respList []UserLoginListResponse
 	for _, item := range list {

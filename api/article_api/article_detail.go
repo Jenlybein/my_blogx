@@ -13,19 +13,25 @@ import (
 	"gorm.io/gorm"
 )
 
-type ArticleDetailResponse struct {
-	models.ArticleModel
-	AuthorAvatar   string `json:"author_avatar"`
-	AuthorNickname string `json:"author_name"`
-	AuthorUsername string `json:"author_username"`
-	CategoryName   string `json:"category_name"`
-}
-
 func (ArticleApi) ArticleDetailView(c *gin.Context) {
 	cr := middleware.GetBindUri[models.IDRequest](c)
 
 	var article models.ArticleModel
-	if err := global.DB.Preload("UserModel").
+	if err := global.DB.Select(
+		"ID",
+		"CreatedAt",
+		"UpdatedAt",
+		"Title",
+		"Abstract",
+		"HtmlContent",
+		"Cover",
+		"ViewCount",
+		"DiggCount",
+		"CommentCount",
+		"FavorCount",
+		"CommentsToggle",
+		"Status",
+	).Preload("UserModel").
 		Preload("CategoryModel").
 		Preload("Tags", func(db *gorm.DB) *gorm.DB {
 			return db.Order("sort desc, id asc")
@@ -52,13 +58,30 @@ func (ArticleApi) ArticleDetailView(c *gin.Context) {
 	article.CommentCount += redis_article.GetCacheComment(article.ID)
 
 	response := ArticleDetailResponse{
-		ArticleModel:   article,
+		ID:             article.ID,
+		CreatedAt:      article.CreatedAt,
+		UpdatedAt:      article.UpdatedAt,
+		Title:          article.Title,
+		Abstract:       article.Abstract,
+		HtmlContent:    article.HtmlContent,
+		Cover:          article.Cover,
+		ViewCount:      article.ViewCount,
+		DiggCount:      article.DiggCount,
+		CommentCount:   article.CommentCount,
+		FavorCount:     article.FavorCount,
+		CommentsToggle: article.CommentsToggle,
+		Status:         article.Status,
 		AuthorAvatar:   article.UserModel.Avatar,
 		AuthorNickname: article.UserModel.Nickname,
 		AuthorUsername: article.UserModel.Username,
 	}
 	if article.CategoryModel != nil {
 		response.CategoryName = article.CategoryModel.Title
+	}
+	if article.Tags != nil {
+		for _, tag := range article.Tags {
+			response.Tags = append(response.Tags, tag.Title)
+		}
 	}
 
 	res.OkWithData(response, c)

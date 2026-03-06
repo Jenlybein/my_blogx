@@ -23,10 +23,14 @@ type ImageListResponse struct {
 func (ImageApi) ImageListView(c *gin.Context) {
 	cr := middleware.GetBindQuery[common.PageInfo](c)
 
-	_list, count, _ := common.ListQuery(models.ImageModel{}, common.Options{
+	_list, count, err := common.ListQuery(models.ImageModel{}, common.Options{
 		PageInfo: cr,
 		Likes:    []string{"filename"},
 	})
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
 
 	var respList []ImageListResponse
 	for _, item := range _list {

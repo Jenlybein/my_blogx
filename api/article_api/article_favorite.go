@@ -14,10 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type ArticleFavoriteRequest struct {
-	ArticleID uint `json:"article_id" binding:"required"`
-	FavorID   uint `json:"favor_id"`
-}
+
 
 func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 	cr := middleware.GetBindJson[ArticleFavoriteRequest](c)

@@ -22,9 +22,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type ArticleViewCountRequest struct {
-	ArticleID uint `json:"article_id" binding:"required"`
-}
+
 
 func (ArticleApi) ArticleVisitView(c *gin.Context) {
 	cr := middleware.GetBindJson[ArticleViewCountRequest](c)

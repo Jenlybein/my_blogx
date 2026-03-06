@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// TODO: 加时间范围
+// TODO: 添加时间范围
 type PageInfo struct {
 	Limit int    `form:"limit"`
 	Page  int    `form:"page"`
@@ -66,6 +66,49 @@ type Options struct {
 }
 
 func ListQuery[T any](model T, option Options) (list []T, count int, err error) {
+	baseQuery := buildListQuery(model, option)
+
+	var total int64
+	if err = baseQuery.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return
+	}
+	count = int(total)
+
+	listQuery := baseQuery.Session(&gorm.Session{})
+	limit := option.PageInfo.GetLimit()
+	offset := option.PageInfo.GetOffset(count)
+	listQuery = listQuery.Limit(limit).Offset(offset)
+
+	if option.PageInfo.Order != "" {
+		if option.OrderMap == nil || !option.OrderMap[option.PageInfo.Order] {
+			err = fmt.Errorf("排序字段错误")
+			return
+		}
+		listQuery = listQuery.Order(option.PageInfo.Order)
+	} else if option.DefaultOrder != "" {
+		listQuery = listQuery.Order(option.DefaultOrder)
+	}
+
+	// Select 只影响列表查询，不影响 count。
+	if len(option.Select) > 0 {
+		listQuery = listQuery.Select(option.Select)
+	}
+
+	for _, preload := range option.Preloads {
+		listQuery = listQuery.Preload(preload)
+	}
+
+	for preload, fields := range option.ExactPreloads {
+		listQuery = listQuery.Preload(preload, func(db *gorm.DB) *gorm.DB {
+			return db.Select(fields)
+		})
+	}
+
+	err = listQuery.Find(&list).Error
+	return
+}
+
+func buildListQuery[T any](model T, option Options) *gorm.DB {
 	query := global.DB.Model(model).Where(model)
 
 	if option.Debug {
@@ -73,54 +116,22 @@ func ListQuery[T any](model T, option Options) (list []T, count int, err error) 
 	}
 
 	if len(option.Likes) > 0 && option.PageInfo.Key != "" {
-		likes := query.Where("")
-		for _, column := range option.Likes {
-			likes = likes.Or(
-				fmt.Sprintf("%s LIKE ?", column),
-				"%"+option.PageInfo.Key+"%",
-			)
-		}
-		query = query.Where(likes)
+		query = query.Where(buildLikeCondition(option.Likes, option.PageInfo.Key))
 	}
 
+	// Where 用于追加额外过滤条件，不建议传入完整查询对象。
 	if option.Where != nil {
 		query = query.Where(option.Where)
 	}
 
-	var _c int64
-	query.Count(&_c)
-	count = int(_c)
+	return query
+}
 
-	limit := option.PageInfo.GetLimit()
-	offset := option.PageInfo.GetOffset(count)
-	query = query.Limit(limit).Offset(offset)
-
-	if option.PageInfo.Order != "" {
-		if option.OrderMap != nil && option.OrderMap[option.PageInfo.Order] {
-			query = query.Order(option.PageInfo.Order)
-		} else {
-			err = fmt.Errorf("排序字段错误")
-			return
-		}
-	} else if option.DefaultOrder != "" {
-		query = query.Order(option.DefaultOrder)
+func buildLikeCondition(columns []string, key string) *gorm.DB {
+	pattern := "%" + key + "%"
+	likeQuery := global.DB.Where(fmt.Sprintf("%s LIKE ?", columns[0]), pattern)
+	for _, column := range columns[1:] {
+		likeQuery = likeQuery.Or(fmt.Sprintf("%s LIKE ?", column), pattern)
 	}
-
-	// Select 只影响列表查询，不影响 count。
-	if len(option.Select) > 0 {
-		query = query.Select(option.Select)
-	}
-
-	for _, preload := range option.Preloads {
-		query = query.Preload(preload)
-	}
-
-	for preload, fields := range option.ExactPreloads {
-		query = query.Preload(preload, func(db *gorm.DB) *gorm.DB {
-			return db.Select(fields)
-		})
-	}
-
-	err = query.Find(&list).Error
-	return
+	return likeQuery
 }

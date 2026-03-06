@@ -13,16 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type ArticleCreateRequest struct {
-	Title          string             `json:"title" binding:"required"`
-	Abstract       string             `json:"abstract"`
-	Content        string             `json:"content" binding:"required"`
-	CategoryID     *uint              `json:"category_id"`
-	TagIDs         []uint             `json:"tag_ids"`
-	Cover          string             `json:"cover"`
-	CommentsToggle bool               `json:"comments_toggle"`
-	Status         enum.ArticleStatus `json:"status" binding:"required,oneof=1 2"`
-}
+
 
 func (ArticleApi) ArticleCreateView(c *gin.Context) {
 	cr := middleware.GetBindJson[ArticleCreateRequest](c)
