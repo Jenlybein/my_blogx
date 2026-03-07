@@ -377,3 +377,99 @@ func TestFavoriteListViewType2Visibility(t *testing.T) {
 		}
 	})
 }
+
+func TestFavoriteRemovePatchView(t *testing.T) {
+	user := setupFavoriteEnv(t)
+	db := global.DB
+	api := FavoriteApi{}
+
+	otherUser := &models.UserModel{
+		Username: "favorite_other_user",
+		Password: "x",
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(otherUser).Error; err != nil {
+		t.Fatalf("创建其他用户失败: %v", err)
+	}
+
+	favoriteOne := models.FavoriteModel{UserID: user.ID, Title: "收藏夹一", Abstract: "desc"}
+	favoriteTwo := models.FavoriteModel{UserID: user.ID, Title: "收藏夹二", Abstract: "desc"}
+	if err := db.Create(&favoriteOne).Error; err != nil {
+		t.Fatalf("创建收藏夹一失败: %v", err)
+	}
+	if err := db.Create(&favoriteTwo).Error; err != nil {
+		t.Fatalf("创建收藏夹二失败: %v", err)
+	}
+
+	articles := []models.ArticleModel{
+		{Title: "a1", Content: "content", AuthorID: user.ID, Status: enum.ArticleStatusPublished},
+		{Title: "a2", Content: "content", AuthorID: user.ID, Status: enum.ArticleStatusPublished},
+		{Title: "a3", Content: "content", AuthorID: user.ID, Status: enum.ArticleStatusPublished},
+	}
+	if err := db.Create(&articles).Error; err != nil {
+		t.Fatalf("创建文章失败: %v", err)
+	}
+
+	relations := []models.UserArticleFavorModel{
+		{ArticleID: articles[0].ID, UserID: user.ID, FavorID: favoriteOne.ID},
+		{ArticleID: articles[1].ID, UserID: user.ID, FavorID: favoriteOne.ID},
+		{ArticleID: articles[2].ID, UserID: user.ID, FavorID: favoriteTwo.ID},
+	}
+	if err := db.Create(&relations).Error; err != nil {
+		t.Fatalf("创建收藏关系失败: %v", err)
+	}
+
+	t.Run("无权限用户不能批量取消收藏", func(t *testing.T) {
+		c, w := newCtx()
+		c.Set("claims", &jwts.MyClaims{Claims: jwts.Claims{
+			UserID:   otherUser.ID,
+			Role:     otherUser.Role,
+			Username: otherUser.Username,
+		}})
+		c.Set("requestJson", FavoriteRemovePatchModel{
+			FavoriteID: favoriteOne.ID,
+			Articles:   []uint{articles[0].ID},
+		})
+		api.FavoriteRemovePatchView(c)
+		if code := readCode(t, w); code == 0 {
+			t.Fatalf("无权限用户操作应失败, body=%s", w.Body.String())
+		}
+	})
+
+	t.Run("批量取消收藏只移除当前收藏夹内文章", func(t *testing.T) {
+		c, w := newCtx()
+		c.Set("claims", &jwts.MyClaims{Claims: jwts.Claims{
+			UserID:   user.ID,
+			Role:     user.Role,
+			Username: user.Username,
+		}})
+		c.Set("requestJson", FavoriteRemovePatchModel{
+			FavoriteID: favoriteOne.ID,
+			Articles:   []uint{articles[0].ID, articles[1].ID, articles[2].ID},
+		})
+		api.FavoriteRemovePatchView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("批量取消收藏应成功, body=%s", w.Body.String())
+		}
+
+		var remainInFavoriteOne int64
+		if err := db.Model(&models.UserArticleFavorModel{}).
+			Where("favor_id = ?", favoriteOne.ID).
+			Count(&remainInFavoriteOne).Error; err != nil {
+			t.Fatalf("查询收藏夹一剩余关系失败: %v", err)
+		}
+		if remainInFavoriteOne != 0 {
+			t.Fatalf("收藏夹一中的文章应全部移除, remain=%d", remainInFavoriteOne)
+		}
+
+		var remainInFavoriteTwo int64
+		if err := db.Model(&models.UserArticleFavorModel{}).
+			Where("favor_id = ? AND article_id = ?", favoriteTwo.ID, articles[2].ID).
+			Count(&remainInFavoriteTwo).Error; err != nil {
+			t.Fatalf("查询收藏夹二关系失败: %v", err)
+		}
+		if remainInFavoriteTwo != 1 {
+			t.Fatalf("其他收藏夹的关系不应被删除, remain=%d", remainInFavoriteTwo)
+		}
+	})
+}

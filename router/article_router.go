@@ -36,6 +36,7 @@ func ArticleRouter(r *gin.RouterGroup) {
 	group.GET("favorite", mw.BindQuery[favorite.FavoriteListRequest], app.FavoriteListView)
 	group.GET("favorite/contents", mw.BindQuery[favorite.FavoriteArticlesRequest], app.FavoriteArticlesView)
 	authGroup.PUT("favorite", mw.BindJson[favorite.FavoriteRequest], app.FavoriteCreateUpdateView)
+	authGroup.DELETE("favorite/contents", mw.BindJson[favorite.FavoriteRemovePatchModel], app.FavoriteRemovePatchView)
 	authGroup.DELETE("favorite", mw.BindJson[models.RemoveRequest], app.FavoriteDeleteView)
 	authGroup.POST("favorite", mw.BindJson[article_api.ArticleFavoriteRequest], app.ArticleFavoriteSaveView)
 

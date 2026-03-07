@@ -46,3 +46,8 @@ type FavoriteArticleResponse struct {
 	UserAvatar    string             `json:"user_avatar"`
 	ArticleStatus enum.ArticleStatus `json:"article_status"`
 }
+
+type FavoriteRemovePatchModel struct {
+	FavoriteID uint   `json:"favorite_id" binding:"required"`
+	Articles   []uint `json:"articles" binding:"required"`
+}
