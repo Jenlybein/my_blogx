@@ -1,7 +1,9 @@
 package article_api
 
 import (
+	"errors"
 	"fmt"
+	"myblogx/common"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
@@ -15,7 +17,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// 排序字段校验
+// orderColumnMap 将前端允许传入的排序参数映射为实际 SQL 排序表达式。
+// 这里只开放计数字段排序，避免把任意字符串直接拼进 Order。
 var orderColumnMap = map[string]string{
 	"view_count desc":    "article_models.view_count desc",
 	"digg_count desc":    "article_models.digg_count desc",
@@ -27,7 +30,12 @@ var orderColumnMap = map[string]string{
 	"favor_count asc":    "article_models.favor_count asc",
 }
 
-// 获取文章列表
+// ArticleListView 使用“两段查询”返回文章列表：
+// 1. 先按筛选条件、排序规则分页取出当前页文章 ID
+// 2. 再按这些 ID 回表查询完整文章信息并预加载关联
+//
+// 这样做的原因是文章列表存在标签筛选、置顶排序、关联预加载等需求，
+// 直接一条 SQL 同时处理 join、分页、排序和 preload，行为更容易失稳。
 func (ArticleApi) ArticleListView(c *gin.Context) {
 	cr := middleware.GetBindQuery[ArticleListRequest](c)
 	claims, _ := jwts.ParseTokenByGin(c)
@@ -37,48 +45,33 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 		return
 	}
 
-	// 处理文章置顶逻辑
+	// 置顶文章会拼进默认排序里，因此先拿到置顶映射和默认排序表达式。
 	userTopMap, adminTopMap, defaultOrder := handleTopArticles(normalized.UserID)
-	// 构造基础查询
+	// 基础查询只负责筛选文章，不负责预加载关联。
 	baseQuery := buildArticleListQuery(normalized)
 
-	var count int64
-	if err := baseQuery.Session(&gorm.Session{}).
-		Count(&count).Error; err != nil {
-		res.FailWithMsg("查询文章数量失败", c)
-		return
-	}
-
-	page := normalized.PageInfo.GetPage(int(count))
-	limit := normalized.PageInfo.GetLimit()
-	offset := (page - 1) * limit
-
-	order := defaultOrder
-	if normalized.PageInfo.Order != "" {
-		var ok bool
-		order, ok = orderColumnMap[normalized.PageInfo.Order]
-		if !ok {
-			res.FailWithMsg("排序字段错误", c)
+	// 第一阶段：只分页获取当前页文章 ID，避免 join 后直接查整行带来的分页和排序问题。
+	articleIDs, count, err := common.PageIDQuery(baseQuery, common.IDPageOptions{
+		PageInfo:     normalized.PageInfo,
+		IDColumn:     "article_models.id",
+		OrderMap:     orderColumnMap,
+		DefaultOrder: defaultOrder,
+	})
+	if err != nil {
+		if errors.Is(err, common.ErrInvalidOrder) {
+			res.FailWithMsg(err.Error(), c)
 			return
 		}
-	}
-
-	var articleIDs []uint
-	if err := baseQuery.Session(&gorm.Session{}).
-		Select("article_models.id").
-		Order(order).
-		Limit(limit).
-		Offset(offset).
-		Pluck("article_models.id", &articleIDs).Error; err != nil {
 		res.FailWithMsg("查询文章失败", c)
 		return
 	}
 
 	if len(articleIDs) == 0 {
-		res.OkWithList([]ArticleListResponse{}, int(count), c)
+		res.OkWithList([]ArticleListResponse{}, count, c)
 		return
 	}
 
+	// 第二阶段：按主键集合回表查询详情，并预加载分类、作者、标签等展示信息。
 	var articleList []models.ArticleModel
 	if err := global.DB.Select(
 		"ID",
@@ -98,18 +91,20 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 		Preload("CategoryModel", func(db *gorm.DB) *gorm.DB { return db.Select("id", "title") }).
 		Preload("UserModel", func(db *gorm.DB) *gorm.DB { return db.Select("id", "nickname", "avatar") }).
 		Preload("Tags", func(db *gorm.DB) *gorm.DB {
-			return db.Order("sort desc, id asc")
+			return db.Select("id", "title", "sort").Order("sort desc, id asc")
 		}).
 		Find(&articleList).Error; err != nil {
 		res.FailWithMsg("查询文章失败", c)
 		return
 	}
 
+	// 回表查询不保证和 articleIDs 顺序完全一致，因此先转成 map，再按 articleIDs 顺序组装响应。
 	articleMap := make(map[uint]models.ArticleModel, len(articleList))
 	for _, item := range articleList {
 		articleMap[item.ID] = item
 	}
 
+	// 文章计数采用“数据库基础值 + Redis 增量”模式，这里统一叠加最新变化量。
 	favorMap := redis_article.GetBatchCacheFavorite(articleIDs)
 	diggMap := redis_article.GetBatchCacheDigg(articleIDs)
 	viewMap := redis_article.GetBatchCacheView(articleIDs)
@@ -157,9 +152,11 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 		responseList = append(responseList, item)
 	}
 
-	res.OkWithList(responseList, int(count), c)
+	res.OkWithList(responseList, count, c)
 }
 
+// validateRequest 负责把不同查询类型的权限和参数要求收敛成统一规则。
+// 返回的 cr 可能会被修正，例如 type=2 时会强制改写为当前登录用户的 user_id。
 func validateRequest(cr ArticleListRequest, claims *jwts.MyClaims, c *gin.Context) (ArticleListRequest, error) {
 	switch cr.Type {
 	case 1:
@@ -193,6 +190,9 @@ func validateRequest(cr ArticleListRequest, claims *jwts.MyClaims, c *gin.Contex
 	return cr, nil
 }
 
+// buildArticleListQuery 只拼接文章主查询条件。
+// 如果按标签筛选，必须使用 join article_tag_models 让标签关系参与主查询过滤；
+// 仅 Preload("Tags") 只能回填标签数据，不能筛掉不满足标签条件的文章。
 func buildArticleListQuery(cr ArticleListRequest) *gorm.DB {
 	query := global.DB.Model(&models.ArticleModel{}).
 		Where(&models.ArticleModel{
@@ -213,6 +213,8 @@ func buildArticleListQuery(cr ArticleListRequest) *gorm.DB {
 	return query
 }
 
+// handleTopArticles 计算用户置顶文章的排序表达式，并返回置顶状态映射。
+// 目前管理员置顶逻辑尚未接入，因此 adminTopMap 暂时保持为空。
 func handleTopArticles(userID uint) (map[uint]bool, map[uint]bool, string) {
 	userTopMap := make(map[uint]bool)
 	adminTopMap := make(map[uint]bool)

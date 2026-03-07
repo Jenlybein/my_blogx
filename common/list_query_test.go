@@ -146,3 +146,59 @@ func TestListQueryCountError(t *testing.T) {
 		t.Fatal("count 阶段 SQL 错误应返回 error")
 	}
 }
+
+func TestPageIDQuery(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.BannerModel{})
+	records := []models.BannerModel{
+		{Show: true, Cover: "a", Href: "/1"},
+		{Show: true, Cover: "b", Href: "/2"},
+		{Show: true, Cover: "c", Href: "/3"},
+	}
+	if err := db.Create(&records).Error; err != nil {
+		t.Fatalf("插入测试数据失败: %v", err)
+	}
+
+	ids, count, err := common.PageIDQuery(
+		db.Model(&models.BannerModel{}).Where("show = ?", true),
+		common.IDPageOptions{
+			PageInfo: common.PageInfo{Page: 1, Limit: 2, Order: "id desc"},
+			IDColumn: "id",
+			OrderMap: map[string]string{
+				"id desc": "id desc",
+			},
+			DefaultOrder: "id asc",
+		},
+	)
+	if err != nil {
+		t.Fatalf("PageIDQuery 查询失败: %v", err)
+	}
+	if count != 3 {
+		t.Fatalf("count 错误: %d", count)
+	}
+	if len(ids) != 2 {
+		t.Fatalf("分页 ID 数量错误: %d", len(ids))
+	}
+	if ids[0] <= ids[1] {
+		t.Fatalf("排序结果错误: %v", ids)
+	}
+}
+
+func TestPageIDQueryInvalidOrder(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.BannerModel{})
+
+	_, _, err := common.PageIDQuery(
+		db.Model(&models.BannerModel{}),
+		common.IDPageOptions{
+			PageInfo: common.PageInfo{Order: "created_at desc"},
+			OrderMap: map[string]string{
+				"id desc": "id desc",
+			},
+		},
+	)
+	if err == nil {
+		t.Fatal("非法排序字段应报错")
+	}
+	if err != common.ErrInvalidOrder {
+		t.Fatalf("期望 ErrInvalidOrder，实际: %v", err)
+	}
+}

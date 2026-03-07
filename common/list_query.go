@@ -1,18 +1,34 @@
+/*
+1. count 开销
+2. 缺少文章组合索引
+3. created_at 无索引
+4. %key% 模糊搜索
+5. 深分页
+6. 置顶排序表达式
+7. 4 次 Redis 往返
+
+TODO:加一个 has_more 的功能
+*/
+
 package common
 
 import (
+	"errors"
 	"fmt"
 	"myblogx/global"
 
 	"gorm.io/gorm"
 )
 
-// TODO: 添加时间范围
+// ErrInvalidOrder 表示前端传入了未授权的排序字段。
+var ErrInvalidOrder = errors.New("排序字段错误")
+
+// TODO: 添加时间范围筛选支持。
 type PageInfo struct {
 	Limit int    `form:"limit"`
 	Page  int    `form:"page"`
 	Key   string `form:"key"`
-	Order string `form:"order"` // 前端可覆盖
+	Order string `form:"order"` // 允许前端覆盖排序字段
 }
 
 func (p PageInfo) GetPage(count ...int) int {
@@ -21,7 +37,7 @@ func (p PageInfo) GetPage(count ...int) int {
 		page = 1
 	}
 
-	// 兼容历史行为：不传总数时最大页限制为 20。
+	// 兼容历史行为：未传总数时，页码最大限制为 20。
 	if len(count) == 0 {
 		if page > 20 {
 			return 1
@@ -65,14 +81,28 @@ type Options struct {
 	DefaultOrder  string
 }
 
+// IDPageOptions 用于“先分页取主键 ID，再回表查详情”的场景。
+type IDPageOptions struct {
+	PageInfo
+	IDColumn     string
+	OrderMap     map[string]string
+	DefaultOrder string
+}
+
+// ListQuery 适合简单列表查询：
+// 1. 单表或轻量条件过滤
+// 2. 模糊搜索
+// 3. 预加载关联
+// 4. 直接返回当前页完整记录
+//
+// 如果查询需要先拿主键，再回表查详情，应改用 PageIDQuery。
 func ListQuery[T any](model T, option Options) (list []T, count int, err error) {
 	baseQuery := buildListQuery(model, option)
 
-	var total int64
-	if err = baseQuery.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+	count, err = CountQuery(baseQuery)
+	if err != nil {
 		return
 	}
-	count = int(total)
 
 	listQuery := baseQuery.Session(&gorm.Session{})
 	limit := option.PageInfo.GetLimit()
@@ -108,6 +138,69 @@ func ListQuery[T any](model T, option Options) (list []T, count int, err error) 
 	return
 }
 
+// CountQuery 只负责统计总数。
+// 这里单独复制 session，避免与后续列表查询的 limit/order/preload 相互污染。
+func CountQuery(query *gorm.DB) (count int, err error) {
+	var total int64
+	if err = query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return int(total), nil
+}
+
+// ResolveOrder 把前端排序参数映射成白名单内的 SQL 排序表达式。
+func ResolveOrder(order string, orderMap map[string]string, defaultOrder string) (string, error) {
+	if order == "" {
+		return defaultOrder, nil
+	}
+	if orderMap == nil {
+		return "", ErrInvalidOrder
+	}
+	sqlOrder, ok := orderMap[order]
+	if !ok {
+		return "", ErrInvalidOrder
+	}
+	return sqlOrder, nil
+}
+
+// PageIDQuery 用于复杂列表的分页第一阶段：
+// 1. 先统计总数
+// 2. 再按排序规则取出当前页主键 ID
+//
+// 适合文章列表这类需要 join/filter 后，再回表查询完整详情的场景。
+func PageIDQuery(query *gorm.DB, option IDPageOptions) (ids []uint, count int, err error) {
+	count, err = CountQuery(query)
+	if err != nil {
+		return
+	}
+
+	order, err := ResolveOrder(option.PageInfo.Order, option.OrderMap, option.DefaultOrder)
+	if err != nil {
+		return
+	}
+
+	idColumn := option.IDColumn
+	if idColumn == "" {
+		idColumn = "id"
+	}
+
+	listQuery := query.Session(&gorm.Session{})
+	if order != "" {
+		listQuery = listQuery.Order(order)
+	}
+
+	limit := option.PageInfo.GetLimit()
+	offset := option.PageInfo.GetOffset(count)
+	err = listQuery.
+		Select(idColumn).
+		Limit(limit).
+		Offset(offset).
+		Pluck(idColumn, &ids).Error
+	return
+}
+
+// buildListQuery 只负责拼接公共过滤条件，不执行查询。
+// Where 预期传入附加过滤条件，而不是完整查询链。
 func buildListQuery[T any](model T, option Options) *gorm.DB {
 	query := global.DB.Model(model).Where(model)
 
@@ -119,7 +212,6 @@ func buildListQuery[T any](model T, option Options) *gorm.DB {
 		query = query.Where(buildLikeCondition(option.Likes, option.PageInfo.Key))
 	}
 
-	// Where 用于追加额外过滤条件，不建议传入完整查询对象。
 	if option.Where != nil {
 		query = query.Where(option.Where)
 	}
@@ -127,6 +219,7 @@ func buildListQuery[T any](model T, option Options) *gorm.DB {
 	return query
 }
 
+// buildLikeCondition 构造多个列的 OR LIKE 条件。
 func buildLikeCondition(columns []string, key string) *gorm.DB {
 	pattern := "%" + key + "%"
 	likeQuery := global.DB.Where(fmt.Sprintf("%s LIKE ?", columns[0]), pattern)
