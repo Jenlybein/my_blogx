@@ -75,6 +75,16 @@ func tokenForUser(t *testing.T, user *models.UserModel) string {
 	return token
 }
 
+func readData(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
+	t.Helper()
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("解析响应失败: %v", err)
+	}
+	data, _ := body["data"].(map[string]any)
+	return data
+}
+
 func TestFavoriteCRUD(t *testing.T) {
 	user := setupFavoriteEnv(t)
 	api := FavoriteApi{}
@@ -183,4 +193,187 @@ func TestFavoriteCRUD(t *testing.T) {
 			t.Fatalf("删除收藏夹应成功, body=%s", w.Body.String())
 		}
 	}
+}
+
+func TestFavoriteArticlesView(t *testing.T) {
+	owner := setupFavoriteEnv(t)
+	db := global.DB
+	api := FavoriteApi{}
+
+	visitor := &models.UserModel{
+		Username: "visitor_user",
+		Password: "x",
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(visitor).Error; err != nil {
+		t.Fatalf("创建访客用户失败: %v", err)
+	}
+
+	favoriteModel := models.FavoriteModel{
+		UserID:   owner.ID,
+		Title:    "我的收藏夹",
+		Abstract: "desc",
+	}
+	if err := db.Create(&favoriteModel).Error; err != nil {
+		t.Fatalf("创建收藏夹失败: %v", err)
+	}
+
+	article1 := models.ArticleModel{
+		Title:    "Go 文章",
+		Abstract: "go",
+		Content:  "content",
+		AuthorID: owner.ID,
+		Status:   enum.ArticleStatusPublished,
+	}
+	article2 := models.ArticleModel{
+		Title:    "Redis 实战",
+		Abstract: "redis",
+		Content:  "content",
+		AuthorID: owner.ID,
+		Status:   enum.ArticleStatusPublished,
+	}
+	if err := db.Create(&article1).Error; err != nil {
+		t.Fatalf("创建文章1失败: %v", err)
+	}
+	if err := db.Create(&article2).Error; err != nil {
+		t.Fatalf("创建文章2失败: %v", err)
+	}
+	if err := db.Create(&models.UserArticleFavorModel{
+		ArticleID: article1.ID,
+		UserID:    owner.ID,
+		FavorID:   favoriteModel.ID,
+	}).Error; err != nil {
+		t.Fatalf("创建收藏关系1失败: %v", err)
+	}
+	if err := db.Create(&models.UserArticleFavorModel{
+		ArticleID: article2.ID,
+		UserID:    owner.ID,
+		FavorID:   favoriteModel.ID,
+	}).Error; err != nil {
+		t.Fatalf("创建收藏关系2失败: %v", err)
+	}
+
+	ownerToken := tokenForUser(t, owner)
+	visitorToken := tokenForUser(t, visitor)
+
+	{
+		c, w := newCtx()
+		c.Set("requestQuery", FavoriteArticlesRequest{
+			PageInfo:   common.PageInfo{Page: 1, Limit: 10, Key: "Go"},
+			FavoriteID: favoriteModel.ID,
+		})
+		req := httptest.NewRequest(http.MethodGet, "/articles/favorite/articles", nil)
+		req.Header.Set("token", ownerToken)
+		c.Request = req
+		api.FavoriteArticlesView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("收藏夹文章列表查询应成功, body=%s", w.Body.String())
+		}
+		data := readData(t, w)
+		if int(data["count"].(float64)) != 1 {
+			t.Fatalf("关键字筛选结果异常, body=%s", w.Body.String())
+		}
+	}
+
+	{
+		c, w := newCtx()
+		c.Set("requestQuery", FavoriteArticlesRequest{
+			PageInfo:   common.PageInfo{Page: 1, Limit: 10},
+			FavoriteID: favoriteModel.ID,
+		})
+		req := httptest.NewRequest(http.MethodGet, "/articles/favorite/articles", nil)
+		req.Header.Set("token", visitorToken)
+		c.Request = req
+		api.FavoriteArticlesView(c)
+		if code := readCode(t, w); code == 0 {
+			t.Fatalf("私有收藏夹不应允许他人访问, body=%s", w.Body.String())
+		}
+	}
+
+	if err := db.Model(&models.UserConfModel{}).
+		Where("user_id = ?", owner.ID).
+		Update("favorites_visibility", true).Error; err != nil {
+		t.Fatalf("更新收藏夹可见性失败: %v", err)
+	}
+
+	{
+		c, w := newCtx()
+		c.Set("requestQuery", FavoriteArticlesRequest{
+			PageInfo:   common.PageInfo{Page: 1, Limit: 10},
+			FavoriteID: favoriteModel.ID,
+		})
+		req := httptest.NewRequest(http.MethodGet, "/articles/favorite/articles", nil)
+		req.Header.Set("token", visitorToken)
+		c.Request = req
+		api.FavoriteArticlesView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("公开收藏夹应允许访问, body=%s", w.Body.String())
+		}
+		data := readData(t, w)
+		if int(data["count"].(float64)) != 2 {
+			t.Fatalf("公开收藏夹文章数量异常, body=%s", w.Body.String())
+		}
+	}
+}
+
+func TestFavoriteListViewType2Visibility(t *testing.T) {
+	owner := setupFavoriteEnv(t)
+	db := global.DB
+	api := FavoriteApi{}
+
+	favoriteModel := models.FavoriteModel{
+		UserID:   owner.ID,
+		Title:    "公开收藏夹测试",
+		Abstract: "desc",
+	}
+	if err := db.Create(&favoriteModel).Error; err != nil {
+		t.Fatalf("创建收藏夹失败: %v", err)
+	}
+
+	t.Run("未传 user_id 应失败", func(t *testing.T) {
+		c, w := newCtx()
+		c.Set("requestQuery", FavoriteListRequest{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+			Type:     2,
+		})
+		c.Request = httptest.NewRequest(http.MethodGet, "/articles/favorite", nil)
+		api.FavoriteListView(c)
+		if code := readCode(t, w); code == 0 {
+			t.Fatalf("未传 user_id 应失败, body=%s", w.Body.String())
+		}
+	})
+
+	t.Run("私有收藏夹不应公开访问", func(t *testing.T) {
+		c, w := newCtx()
+		c.Set("requestQuery", FavoriteListRequest{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+			Type:     2,
+			UserID:   owner.ID,
+		})
+		c.Request = httptest.NewRequest(http.MethodGet, "/articles/favorite", nil)
+		api.FavoriteListView(c)
+		if code := readCode(t, w); code == 0 {
+			t.Fatalf("私有收藏夹不应公开访问, body=%s", w.Body.String())
+		}
+	})
+
+	if err := db.Model(&models.UserConfModel{}).
+		Where("user_id = ?", owner.ID).
+		Update("favorites_visibility", true).Error; err != nil {
+		t.Fatalf("更新收藏夹可见性失败: %v", err)
+	}
+
+	t.Run("公开收藏夹允许匿名访问", func(t *testing.T) {
+		c, w := newCtx()
+		c.Set("requestQuery", FavoriteListRequest{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+			Type:     2,
+			UserID:   owner.ID,
+		})
+		c.Request = httptest.NewRequest(http.MethodGet, "/articles/favorite", nil)
+		api.FavoriteListView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("公开收藏夹应允许访问, body=%s", w.Body.String())
+		}
+	})
 }

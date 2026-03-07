@@ -34,9 +34,9 @@ func ArticleRouter(r *gin.RouterGroup) {
 
 	// 收藏
 	group.GET("favorite", mw.BindQuery[favorite.FavoriteListRequest], app.FavoriteListView)
+	group.GET("favorite/contents", mw.BindQuery[favorite.FavoriteArticlesRequest], app.FavoriteArticlesView)
 	authGroup.PUT("favorite", mw.BindJson[favorite.FavoriteRequest], app.FavoriteCreateUpdateView)
 	authGroup.DELETE("favorite", mw.BindJson[models.RemoveRequest], app.FavoriteDeleteView)
-	authGroup.GET("tags/options", app.ArticleTagOptionsView)
 	authGroup.POST("favorite", mw.BindJson[article_api.ArticleFavoriteRequest], app.ArticleFavoriteSaveView)
 
 	// 浏览历史
@@ -50,6 +50,7 @@ func ArticleRouter(r *gin.RouterGroup) {
 	authGroup.GET("category/options", app.CategoryOptionsView)
 
 	// 标签
+	authGroup.GET("tags/options", app.ArticleTagOptionsView)
 	adminGroup.DELETE("", mw.BindJson[models.RemoveRequest], app.ArticleRemoveView)
 	adminGroup.GET("tags", mw.BindQuery[tags.TagListRequest], app.TagListView)
 	adminGroup.PUT("tags", mw.BindJson[tags.TagRequest], app.TagCreateUpdateView)

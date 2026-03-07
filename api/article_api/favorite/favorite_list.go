@@ -3,6 +3,7 @@ package favorite
 import (
 	"myblogx/common"
 	"myblogx/common/res"
+	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/utils/jwts"
@@ -25,7 +26,21 @@ func (FavoriteApi) FavoriteListView(c *gin.Context) {
 			return
 		}
 		cr.UserID = claim.UserID
-	case 2: //
+	case 2:
+		if cr.UserID == 0 {
+			res.FailWithMsg("用户 id 不能为空", c)
+			return
+		}
+		// 查询目标用户隐私设置，判断是否公开收藏夹
+		var userConf models.UserConfModel
+		if err := global.DB.Take(&userConf, "user_id = ?", cr.UserID).Error; err != nil {
+			res.FailWithMsg("用户不存在", c)
+			return
+		}
+		if !userConf.FavoritesVisibility {
+			res.FailWithMsg("收藏夹不公开", c)
+			return
+		}
 	case 3:
 		if err != nil || claim.IsAdmin() == false {
 			res.FailWithMsg("权限不足", c)
