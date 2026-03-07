@@ -7,6 +7,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/service/redis_service/redis_comment"
 	"myblogx/utils/jwts"
@@ -46,8 +47,8 @@ func (CommentApi) CommentCreateView(c *gin.Context) {
 	var rootCommentID uint
 
 	// 只做两级评论：回复二级评论时，仍挂到同一个一级评论下
+	var replyComment models.CommentModel
 	if cr.ReplyId != nil {
-		var replyComment models.CommentModel
 		if err := global.DB.Take(&replyComment, "id = ? and article_id = ? and status = ?", *cr.ReplyId, cr.ArticleID, enum.CommentStatusPublished).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				res.FailWithMsg("回复的评论不存在", c)
@@ -77,6 +78,28 @@ func (CommentApi) CommentCreateView(c *gin.Context) {
 		if err := global.DB.Model(&model).Update("status", status).Error; err != nil {
 			res.FailWithMsg("审核失败", c)
 			return
+		}
+
+		// 给文章创作者发送系统通知
+		go message_service.InsertCommentMessage(message_service.ArticleCommentMessage{
+			CommentID:    model.ID,
+			Content:      cr.Content,
+			ReceiverID:   article.AuthorID,
+			ActionUserID: claims.UserID,
+			ArticleID:    article.ID,
+			ArticleTitle: article.Title,
+		})
+
+		// 给回复人发送系统通知
+		if rootCommentID != 0 {
+			go message_service.InsertReplyMessage(message_service.ArticleReplyMessage{
+				CommentID:    model.ID,
+				Content:      cr.Content,
+				ReceiverID:   replyComment.UserID,
+				ActionUserID: claims.UserID,
+				ArticleID:    article.ID,
+				ArticleTitle: article.Title,
+			})
 		}
 
 		// 只有已发布评论才计入前台计数
