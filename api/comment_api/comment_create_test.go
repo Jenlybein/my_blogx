@@ -46,6 +46,7 @@ func setupCommentEnv(t *testing.T) *models.UserModel {
 		&models.ArticleModel{},
 		&models.CommentModel{},
 		&models.CommentDiggModel{},
+		&models.ArticleMessageModel{},
 	)
 	global.Config.Site.Comment.SkipExamining = true
 
@@ -94,7 +95,7 @@ func TestCommentCreateView(t *testing.T) {
 		c.Set("requestJson", CommentCreateRequest{ArticleID: closedArticle.ID, Content: "x"})
 		api.CommentCreateView(c)
 		if code := readBizCode(t, w); code == 0 {
-			t.Fatalf("关闭评论应失败 body=%s", w.Body.String())
+			t.Fatalf("关闭评论应失败, body=%s", w.Body.String())
 		}
 	})
 
@@ -109,7 +110,7 @@ func TestCommentCreateView(t *testing.T) {
 	}
 
 	var first models.CommentModel
-	t.Run("一级评论成功并写入缓存", func(t *testing.T) {
+	t.Run("一级评论成功并写入缓存与消息", func(t *testing.T) {
 		c, w := newCommentCtx()
 		c.Set("claims", claims)
 		c.Set("requestJson", CommentCreateRequest{ArticleID: openArticle.ID, Content: "first"})
@@ -131,12 +132,12 @@ func TestCommentCreateView(t *testing.T) {
 			t.Fatalf("评论缓存计数错误: %d", redis_article.GetCacheComment(openArticle.ID))
 		}
 		if redis_comment.GetCacheReply(first.ID) != 0 {
-			t.Fatalf("一级评论回复缓存初始值应为0: %d", redis_comment.GetCacheReply(first.ID))
+			t.Fatalf("一级评论回复缓存初始值应为 0: %d", redis_comment.GetCacheReply(first.ID))
 		}
 	})
 
 	var second models.CommentModel
-	t.Run("回复一级评论成功并累加ReplyCount缓存", func(t *testing.T) {
+	t.Run("回复一级评论成功并累加缓存与消息", func(t *testing.T) {
 		c, w := newCommentCtx()
 		c.Set("claims", claims)
 		c.Set("requestJson", CommentCreateRequest{
@@ -146,7 +147,7 @@ func TestCommentCreateView(t *testing.T) {
 		})
 		api.CommentCreateView(c)
 		if code := readBizCode(t, w); code != 0 {
-			t.Fatalf("回复评论应成功 body=%s", w.Body.String())
+			t.Fatalf("回复评论应成功, body=%s", w.Body.String())
 		}
 
 		if err := global.DB.Last(&second).Error; err != nil {
@@ -165,11 +166,11 @@ func TestCommentCreateView(t *testing.T) {
 			t.Fatalf("评论缓存计数错误: %d", redis_article.GetCacheComment(openArticle.ID))
 		}
 		if redis_comment.GetCacheReply(first.ID) != 1 {
-			t.Fatalf("一级评论ReplyCount缓存错误: %d", redis_comment.GetCacheReply(first.ID))
+			t.Fatalf("一级评论 ReplyCount 缓存错误: %d", redis_comment.GetCacheReply(first.ID))
 		}
 	})
 
-	t.Run("回复二级评论仍归属于同一个一级评论", func(t *testing.T) {
+	t.Run("回复二级评论仍归属同一一级评论", func(t *testing.T) {
 		c, w := newCommentCtx()
 		c.Set("claims", claims)
 		c.Set("requestJson", CommentCreateRequest{
@@ -179,7 +180,7 @@ func TestCommentCreateView(t *testing.T) {
 		})
 		api.CommentCreateView(c)
 		if code := readBizCode(t, w); code != 0 {
-			t.Fatalf("回复二级评论应成功 body=%s", w.Body.String())
+			t.Fatalf("回复二级评论应成功, body=%s", w.Body.String())
 		}
 
 		var reply models.CommentModel
@@ -190,10 +191,10 @@ func TestCommentCreateView(t *testing.T) {
 			t.Fatalf("reply_id 错误: %+v", reply)
 		}
 		if reply.RootID != first.ID {
-			t.Fatalf("root_id 应保持一级评论ID: %+v", reply)
+			t.Fatalf("root_id 应保持一级评论 ID: %+v", reply)
 		}
 		if redis_comment.GetCacheReply(first.ID) != 2 {
-			t.Fatalf("一级评论ReplyCount缓存错误: %d", redis_comment.GetCacheReply(first.ID))
+			t.Fatalf("一级评论 ReplyCount 缓存错误: %d", redis_comment.GetCacheReply(first.ID))
 		}
 	})
 
@@ -212,7 +213,7 @@ func TestCommentCreateView(t *testing.T) {
 		}
 	})
 
-	t.Run("免审核关闭时普通用户评论进审核中且不计数", func(t *testing.T) {
+	t.Run("关闭免审核时普通用户评论进入审核中且不计数", func(t *testing.T) {
 		global.Config.Site.Comment.SkipExamining = false
 		t.Cleanup(func() {
 			global.Config.Site.Comment.SkipExamining = true
@@ -230,7 +231,7 @@ func TestCommentCreateView(t *testing.T) {
 		})
 		api.CommentCreateView(c)
 		if code := readBizCode(t, w); code != 0 {
-			t.Fatalf("评论提交应成功 body=%s", w.Body.String())
+			t.Fatalf("评论提交应成功, body=%s", w.Body.String())
 		}
 
 		var last models.CommentModel
@@ -248,7 +249,7 @@ func TestCommentCreateView(t *testing.T) {
 		}
 	})
 
-	t.Run("管理员评论直接发布并计数", func(t *testing.T) {
+	t.Run("管理员评论直接发布并计数与消息", func(t *testing.T) {
 		global.Config.Site.Comment.SkipExamining = false
 		adminClaims := &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Username: user.Username, Role: enum.RoleAdmin}}
 

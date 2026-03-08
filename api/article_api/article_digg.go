@@ -7,6 +7,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
 
@@ -33,7 +34,18 @@ func (ArticleApi) ArticleDiggView(c *gin.Context) {
 				res.FailWithMsg("点赞失败", c)
 				return
 			}
+
+			// 写入点赞缓存
 			redis_article.SetCacheDigg(id.ID, 1)
+
+			// 创建点赞消息
+			go message_service.InsertArticleDiggMessage(message_service.ArticleDiggMessage{
+				ReceiverID:   article.AuthorID,
+				ActionUserID: claims.UserID,
+				ArticleID:    article.ID,
+				ArticleTitle: article.Title,
+			})
+
 			res.OkWithMsg("点赞成功", c)
 			return
 		}
@@ -45,7 +57,10 @@ func (ArticleApi) ArticleDiggView(c *gin.Context) {
 			res.FailWithMsg("取消点赞失败", c)
 			return
 		}
+
+		// 删除点赞缓存
 		redis_article.SetCacheDigg(id.ID, -1)
+
 		res.OkWithMsg("取消点赞成功", c)
 		return
 	}

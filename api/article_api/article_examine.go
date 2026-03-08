@@ -1,10 +1,12 @@
 package article_api
 
 import (
+	"fmt"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/message_service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,6 +29,24 @@ func (ArticleApi) ArticleExamineView(c *gin.Context) {
 	}
 
 	// 给文章创作者发送系统通知
+	switch cr.Status {
+	case 3: // 审核成功
+		go message_service.InsertSystemMessage(message_service.SystemMessage{
+			ReceiverID:   &article.AuthorID,
+			ActionUserID: &article.AuthorID,
+			Content:      fmt.Sprintf("您的文章《%s》审核通过!", article.Title),
+			LinkTitle:    article.Title,
+			LinkHerf:     fmt.Sprintf("/article/%d", article.ID),
+		})
+	case 4: // 审核失败
+		go message_service.InsertSystemMessage(message_service.SystemMessage{
+			ReceiverID:   &article.AuthorID,
+			ActionUserID: &article.AuthorID,
+			Content:      fmt.Sprintf("您的文章《%s》审核失败，请修改后再提交!\n失败原因：%s", article.Title, ""),
+			LinkTitle:    article.Title,
+			LinkHerf:     fmt.Sprintf("/article/%d", article.ID),
+		})
+	}
 
 	res.OkWithMsg("文章审核成功", c)
 }

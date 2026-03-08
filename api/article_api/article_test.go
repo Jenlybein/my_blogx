@@ -2,17 +2,20 @@ package article_api
 
 import (
 	"encoding/json"
+	"fmt"
 	"myblogx/common"
 	"myblogx/conf"
 	confsite "myblogx/conf/site"
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/models/enum/message_enum"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -50,6 +53,7 @@ func setupArticleEnv(t *testing.T) *models.UserModel {
 		&models.UserTopArticleModel{},
 		&models.UserArticleViewHistoryModel{},
 		&models.CommentModel{},
+		&models.ArticleMessageModel{},
 	)
 	global.Config = &conf.Config{
 		Jwt: conf.Jwt{
@@ -72,6 +76,29 @@ func setupArticleEnv(t *testing.T) *models.UserModel {
 		t.Fatalf("创建用户失败: %v", err)
 	}
 	return user
+}
+
+func waitArticleMessageCount(t *testing.T, want int) []models.ArticleMessageModel {
+	t.Helper()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		var list []models.ArticleMessageModel
+		if err := global.DB.Order("id asc").Find(&list).Error; err != nil {
+			t.Fatalf("查询消息失败: %v", err)
+		}
+		if len(list) == want {
+			return list
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	var list []models.ArticleMessageModel
+	if err := global.DB.Order("id asc").Find(&list).Error; err != nil {
+		t.Fatalf("查询消息失败: %v", err)
+	}
+	t.Fatalf("等待消息数量超时: got=%d want=%d", len(list), want)
+	return nil
 }
 
 func TestValidateRequestAndList(t *testing.T) {
@@ -192,6 +219,20 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("审核文章失败, code=%d body=%s", code, w.Body.String())
 		}
+	}
+
+	messages := waitArticleMessageCount(t, 1)
+	if messages[0].Type != message_enum.SystemType {
+		t.Fatalf("文章审核消息类型错误: %+v", messages[0])
+	}
+	if messages[0].ReceiverID != user.ID {
+		t.Fatalf("文章审核消息接收者错误: %+v", messages[0])
+	}
+	if messages[0].Content != fmt.Sprintf("您的文章《%s》审核通过!", "t1-updated") {
+		t.Fatalf("文章审核消息内容错误: %+v", messages[0])
+	}
+	if messages[0].LinkHerf != fmt.Sprintf("/article/%d", created.ID) {
+		t.Fatalf("文章审核消息链接错误: %+v", messages[0])
 	}
 
 	{

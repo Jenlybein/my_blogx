@@ -7,6 +7,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_comment"
 	"myblogx/utils/jwts"
 
@@ -18,7 +19,7 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 	id := middleware.GetBindUri[models.IDRequest](c)
 
 	var comment models.CommentModel
-	if err := global.DB.Take(&comment, "id = ? and status = ?", id.ID, enum.CommentStatusPublished).Error; err != nil {
+	if err := global.DB.Preload("ArticleModel", func(db *gorm.DB) *gorm.DB { return db.Select("id", "title") }).Take(&comment, "id = ? and status = ?", id.ID, enum.CommentStatusPublished).Error; err != nil {
 		res.FailWithMsg("评论不存在", c)
 		return
 	}
@@ -33,9 +34,20 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 				res.FailWithMsg("点赞失败", c)
 				return
 			}
+
 			if err := redis_comment.SetCacheDigg(id.ID, 1); err != nil {
 				global.Logger.Errorf("写入评论点赞缓存失败 comment_id=%d err=%v", id.ID, err)
 			}
+
+			go message_service.InsertCommentDiggMessage(message_service.CommentDiggMessage{
+				ReceiverID:   comment.UserID,
+				ActionUserID: claims.UserID,
+				CommentID:    comment.ID,
+				Content:      comment.Content,
+				ArticleID:    comment.ArticleID,
+				ArticleTitle: comment.ArticleModel.Title,
+			})
+
 			res.OkWithMsg("点赞成功", c)
 			return
 		}

@@ -59,7 +59,7 @@ func (a *ArticleModel) BeforeDelete(tx *gorm.DB) (err error) {
 	var diggList []ArticleDiggModel
 	tx.Find(&diggList, "article_id = ?", a.ID).Delete(&diggList)
 
-	var favoriteList []FavoriteModel
+	var favoriteList []UserArticleFavorModel
 	tx.Find(&favoriteList, "article_id = ?", a.ID).Delete(&favoriteList)
 
 	var topList []UserTopArticleModel
