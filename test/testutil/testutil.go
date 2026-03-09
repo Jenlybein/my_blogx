@@ -60,6 +60,13 @@ func SetupSQLite(t *testing.T, models ...any) *gorm.DB {
 		t.Fatalf("打开 sqlite 失败: %v", err)
 	}
 
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("获取 sqlite 连接失败: %v", err)
+	}
+	sqlDB.SetMaxOpenConns(1)
+	sqlDB.SetMaxIdleConns(1)
+
 	if len(models) > 0 {
 		models = appendArticleTagModels(models)
 		if err = db.AutoMigrate(models...); err != nil {

@@ -127,7 +127,7 @@ func TestFavoriteCRUD(t *testing.T) {
 		c.Set("claims", claims)
 		c.Set("requestJson", FavoriteRequest{
 			ID:       fav.ID,
-			Title:    "默认收藏组-更新",
+			Title:    "默认收藏组更新",
 			Abstract: "desc3",
 			Cover:    "new.png",
 		})
@@ -217,6 +217,11 @@ func TestFavoriteArticlesView(t *testing.T) {
 	if err := db.Create(&favoriteModel).Error; err != nil {
 		t.Fatalf("创建收藏夹失败: %v", err)
 	}
+	if err := db.Model(&models.UserConfModel{}).
+		Where("user_id = ?", owner.ID).
+		Update("favorites_visibility", false).Error; err != nil {
+		t.Fatalf("设置收藏夹为私有失败: %v", err)
+	}
 
 	article1 := models.ArticleModel{
 		Title:    "Go 文章",
@@ -267,11 +272,11 @@ func TestFavoriteArticlesView(t *testing.T) {
 		c.Request = req
 		api.FavoriteArticlesView(c)
 		if code := readCode(t, w); code != 0 {
-			t.Fatalf("收藏夹文章列表查询应成功, body=%s", w.Body.String())
+			t.Fatalf("收藏夹文章列表应成功, body=%s", w.Body.String())
 		}
 		data := readData(t, w)
 		if int(data["count"].(float64)) != 1 {
-			t.Fatalf("关键字筛选结果异常, body=%s", w.Body.String())
+			t.Fatalf("关键词筛选结果异常, body=%s", w.Body.String())
 		}
 	}
 
@@ -328,6 +333,11 @@ func TestFavoriteListViewType2Visibility(t *testing.T) {
 	}
 	if err := db.Create(&favoriteModel).Error; err != nil {
 		t.Fatalf("创建收藏夹失败: %v", err)
+	}
+	if err := db.Model(&models.UserConfModel{}).
+		Where("user_id = ?", owner.ID).
+		Update("favorites_visibility", false).Error; err != nil {
+		t.Fatalf("设置收藏夹为私有失败: %v", err)
 	}
 
 	t.Run("未传 user_id 应失败", func(t *testing.T) {
@@ -436,7 +446,7 @@ func TestFavoriteRemovePatchView(t *testing.T) {
 		}
 	})
 
-	t.Run("批量取消收藏只移除当前收藏夹内文章", func(t *testing.T) {
+	t.Run("批量取消收藏只移除当前收藏夹文章", func(t *testing.T) {
 		c, w := newCtx()
 		c.Set("claims", &jwts.MyClaims{Claims: jwts.Claims{
 			UserID:   user.ID,
@@ -469,7 +479,7 @@ func TestFavoriteRemovePatchView(t *testing.T) {
 			t.Fatalf("查询收藏夹二关系失败: %v", err)
 		}
 		if remainInFavoriteTwo != 1 {
-			t.Fatalf("其他收藏夹的关系不应被删除, remain=%d", remainInFavoriteTwo)
+			t.Fatalf("其他收藏夹关系不应被删除, remain=%d", remainInFavoriteTwo)
 		}
 	})
 }

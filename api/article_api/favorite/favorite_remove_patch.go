@@ -21,7 +21,7 @@ func (f FavoriteApi) FavoriteRemovePatchView(c *gin.Context) {
 		return
 	}
 
-	claims := jwts.GetClaimsByGin(c)
+	claims := jwts.MustGetClaimsByGin(c)
 
 	var favoriteModel models.FavoriteModel
 	if err := global.DB.Take(&favoriteModel, "id = ?", cr.FavoriteID).Error; err != nil {
