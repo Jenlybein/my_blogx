@@ -10,6 +10,7 @@ import (
 	"myblogx/api/image_api"
 	"myblogx/api/log_api"
 	"myblogx/api/site_api"
+	"myblogx/api/sitemsg_api"
 	"myblogx/api/user_api"
 )
 
@@ -22,6 +23,7 @@ type Api struct {
 	UserApi         user_api.UserApi
 	ArticleApi      article_api.ArticleApi
 	CommentApi      comment_api.CommentApi
+	SitemsgApi      sitemsg_api.SitemsgApi
 }
 
 var App = Api{}
