@@ -107,6 +107,39 @@ func TestUserMsgConfViewAndUpdate(t *testing.T) {
 	}
 }
 
+func TestUserMsgConfViewAndUpdateFailBranches(t *testing.T) {
+	user := setupSitemsgEnv(t)
+	api := sitemsg_api.SitemsgApi{}
+
+	if err := global.DB.Delete(&models.UserConfModel{}, "user_id = ?", user.ID).Error; err != nil {
+		t.Fatalf("删除用户配置失败: %v", err)
+	}
+
+	{
+		c, w := newSitemsgCtx()
+		setClaims(c, user)
+		api.UserMsgConfView(c)
+		if code := readSitemsgCode(t, w); code == 0 {
+			t.Fatalf("配置不存在时查询应失败, body=%s", w.Body.String())
+		}
+	}
+
+	{
+		c, w := newSitemsgCtx()
+		setClaims(c, user)
+		c.Set("requestJson", sitemsg_api.UserMsgConfResponseAndRequest{
+			DiggNoticeEnabled:        false,
+			CommentNoticeEnabled:     false,
+			FavorNoticeEnabled:       false,
+			PrivateChatNoticeEnabled: false,
+		})
+		api.UserMsgConfUpdateView(c)
+		if code := readSitemsgCode(t, w); code == 0 {
+			t.Fatalf("配置不存在时更新应失败, body=%s", w.Body.String())
+		}
+	}
+}
+
 func TestSitemsgListViewFiltersByType(t *testing.T) {
 	user := setupSitemsgEnv(t)
 	db := global.DB
@@ -143,6 +176,20 @@ func TestSitemsgListViewFiltersByType(t *testing.T) {
 		data := readSitemsgBody(t, w)["data"].(map[string]any)
 		if int(data["count"].(float64)) != 2 {
 			t.Fatalf("评论消息数量异常, body=%s", w.Body.String())
+		}
+	}
+
+	{
+		c, w := newSitemsgCtx()
+		setClaims(c, user)
+		c.Set("requestQuery", sitemsg_api.SitemsgListRequest{T: 2})
+		api.SitemsgListView(c)
+		if code := readSitemsgCode(t, w); code != 0 {
+			t.Fatalf("查询点赞/收藏消息失败, body=%s", w.Body.String())
+		}
+		data := readSitemsgBody(t, w)["data"].(map[string]any)
+		if int(data["count"].(float64)) != 1 {
+			t.Fatalf("点赞/收藏消息数量异常, body=%s", w.Body.String())
 		}
 	}
 
@@ -258,5 +305,174 @@ func TestSitemsgReadViewSingleAndBatch(t *testing.T) {
 	}
 	if batchCheck[2].ReadAt != nil {
 		t.Fatalf("其他用户消息不应更新 read_at: %+v", batchCheck[2])
+	}
+}
+
+func TestSitemsgReadViewFailBranches(t *testing.T) {
+	user := setupSitemsgEnv(t)
+	db := global.DB
+	api := sitemsg_api.SitemsgApi{}
+
+	other := &models.UserModel{
+		Username: "read_other",
+		Password: "x",
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(other).Error; err != nil {
+		t.Fatalf("创建其他用户失败: %v", err)
+	}
+
+	otherMsg := models.ArticleMessageModel{ReceiverID: other.ID, Type: message_enum.SystemType, Content: "other"}
+	if err := db.Create(&otherMsg).Error; err != nil {
+		t.Fatalf("创建其他用户消息失败: %v", err)
+	}
+
+	{
+		c, w := newSitemsgCtx()
+		setClaims(c, user)
+		c.Set("requestJson", sitemsg_api.SitemsgReadRequest{ID: otherMsg.ID})
+		api.SitemsgReadView(c)
+		if code := readSitemsgCode(t, w); code == 0 {
+			t.Fatalf("读取他人消息应失败, body=%s", w.Body.String())
+		}
+	}
+
+	var check models.ArticleMessageModel
+	if err := db.Take(&check, otherMsg.ID).Error; err != nil {
+		t.Fatalf("查询其他用户消息失败: %v", err)
+	}
+	if check.IsRead || check.ReadAt != nil {
+		t.Fatalf("他人消息不应被修改: %+v", check)
+	}
+}
+
+func TestSitemsgRemoveViewSingleAndBatch(t *testing.T) {
+	user := setupSitemsgEnv(t)
+	db := global.DB
+	api := sitemsg_api.SitemsgApi{}
+
+	other := &models.UserModel{
+		Username: "remove_other",
+		Password: "x",
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(other).Error; err != nil {
+		t.Fatalf("创建其他用户失败: %v", err)
+	}
+
+	single := models.ArticleMessageModel{ReceiverID: user.ID, Type: message_enum.SystemType, Content: "single"}
+	batchA := models.ArticleMessageModel{ReceiverID: user.ID, Type: message_enum.DiggArticleType, Content: "batch-a"}
+	batchB := models.ArticleMessageModel{ReceiverID: user.ID, Type: message_enum.FavorArticleType, Content: "batch-b"}
+	readMsg := models.ArticleMessageModel{ReceiverID: user.ID, Type: message_enum.DiggArticleType, Content: "read-one", IsRead: true}
+	otherUserMsg := models.ArticleMessageModel{ReceiverID: other.ID, Type: message_enum.DiggArticleType, Content: "other"}
+	if err := db.Create(&[]models.ArticleMessageModel{single, batchA, batchB, readMsg, otherUserMsg}).Error; err != nil {
+		t.Fatalf("创建消息失败: %v", err)
+	}
+
+	var list []models.ArticleMessageModel
+	if err := db.Order("id asc").Find(&list).Error; err != nil {
+		t.Fatalf("查询消息失败: %v", err)
+	}
+	single = list[0]
+	batchA = list[1]
+	batchB = list[2]
+	readMsg = list[3]
+	otherUserMsg = list[4]
+
+	{
+		c, w := newSitemsgCtx()
+		setClaims(c, user)
+		c.Set("requestJson", sitemsg_api.SitemsgRemoveRequest{})
+		api.SitemsgRemoveView(c)
+		if code := readSitemsgCode(t, w); code == 0 {
+			t.Fatalf("id 和 t 同时为空时应失败, body=%s", w.Body.String())
+		}
+	}
+
+	{
+		c, w := newSitemsgCtx()
+		setClaims(c, user)
+		c.Set("requestJson", sitemsg_api.SitemsgRemoveRequest{ID: single.ID})
+		api.SitemsgRemoveView(c)
+		if code := readSitemsgCode(t, w); code != 0 {
+			t.Fatalf("单条删除失败, body=%s", w.Body.String())
+		}
+	}
+
+	var singleCount int64
+	if err := db.Model(&models.ArticleMessageModel{}).Where("id = ?", single.ID).Count(&singleCount).Error; err != nil {
+		t.Fatalf("查询单条消息失败: %v", err)
+	}
+	if singleCount != 0 {
+		t.Fatalf("单条消息未被删除, count=%d", singleCount)
+	}
+
+	{
+		c, w := newSitemsgCtx()
+		setClaims(c, user)
+		c.Set("requestJson", sitemsg_api.SitemsgRemoveRequest{ID: single.ID})
+		api.SitemsgRemoveView(c)
+		if code := readSitemsgCode(t, w); code == 0 {
+			t.Fatalf("重复删除不存在消息应失败, body=%s", w.Body.String())
+		}
+	}
+
+	{
+		c, w := newSitemsgCtx()
+		setClaims(c, user)
+		c.Set("requestJson", sitemsg_api.SitemsgRemoveRequest{T: 2})
+		api.SitemsgRemoveView(c)
+		if code := readSitemsgCode(t, w); code != 0 {
+			t.Fatalf("批量删除失败, body=%s", w.Body.String())
+		}
+	}
+
+	var remain []models.ArticleMessageModel
+	if err := db.Order("id asc").Find(&remain).Error; err != nil {
+		t.Fatalf("查询剩余消息失败: %v", err)
+	}
+	if len(remain) != 2 {
+		t.Fatalf("剩余消息数量异常: %+v", remain)
+	}
+	if remain[0].ID != readMsg.ID || remain[1].ID != otherUserMsg.ID {
+		t.Fatalf("批量删除范围异常: %+v", remain)
+	}
+}
+
+func TestSitemsgRemoveViewFailBranches(t *testing.T) {
+	user := setupSitemsgEnv(t)
+	db := global.DB
+	api := sitemsg_api.SitemsgApi{}
+
+	other := &models.UserModel{
+		Username: "delete_other",
+		Password: "x",
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(other).Error; err != nil {
+		t.Fatalf("创建其他用户失败: %v", err)
+	}
+
+	otherMsg := models.ArticleMessageModel{ReceiverID: other.ID, Type: message_enum.SystemType, Content: "other"}
+	if err := db.Create(&otherMsg).Error; err != nil {
+		t.Fatalf("创建其他用户消息失败: %v", err)
+	}
+
+	{
+		c, w := newSitemsgCtx()
+		setClaims(c, user)
+		c.Set("requestJson", sitemsg_api.SitemsgRemoveRequest{ID: otherMsg.ID})
+		api.SitemsgRemoveView(c)
+		if code := readSitemsgCode(t, w); code == 0 {
+			t.Fatalf("删除他人消息应失败, body=%s", w.Body.String())
+		}
+	}
+
+	var count int64
+	if err := db.Model(&models.ArticleMessageModel{}).Where("id = ?", otherMsg.ID).Count(&count).Error; err != nil {
+		t.Fatalf("查询其他用户消息失败: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("他人消息不应被删除, count=%d", count)
 	}
 }

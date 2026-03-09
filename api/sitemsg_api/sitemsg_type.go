@@ -18,3 +18,8 @@ type SitemsgReadRequest struct {
 	ID uint `json:"id"`
 	T  int8 `json:"t" binding:"omitempty,oneof=1 2 3"` // 批量已读的类型
 }
+
+type SitemsgRemoveRequest struct {
+	ID uint `json:"id"`
+	T  int8 `json:"t" binding:"omitempty,oneof=1 2 3"` // 批量已读的类型
+}
