@@ -160,10 +160,6 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 func validateRequest(cr ArticleListRequest, claims *jwts.MyClaims, c *gin.Context) (ArticleListRequest, error) {
 	switch cr.Type {
 	case 1:
-		if cr.UserID == 0 {
-			res.FailWithMsg("用户 id 不能为空", c)
-			return cr, fmt.Errorf("user_id is required")
-		}
 		if claims == nil && (cr.Page > 1 || cr.Limit > 10) {
 			res.FailWithMsg("想查看更多内容，请先登录", c)
 			return cr, fmt.Errorf("login required")
@@ -196,10 +192,13 @@ func validateRequest(cr ArticleListRequest, claims *jwts.MyClaims, c *gin.Contex
 func buildArticleListQuery(cr ArticleListRequest) *gorm.DB {
 	query := global.DB.Model(&models.ArticleModel{}).
 		Where(&models.ArticleModel{
-			AuthorID:   cr.UserID,
 			CategoryID: cr.CategoryID,
 			Status:     cr.Status,
 		})
+
+	if cr.UserID != 0 {
+		query = query.Where("article_models.author_id = ?", cr.UserID)
+	}
 
 	if cr.Key != "" {
 		query = query.Where("article_models.title LIKE ?", "%"+cr.Key+"%")

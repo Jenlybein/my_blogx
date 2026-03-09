@@ -36,6 +36,15 @@ func readCode(t *testing.T, w *httptest.ResponseRecorder) int {
 	return int(body["code"].(float64))
 }
 
+func readBody(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
+	t.Helper()
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("解析响应失败: %v", err)
+	}
+	return body
+}
+
 func setupArticleEnv(t *testing.T) *models.UserModel {
 	t.Helper()
 	_ = testutil.SetupMiniRedis(t)
@@ -106,9 +115,18 @@ func TestValidateRequestAndList(t *testing.T) {
 
 	{
 		c, _ := newCtx()
-		if _, err := validateRequest(ArticleListRequest{Type: 1}, nil, c); err == nil {
-			t.Fatal("Type=1 且 user_id 为空时应失败")
+		if _, err := validateRequest(ArticleListRequest{Type: 1}, nil, c); err != nil {
+			t.Fatalf("Type=1 未传 user_id 不应失败: %v", err)
 		}
+	}
+
+	otherUser := models.UserModel{
+		Username: "u2",
+		Password: "x",
+		Role:     enum.RoleUser,
+	}
+	if err := global.DB.Create(&otherUser).Error; err != nil {
+		t.Fatalf("创建第二个用户失败: %v", err)
 	}
 
 	tag := models.TagModel{Title: "Go", IsEnabled: true}
@@ -129,6 +147,53 @@ func TestValidateRequestAndList(t *testing.T) {
 		t.Fatalf("创建文章标签关系失败: %v", err)
 	}
 
+	otherArticle := models.ArticleModel{
+		Title:    "a2",
+		Content:  "world",
+		AuthorID: otherUser.ID,
+		Status:   enum.ArticleStatusPublished,
+	}
+	if err := global.DB.Create(&otherArticle).Error; err != nil {
+		t.Fatalf("创建第二篇文章失败: %v", err)
+	}
+	if err := global.DB.Create(&models.ArticleTagModel{ArticleID: otherArticle.ID, TagID: tag.ID}).Error; err != nil {
+		t.Fatalf("创建第二篇文章标签关系失败: %v", err)
+	}
+
+	draftArticle := models.ArticleModel{
+		Title:    "draft",
+		Content:  "hidden",
+		AuthorID: otherUser.ID,
+		Status:   enum.ArticleStatusExamining,
+	}
+	if err := global.DB.Create(&draftArticle).Error; err != nil {
+		t.Fatalf("创建草稿文章失败: %v", err)
+	}
+
+	{
+		c, w := newCtx()
+		c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+		c.Set("requestQuery", ArticleListRequest{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+			Type:     1,
+			TagID:    &tag.ID,
+			Status:   enum.ArticleStatusPublished,
+		})
+		ArticleApi{}.ArticleListView(c)
+		body := readBody(t, w)
+		if code := int(body["code"].(float64)); code != 0 {
+			t.Fatalf("查询全部公开文章失败, code=%d body=%s", code, w.Body.String())
+		}
+		data := body["data"].(map[string]any)
+		list := data["list"].([]any)
+		if count := int(data["count"].(float64)); count != 2 {
+			t.Fatalf("未传 user_id 时应查到两篇公开文章, got=%d", count)
+		}
+		if len(list) != 2 {
+			t.Fatalf("未传 user_id 时返回列表长度错误, got=%d", len(list))
+		}
+	}
+
 	{
 		c, w := newCtx()
 		c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
@@ -140,8 +205,21 @@ func TestValidateRequestAndList(t *testing.T) {
 			Status:   enum.ArticleStatusPublished,
 		})
 		ArticleApi{}.ArticleListView(c)
-		if code := readCode(t, w); code != 0 {
-			t.Fatalf("文章列表失败, code=%d body=%s", code, w.Body.String())
+		body := readBody(t, w)
+		if code := int(body["code"].(float64)); code != 0 {
+			t.Fatalf("按 user_id 查询公开文章失败, code=%d body=%s", code, w.Body.String())
+		}
+		data := body["data"].(map[string]any)
+		list := data["list"].([]any)
+		if count := int(data["count"].(float64)); count != 1 {
+			t.Fatalf("传 user_id=%d 时应只查到一篇文章, got=%d", user.ID, count)
+		}
+		if len(list) != 1 {
+			t.Fatalf("按 user_id 查询时返回列表长度错误, got=%d", len(list))
+		}
+		item := list[0].(map[string]any)
+		if title := item["title"].(string); title != "a1" {
+			t.Fatalf("按 user_id 查询返回了错误文章, got=%s", title)
 		}
 	}
 }
