@@ -16,7 +16,6 @@ func (a *SitemsgApi) SitemsgListView(c *gin.Context) {
 	cr := middleware.GetBindQuery[SitemsgListRequest](c)
 
 	var typeList []message_enum.Type
-	// 1.评论和回复 2.点赞和收藏 3.系统通知
 	switch cr.T {
 	case 1:
 		typeList = append(typeList, message_enum.CommentArticleType, message_enum.CommentReplyType)
@@ -26,7 +25,7 @@ func (a *SitemsgApi) SitemsgListView(c *gin.Context) {
 		typeList = append(typeList, message_enum.SystemType)
 	}
 
-	claims := jwts.GetClaimsByGin(c)
+	claims := jwts.MustGetClaimsByGin(c)
 
 	list, count, err := common.ListQuery(models.ArticleMessageModel{
 		ReceiverID: claims.UserID,
