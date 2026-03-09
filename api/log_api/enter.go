@@ -87,7 +87,7 @@ func (l *LogApi) LogReadView(c *gin.Context) {
 }
 
 func (l *LogApi) LogRemoveView(c *gin.Context) {
-	cr := middleware.GetBindJson[models.RemoveRequest](c)
+	cr := middleware.GetBindJson[models.IDListRequest](c)
 
 	log := log_service.GetLog(c)
 	log.SetShowRequest()

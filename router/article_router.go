@@ -37,23 +37,23 @@ func ArticleRouter(r *gin.RouterGroup) {
 	group.GET("favorite/contents", mw.BindQuery[favorite.FavoriteArticlesRequest], app.FavoriteArticlesView)
 	authGroup.PUT("favorite", mw.BindJson[favorite.FavoriteRequest], app.FavoriteCreateUpdateView)
 	authGroup.DELETE("favorite/contents", mw.BindJson[favorite.FavoriteRemovePatchModel], app.FavoriteRemovePatchView)
-	authGroup.DELETE("favorite", mw.BindJson[models.RemoveRequest], app.FavoriteDeleteView)
+	authGroup.DELETE("favorite", mw.BindJson[models.IDListRequest], app.FavoriteDeleteView)
 	authGroup.POST("favorite", mw.BindJson[article_api.ArticleFavoriteRequest], app.ArticleFavoriteSaveView)
 
 	// 浏览历史
 	authGroup.GET("history", mw.BindQuery[view_history.ArticleViewHistoryRequest], app.ArticleViewHistoryView)
-	authGroup.DELETE("history", mw.BindJson[models.RemoveRequest], app.ArticleViewHistoryRemoveView)
+	authGroup.DELETE("history", mw.BindJson[models.IDListRequest], app.ArticleViewHistoryRemoveView)
 
 	// 分类
 	group.GET("category", mw.BindQuery[category.CategoryListRequest], app.CategoryListView)
 	authGroup.POST("category", mw.BindJson[category.CategoryRequest], app.CategoryCreateUpdateView)
-	authGroup.DELETE("category", mw.BindJson[models.RemoveRequest], app.CategoryDeleteView)
+	authGroup.DELETE("category", mw.BindJson[models.IDListRequest], app.CategoryDeleteView)
 	authGroup.GET("category/options", app.CategoryOptionsView)
 
 	// 标签
 	authGroup.GET("tags/options", app.ArticleTagOptionsView)
-	adminGroup.DELETE("", mw.BindJson[models.RemoveRequest], app.ArticleRemoveView)
+	adminGroup.DELETE("", mw.BindJson[models.IDListRequest], app.ArticleRemoveView)
 	adminGroup.GET("tags", mw.BindQuery[tags.TagListRequest], app.TagListView)
 	adminGroup.PUT("tags", mw.BindJson[tags.TagRequest], app.TagCreateUpdateView)
-	adminGroup.DELETE("tags", mw.BindJson[models.RemoveRequest], app.TagDeleteView)
+	adminGroup.DELETE("tags", mw.BindJson[models.IDListRequest], app.TagDeleteView)
 }

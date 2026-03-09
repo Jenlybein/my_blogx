@@ -12,7 +12,7 @@ import (
 )
 
 func (ViewHistoryApi) ArticleViewHistoryRemoveView(c *gin.Context) {
-	cr := middleware.GetBindJson[models.RemoveRequest](c)
+	cr := middleware.GetBindJson[models.IDListRequest](c)
 	claims := jwts.GetClaimsByGin(c)
 
 	var list []models.UserArticleViewHistoryModel

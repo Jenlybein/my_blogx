@@ -78,7 +78,7 @@ func TestBannerCreateListUpdateRemove(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.RemoveRequest{IDList: []uint{created.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []uint{created.ID}})
 		api.BannerRemoveView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("删除失败, code=%d body=%s", code, w.Body.String())

@@ -13,7 +13,7 @@ import (
 
 // 删除收藏夹
 func (FavoriteApi) FavoriteDeleteView(c *gin.Context) {
-	cr := middleware.GetBindJson[models.RemoveRequest](c)
+	cr := middleware.GetBindJson[models.IDListRequest](c)
 
 	if len(cr.IDList) == 0 {
 		res.FailWithMsg("请填入要删除的 id 列表", c)

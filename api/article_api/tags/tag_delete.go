@@ -11,7 +11,7 @@ import (
 )
 
 func (TagsApi) TagDeleteView(c *gin.Context) {
-	cr := middleware.GetBindJson[models.RemoveRequest](c)
+	cr := middleware.GetBindJson[models.IDListRequest](c)
 	if len(cr.IDList) == 0 {
 		res.FailWithMsg("请输入要删除的标签 id 列表", c)
 		return

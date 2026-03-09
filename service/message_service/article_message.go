@@ -141,20 +141,17 @@ func InsertArticleFavorMessage(content ArticleFavorMessage) {
 
 // 插入一条系统消息
 func InsertSystemMessage(content SystemMessage) {
-
-	msg := models.ArticleMessageModel{
-		Type:      message_enum.SystemType,
-		Content:   content.Content,
-		LinkTitle: content.LinkTitle,
-		LinkHerf:  content.LinkHerf,
+	if content.ReceiverID == 0 {
+		global.Logger.Errorf("创建系统消息失败: receiver_id 不能为空")
+		return
 	}
 
-	if content.ReceiverID != nil {
-		// 有具体接收者
-		msg.ReceiverID = *content.ReceiverID
-	} else {
-		// 全部用户
-		msg.ReceiverID = 0
+	msg := models.ArticleMessageModel{
+		Type:       message_enum.SystemType,
+		ReceiverID: content.ReceiverID,
+		Content:    content.Content,
+		LinkTitle:  content.LinkTitle,
+		LinkHerf:   content.LinkHerf,
 	}
 
 	if content.ActionUserID != nil {

@@ -19,7 +19,7 @@ type IDRequest struct {
 	ID uint `json:"id" form:"id" uri:"id"`
 }
 
-type RemoveRequest struct {
+type IDListRequest struct {
 	IDList []uint `json:"id_list" binding:"required"`
 }
 

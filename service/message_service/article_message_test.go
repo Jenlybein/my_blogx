@@ -247,10 +247,9 @@ func TestInsertSystemMessage(t *testing.T) {
 
 		actionUser := createMessageUser(t, "system_action", "SystemAlice", "/avatar/system-alice.png")
 		receiver := createMessageUser(t, "system_receiver", "Receiver", "/avatar/receiver.png")
-		receiverID := receiver.ID
 
 		message_service.InsertSystemMessage(message_service.SystemMessage{
-			ReceiverID:   &receiverID,
+			ReceiverID:   receiver.ID,
 			ActionUserID: &actionUser.ID,
 			Content:      "系统通知内容",
 			LinkTitle:    "查看详情",
@@ -287,10 +286,9 @@ func TestInsertSystemMessage(t *testing.T) {
 		setupMessageServiceEnv(t)
 
 		receiver := createMessageUser(t, "system_receiver_only", "Receiver", "/avatar/receiver.png")
-		receiverID := receiver.ID
 
 		message_service.InsertSystemMessage(message_service.SystemMessage{
-			ReceiverID: &receiverID,
+			ReceiverID: receiver.ID,
 			Content:    "纯系统消息",
 			LinkTitle:  "查看公告",
 			LinkHerf:   "/notice/1",
@@ -310,6 +308,20 @@ func TestInsertSystemMessage(t *testing.T) {
 		}
 		if got.Content != "纯系统消息" || got.LinkTitle != "查看公告" || got.LinkHerf != "/notice/1" {
 			t.Fatalf("纯系统消息字段错误: %+v", got)
+		}
+	})
+
+	t.Run("缺少具体接收者时不创建消息", func(t *testing.T) {
+		setupMessageServiceEnv(t)
+
+		message_service.InsertSystemMessage(message_service.SystemMessage{
+			ReceiverID: 0,
+			Content:    "无效系统消息",
+		})
+
+		list := loadArticleMessages(t)
+		if len(list) != 0 {
+			t.Fatalf("缺少接收者时不应创建消息: %+v", list)
 		}
 	})
 }

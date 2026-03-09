@@ -76,7 +76,7 @@ func TestLogListReadRemove(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.RemoveRequest{IDList: []uint{log.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []uint{log.ID}})
 		api.LogRemoveView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("日志删除失败, code=%d body=%s", code, w.Body.String())

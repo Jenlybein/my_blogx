@@ -11,7 +11,7 @@ import (
 )
 
 func (ArticleApi) ArticleRemoveView(c *gin.Context) {
-	cr := middleware.GetBindJson[models.RemoveRequest](c)
+	cr := middleware.GetBindJson[models.IDListRequest](c)
 
 	var list []models.ArticleModel
 	global.DB.Find(&list, "id in ?", cr.IDList)

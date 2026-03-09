@@ -22,5 +22,5 @@ func ImageRouter(r *gin.RouterGroup) {
 	authGroup.POST("transfer", mw.BindJson[image_api.TransferSaveRequest], app.TransferSaveView)
 
 	adminGroup.GET("", mw.BindQuery[common.PageInfo], app.ImageListView)
-	adminGroup.DELETE("", mw.BindJson[models.RemoveRequest], app.ImageRemoveView)
+	adminGroup.DELETE("", mw.BindJson[models.IDListRequest], app.ImageRemoveView)
 }

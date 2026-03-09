@@ -140,7 +140,7 @@ func TestTagCRUDAndOptions(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.RemoveRequest{IDList: []uint{tag.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []uint{tag.ID}})
 		api.TagDeleteView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("删除标签失败, body=%s", w.Body.String())

@@ -155,7 +155,7 @@ func TestFavoriteCRUD(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.RemoveRequest{IDList: []uint{}})
+		c.Set("requestJson", models.IDListRequest{IDList: []uint{}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/favorite", nil)
 		req.Header.Set("token", token)
 		c.Request = req
@@ -184,7 +184,7 @@ func TestFavoriteCRUD(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.RemoveRequest{IDList: []uint{fav.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []uint{fav.ID}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/favorite", nil)
 		req.Header.Set("token", token)
 		c.Request = req

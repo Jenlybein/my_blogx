@@ -131,7 +131,7 @@ func TestCategoryCRUD(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.RemoveRequest{IDList: []uint{}})
+		c.Set("requestJson", models.IDListRequest{IDList: []uint{}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/category", nil)
 		req.Header.Set("token", token)
 		c.Request = req
@@ -143,7 +143,7 @@ func TestCategoryCRUD(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.RemoveRequest{IDList: []uint{cat.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []uint{cat.ID}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/category", nil)
 		req.Header.Set("token", token)
 		c.Request = req

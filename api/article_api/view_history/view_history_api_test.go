@@ -114,7 +114,7 @@ func TestViewHistoryListAndDelete(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.RemoveRequest{IDList: []uint{article.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []uint{article.ID}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/history", nil)
 		req.Header.Set("token", token)
 		c.Request = req

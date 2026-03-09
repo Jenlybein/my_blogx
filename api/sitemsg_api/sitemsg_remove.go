@@ -49,7 +49,7 @@ func (a *SitemsgApi) SitemsgRemoveView(c *gin.Context) {
 	}
 
 	var msgList []models.ArticleMessageModel
-	if err := global.DB.Find(&msgList, "receiver_id = ? and type in ? and is_read = ?", claims.UserID, typeList, false).Error; err != nil {
+	if err := global.DB.Find(&msgList, "receiver_id = ? and type in ?", claims.UserID, typeList).Error; err != nil {
 		res.FailWithError(err, c)
 		return
 	}

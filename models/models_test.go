@@ -164,3 +164,47 @@ func TestArticleBeforeDeleteHook(t *testing.T) {
 		t.Fatalf("浏览记录未清理, cnt=%d", cnt)
 	}
 }
+
+func TestGlobalNotifBeforeDeleteHook(t *testing.T) {
+	db := testutil.SetupSQLite(
+		t,
+		&models.GlobalNotifModel{},
+		&models.UserGlobalNotifModel{},
+	)
+
+	notif := models.GlobalNotifModel{
+		Title:      "global-notif",
+		Content:    "content",
+		ExpireTime: time.Now().Add(24 * time.Hour),
+	}
+	if err := db.Create(&notif).Error; err != nil {
+		t.Fatalf("创建全局通知失败: %v", err)
+	}
+
+	now := time.Now()
+	relations := []models.UserGlobalNotifModel{
+		{MsgID: notif.ID, UserID: 1, IsRead: true, ReadAt: &now},
+		{
+			Model: models.Model{
+				DeletedAt: &now,
+			},
+			MsgID:  notif.ID,
+			UserID: 2,
+		},
+	}
+	if err := db.Create(&relations).Error; err != nil {
+		t.Fatalf("创建通知关系失败: %v", err)
+	}
+
+	if err := db.Delete(&notif).Error; err != nil {
+		t.Fatalf("删除全局通知失败: %v", err)
+	}
+
+	var cnt int64
+	if err := db.Model(&models.UserGlobalNotifModel{}).Where("msg_id = ?", notif.ID).Count(&cnt).Error; err != nil {
+		t.Fatalf("查询通知关系失败: %v", err)
+	}
+	if cnt != 0 {
+		t.Fatalf("通知关系未清理, cnt=%d", cnt)
+	}
+}

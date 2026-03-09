@@ -32,7 +32,7 @@ func (ArticleApi) ArticleExamineView(c *gin.Context) {
 	switch cr.Status {
 	case 3: // 审核成功
 		go message_service.InsertSystemMessage(message_service.SystemMessage{
-			ReceiverID:   &article.AuthorID,
+			ReceiverID:   article.AuthorID,
 			ActionUserID: &article.AuthorID,
 			Content:      fmt.Sprintf("您的文章《%s》审核通过!", article.Title),
 			LinkTitle:    article.Title,
@@ -40,7 +40,7 @@ func (ArticleApi) ArticleExamineView(c *gin.Context) {
 		})
 	case 4: // 审核失败
 		go message_service.InsertSystemMessage(message_service.SystemMessage{
-			ReceiverID:   &article.AuthorID,
+			ReceiverID:   article.AuthorID,
 			ActionUserID: &article.AuthorID,
 			Content:      fmt.Sprintf("您的文章《%s》审核失败，请修改后再提交!\n失败原因：%s", article.Title, ""),
 			LinkTitle:    article.Title,

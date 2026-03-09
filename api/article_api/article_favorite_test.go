@@ -109,7 +109,7 @@ func TestFavoriteCreateUpdateListDelete(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.RemoveRequest{IDList: []uint{}})
+		c.Set("requestJson", models.IDListRequest{IDList: []uint{}})
 		req := httptest.NewRequest(http.MethodDelete, "/favorites", nil)
 		token, _ := jwts.GetToken(jwts.Claims{UserID: user.ID, Role: enum.RoleUser, Username: user.Username})
 		req.Header.Set("token", token)
@@ -139,7 +139,7 @@ func TestFavoriteCreateUpdateListDelete(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.RemoveRequest{IDList: []uint{fav.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []uint{fav.ID}})
 		req := httptest.NewRequest(http.MethodDelete, "/favorites", nil)
 		token, _ := jwts.GetToken(jwts.Claims{UserID: user.ID, Role: enum.RoleUser, Username: user.Username})
 		req.Header.Set("token", token)

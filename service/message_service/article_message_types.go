@@ -50,7 +50,7 @@ type ArticleFavorMessage struct {
 }
 
 type SystemMessage struct {
-	ReceiverID   *uint
+	ReceiverID   uint
 	ActionUserID *uint
 
 	Content string

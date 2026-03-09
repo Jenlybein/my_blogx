@@ -16,5 +16,5 @@ func LogRouter(r *gin.RouterGroup) {
 	app := api.App.LogApi
 	Group.GET("", mw.BindQuery[log_api.LogListRequest], app.LogListView)
 	Group.GET(":id", mw.BindUri[models.IDRequest], app.LogReadView)
-	Group.DELETE("", mw.BindJson[models.RemoveRequest], app.LogRemoveView)
+	Group.DELETE("", mw.BindJson[models.IDListRequest], app.LogRemoveView)
 }

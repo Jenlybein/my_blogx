@@ -19,6 +19,8 @@ func TestRegisterAllRoutes(t *testing.T) {
 	router.CaptchaRouter(api)
 	router.UserRouter(api)
 	router.ArticleRouter(api)
+	router.SitemsgRouter(api)
+	router.GlobalNotifRouter(api)
 
 	routes := r.Routes()
 	if len(routes) == 0 {
@@ -39,6 +41,12 @@ func TestRegisterAllRoutes(t *testing.T) {
 		"GET /api/banners",
 		"POST /api/users/login",
 		"GET /api/articles",
+		"GET /api/sitemsg",
+		"GET /api/global_notif",
+		"POST /api/global_notif/read",
+		"DELETE /api/global_notif/user",
+		"POST /api/global_notif",
+		"DELETE /api/global_notif",
 	}
 	for _, e := range expect {
 		if !routeSet[e] {

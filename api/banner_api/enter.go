@@ -57,7 +57,7 @@ func (BannerApi) BannerListView(c *gin.Context) {
 }
 
 func (BannerApi) BannerRemoveView(c *gin.Context) {
-	cr := middleware.GetBindJson[models.RemoveRequest](c)
+	cr := middleware.GetBindJson[models.IDListRequest](c)
 
 	var list []models.BannerModel
 	if err := global.DB.Find(&list, "id IN ?", cr.IDList).Error; err != nil {
