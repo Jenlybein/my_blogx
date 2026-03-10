@@ -1,0 +1,448 @@
+package follow_api
+
+import (
+	"encoding/json"
+	"myblogx/common"
+	"myblogx/conf"
+	"myblogx/global"
+	"myblogx/models"
+	"myblogx/models/enum"
+	"myblogx/models/enum/relationship_enum"
+	"myblogx/test/testutil"
+	"myblogx/utils/jwts"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+type followResponse struct {
+	Code int             `json:"code"`
+	Data json.RawMessage `json:"data"`
+	Msg  string          `json:"msg"`
+}
+
+type followListPayload struct {
+	List  []FollowListResponse `json:"list"`
+	Count int                  `json:"count"`
+}
+
+type fansListPayload struct {
+	List  []FansListResponse `json:"list"`
+	Count int                `json:"count"`
+}
+
+func TestCalUserRelationship(t *testing.T) {
+	users := setupFollowEnv(t)
+
+	if got := CalUserRelationship(users.owner.ID, users.outsider.ID); got != relationship_enum.RelationStranger {
+		t.Fatalf("陌生人关系错误: %v", got)
+	}
+
+	createFollow(t, users.owner.ID, users.outsider.ID)
+	if got := CalUserRelationship(users.outsider.ID, users.owner.ID); got != relationship_enum.RelationFans {
+		t.Fatalf("被关注方向关系错误: %v", got)
+	}
+	if got := CalUserRelationship(users.owner.ID, users.outsider.ID); got != relationship_enum.RelationFollowed {
+		t.Fatalf("关注方向关系错误: %v", got)
+	}
+
+	createFollow(t, users.outsider.ID, users.owner.ID)
+	if got := CalUserRelationship(users.owner.ID, users.outsider.ID); got != relationship_enum.RelationFriend {
+		t.Fatalf("互关关系错误: %v", got)
+	}
+}
+
+func TestCalUserRelationshipBatch(t *testing.T) {
+	users := setupFollowEnv(t)
+
+	createFollow(t, users.owner.ID, users.fansA.ID)
+	createFollow(t, users.fansB.ID, users.owner.ID)
+	createFollow(t, users.owner.ID, users.followedA.ID)
+	createFollow(t, users.followedA.ID, users.owner.ID)
+
+	got := CalUserRelationshipBatch(users.owner.ID, []uint{
+		users.fansA.ID,
+		users.fansB.ID,
+		users.followedA.ID,
+		users.outsider.ID,
+	})
+
+	assertRelation(t, got, users.fansA.ID, relationship_enum.RelationFollowed)
+	assertRelation(t, got, users.fansB.ID, relationship_enum.RelationFans)
+	assertRelation(t, got, users.followedA.ID, relationship_enum.RelationFriend)
+	assertRelation(t, got, users.outsider.ID, relationship_enum.RelationStranger)
+
+	empty := CalUserRelationshipBatch(users.owner.ID, nil)
+	if len(empty) != 0 {
+		t.Fatalf("空列表应返回空 map: %+v", empty)
+	}
+}
+
+func TestFollowAndUnfollowUserView(t *testing.T) {
+	users := setupFollowEnv(t)
+	api := FollowApi{}
+
+	t.Run("不能关注自己", func(t *testing.T) {
+		c, w := newFollowCtx(t, http.MethodPost, users.owner, models.IDRequest{ID: users.owner.ID}, nil)
+		api.FollowUserView(c)
+		if readFollowCode(t, w) == 0 {
+			t.Fatalf("关注自己应失败, body=%s", w.Body.String())
+		}
+	})
+
+	t.Run("关注和取关流程", func(t *testing.T) {
+		c1, w1 := newFollowCtx(t, http.MethodPost, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
+		api.FollowUserView(c1)
+		if readFollowCode(t, w1) != 0 {
+			t.Fatalf("关注应成功, body=%s", w1.Body.String())
+		}
+		assertFollowCount(t, users.owner.ID, users.followedA.ID, 1)
+
+		c2, w2 := newFollowCtx(t, http.MethodPost, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
+		api.FollowUserView(c2)
+		if readFollowCode(t, w2) == 0 {
+			t.Fatalf("重复关注应失败, body=%s", w2.Body.String())
+		}
+
+		c3, w3 := newFollowCtx(t, http.MethodDelete, users.owner, models.IDRequest{ID: users.owner.ID}, nil)
+		api.UnfollowUserView(c3)
+		if readFollowCode(t, w3) == 0 {
+			t.Fatalf("取消关注自己应失败, body=%s", w3.Body.String())
+		}
+
+		c4, w4 := newFollowCtx(t, http.MethodDelete, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
+		api.UnfollowUserView(c4)
+		if readFollowCode(t, w4) != 0 {
+			t.Fatalf("取消关注应成功, body=%s", w4.Body.String())
+		}
+		assertFollowCount(t, users.owner.ID, users.followedA.ID, 0)
+
+		c5, w5 := newFollowCtx(t, http.MethodDelete, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
+		api.UnfollowUserView(c5)
+		if readFollowCode(t, w5) == 0 {
+			t.Fatalf("未关注时取消关注应失败, body=%s", w5.Body.String())
+		}
+	})
+}
+
+func TestFollowListView(t *testing.T) {
+	users := setupFollowEnv(t)
+	api := FollowApi{}
+
+	createFollowAt(t, users.owner.ID, users.followedA.ID, time.Now().Add(-2*time.Hour))
+	createFollowAt(t, users.owner.ID, users.followedB.ID, time.Now().Add(-1*time.Hour))
+
+	t.Run("查看自己的关注列表", func(t *testing.T) {
+		c, w := newFollowCtx(t, http.MethodGet, users.owner, models.IDRequest{}, FollowListRequest{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+		})
+		api.FollowListView(c)
+
+		body := readFollowList(t, w)
+		if body.Code != 0 {
+			t.Fatalf("查询关注列表应成功, body=%s", w.Body.String())
+		}
+		if body.Data.Count != 2 {
+			t.Fatalf("关注列表数量错误: %d", body.Data.Count)
+		}
+		if len(body.Data.List) != 2 {
+			t.Fatalf("关注列表长度错误: %d", len(body.Data.List))
+		}
+		if body.Data.List[0].FollowedUserID != users.followedA.ID {
+			t.Fatalf("关注列表首项异常: %+v", body.Data.List[0])
+		}
+		if body.Data.List[0].FollowTime.IsZero() {
+			t.Fatalf("关注时间不应为空")
+		}
+	})
+
+	t.Run("按关注对象过滤", func(t *testing.T) {
+		c, w := newFollowCtx(t, http.MethodGet, users.owner, models.IDRequest{}, FollowListRequest{
+			PageInfo:       common.PageInfo{Page: 1, Limit: 10},
+			FollowedUserID: users.followedB.ID,
+		})
+		api.FollowListView(c)
+
+		body := readFollowList(t, w)
+		if body.Code != 0 {
+			t.Fatalf("按关注对象过滤应成功, body=%s", w.Body.String())
+		}
+		if body.Data.Count != 1 || len(body.Data.List) != 1 {
+			t.Fatalf("过滤结果异常: %+v", body.Data)
+		}
+		if body.Data.List[0].FollowedUserID != users.followedB.ID {
+			t.Fatalf("过滤对象异常: %+v", body.Data.List[0])
+		}
+	})
+
+	t.Run("他人关注列表未公开", func(t *testing.T) {
+		setFollowVisibility(t, users.owner.ID, false)
+
+		c, w := newFollowCtx(t, http.MethodGet, users.outsider, models.IDRequest{}, FollowListRequest{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+			UserID:   users.owner.ID,
+		})
+		api.FollowListView(c)
+		if readFollowCode(t, w) == 0 {
+			t.Fatalf("未公开的关注列表应失败, body=%s", w.Body.String())
+		}
+	})
+}
+
+func TestFansListView(t *testing.T) {
+	users := setupFollowEnv(t)
+	api := FollowApi{}
+
+	createFollowAt(t, users.fansA.ID, users.owner.ID, time.Now().Add(-2*time.Hour))
+	createFollowAt(t, users.fansB.ID, users.owner.ID, time.Now().Add(-1*time.Hour))
+
+	t.Run("查看自己的粉丝列表", func(t *testing.T) {
+		c, w := newFollowCtx(t, http.MethodGet, users.owner, models.IDRequest{}, FansListRequest{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+		})
+		api.FansListView(c)
+
+		body := readFansList(t, w)
+		if body.Code != 0 {
+			t.Fatalf("查询粉丝列表应成功, body=%s", w.Body.String())
+		}
+		if body.Data.Count != 2 {
+			t.Fatalf("粉丝列表数量错误: %d", body.Data.Count)
+		}
+		if len(body.Data.List) != 2 {
+			t.Fatalf("粉丝列表长度错误: %d", len(body.Data.List))
+		}
+		if body.Data.List[0].FansUserID != users.fansA.ID {
+			t.Fatalf("粉丝列表首项异常: %+v", body.Data.List[0])
+		}
+		if body.Data.List[0].FollowTime.IsZero() {
+			t.Fatalf("关注时间不应为空")
+		}
+	})
+
+	t.Run("按粉丝过滤", func(t *testing.T) {
+		c, w := newFollowCtx(t, http.MethodGet, users.owner, models.IDRequest{}, FansListRequest{
+			PageInfo:   common.PageInfo{Page: 1, Limit: 10},
+			FansUserID: users.fansB.ID,
+		})
+		api.FansListView(c)
+
+		body := readFansList(t, w)
+		if body.Code != 0 {
+			t.Fatalf("按粉丝过滤应成功, body=%s", w.Body.String())
+		}
+		if body.Data.Count != 1 || len(body.Data.List) != 1 {
+			t.Fatalf("过滤结果异常: %+v", body.Data)
+		}
+		if body.Data.List[0].FansUserID != users.fansB.ID {
+			t.Fatalf("过滤对象异常: %+v", body.Data.List[0])
+		}
+	})
+
+	t.Run("他人粉丝列表未公开", func(t *testing.T) {
+		setFansVisibility(t, users.owner.ID, false)
+
+		c, w := newFollowCtx(t, http.MethodGet, users.outsider, models.IDRequest{}, FansListRequest{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+			UserID:   users.owner.ID,
+		})
+		api.FansListView(c)
+		if readFollowCode(t, w) == 0 {
+			t.Fatalf("未公开的粉丝列表应失败, body=%s", w.Body.String())
+		}
+	})
+}
+
+type followUsers struct {
+	owner     models.UserModel
+	outsider  models.UserModel
+	fansA     models.UserModel
+	fansB     models.UserModel
+	followedA models.UserModel
+	followedB models.UserModel
+}
+
+func setupFollowEnv(t *testing.T) followUsers {
+	t.Helper()
+	testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserFollowModel{})
+	global.Config = &conf.Config{
+		Jwt: conf.Jwt{
+			Expire: 24,
+			Secret: "follow-test-secret",
+			Issuer: "blogx-test",
+		},
+	}
+
+	return followUsers{
+		owner:     createUser(t, "owner"),
+		outsider:  createUser(t, "outsider"),
+		fansA:     createUser(t, "fans_a"),
+		fansB:     createUser(t, "fans_b"),
+		followedA: createUser(t, "followed_a"),
+		followedB: createUser(t, "followed_b"),
+	}
+}
+
+func createUser(t *testing.T, name string) models.UserModel {
+	t.Helper()
+	user := models.UserModel{
+		Username: name,
+		Nickname: name + "_nick",
+		Avatar:   name + ".png",
+		Abstract: name + "_abstract",
+	}
+	if err := global.DB.Create(&user).Error; err != nil {
+		t.Fatalf("创建用户失败 name=%s err=%v", name, err)
+	}
+	return user
+}
+
+func createFollow(t *testing.T, fansUserID, followedUserID uint) {
+	t.Helper()
+	createFollowAt(t, fansUserID, followedUserID, time.Now())
+}
+
+func createFollowAt(t *testing.T, fansUserID, followedUserID uint, createdAt time.Time) {
+	t.Helper()
+	row := models.UserFollowModel{
+		CreatedAt:      createdAt,
+		FansUserID:     fansUserID,
+		FollowedUserID: followedUserID,
+	}
+	if err := global.DB.Create(&row).Error; err != nil {
+		t.Fatalf("创建关注关系失败 fans=%d followed=%d err=%v", fansUserID, followedUserID, err)
+	}
+}
+
+func assertFollowCount(t *testing.T, fansUserID, followedUserID uint, expected int64) {
+	t.Helper()
+	var count int64
+	if err := global.DB.Model(&models.UserFollowModel{}).
+		Where("followed_user_id = ? and fans_user_id = ?", followedUserID, fansUserID).
+		Count(&count).Error; err != nil {
+		t.Fatalf("查询关注关系失败: %v", err)
+	}
+	if count != expected {
+		t.Fatalf("关注关系数量错误: got=%d want=%d", count, expected)
+	}
+}
+
+func setFollowVisibility(t *testing.T, userID uint, visible bool) {
+	t.Helper()
+	if err := global.DB.Model(&models.UserConfModel{}).
+		Where("user_id = ?", userID).
+		Update("follow_visibility", visible).Error; err != nil {
+		t.Fatalf("更新关注可见性失败: %v", err)
+	}
+}
+
+func setFansVisibility(t *testing.T, userID uint, visible bool) {
+	t.Helper()
+	if err := global.DB.Model(&models.UserConfModel{}).
+		Where("user_id = ?", userID).
+		Update("fans_visibility", visible).Error; err != nil {
+		t.Fatalf("更新粉丝可见性失败: %v", err)
+	}
+}
+
+func assertRelation(t *testing.T, got map[uint]relationship_enum.Relation, userID uint, expected relationship_enum.Relation) {
+	t.Helper()
+	if got[userID] != expected {
+		t.Fatalf("关系错误 user=%d got=%v want=%v", userID, got[userID], expected)
+	}
+}
+
+func newFollowCtx(t *testing.T, method string, user models.UserModel, uri models.IDRequest, query any) (*gin.Context, *httptest.ResponseRecorder) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	token, err := jwts.GetToken(jwts.Claims{
+		UserID:   user.ID,
+		Role:     enum.RoleUser,
+		Username: user.Username,
+	})
+	if err != nil {
+		t.Fatalf("生成 token 失败: %v", err)
+	}
+
+	req := httptest.NewRequest(method, "/follow", nil)
+	req.Header.Set("token", token)
+	c.Request = req
+
+	if uri.ID != 0 {
+		c.Set("requestUri", uri)
+	}
+	if query != nil {
+		c.Set("requestQuery", query)
+	}
+	return c, w
+}
+
+func readFollowCode(t *testing.T, w *httptest.ResponseRecorder) int {
+	t.Helper()
+	return readFollowResponse(t, w).Code
+}
+
+func readFollowList(t *testing.T, w *httptest.ResponseRecorder) struct {
+	Code int
+	Data followListPayload
+	Msg  string
+} {
+	t.Helper()
+	resp := readFollowResponse(t, w)
+	var payload followListPayload
+	if len(resp.Data) > 0 {
+		if err := json.Unmarshal(resp.Data, &payload); err != nil {
+			t.Fatalf("解析关注列表失败: %v body=%s", err, w.Body.String())
+		}
+	}
+	return struct {
+		Code int
+		Data followListPayload
+		Msg  string
+	}{
+		Code: resp.Code,
+		Data: payload,
+		Msg:  resp.Msg,
+	}
+}
+
+func readFansList(t *testing.T, w *httptest.ResponseRecorder) struct {
+	Code int
+	Data fansListPayload
+	Msg  string
+} {
+	t.Helper()
+	resp := readFollowResponse(t, w)
+	var payload fansListPayload
+	if len(resp.Data) > 0 {
+		if err := json.Unmarshal(resp.Data, &payload); err != nil {
+			t.Fatalf("解析粉丝列表失败: %v body=%s", err, w.Body.String())
+		}
+	}
+	return struct {
+		Code int
+		Data fansListPayload
+		Msg  string
+	}{
+		Code: resp.Code,
+		Data: payload,
+		Msg:  resp.Msg,
+	}
+}
+
+func readFollowResponse(t *testing.T, w *httptest.ResponseRecorder) followResponse {
+	t.Helper()
+
+	var response followResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatalf("解析响应失败: %v body=%s", err, w.Body.String())
+	}
+	return response
+}

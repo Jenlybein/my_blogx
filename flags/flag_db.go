@@ -29,6 +29,7 @@ func FlagDB(db *gorm.DB) {
 		&models.CommentDiggModel{},
 		&models.ArticleMessageModel{},
 		&models.UserGlobalNotifModel{},
+		&models.UserFollowModel{},
 	)
 	if err != nil {
 		global.Logger.Error("数据库迁移失败", err)
