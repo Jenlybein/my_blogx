@@ -6,11 +6,13 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/models/enum/global_notif_enum"
 	"myblogx/models/enum/message_enum"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -42,6 +44,8 @@ func setupSitemsgEnv(t *testing.T) *models.UserModel {
 		&models.UserModel{},
 		&models.UserConfModel{},
 		&models.ArticleMessageModel{},
+		&models.GlobalNotifModel{},
+		&models.UserGlobalNotifModel{},
 	)
 
 	user := &models.UserModel{
@@ -53,6 +57,87 @@ func setupSitemsgEnv(t *testing.T) *models.UserModel {
 		t.Fatalf("创建用户失败: %v", err)
 	}
 	return user
+}
+
+func TestSitemsgUserViewCountsUnreadGlobalNotif(t *testing.T) {
+	user := setupSitemsgEnv(t)
+	db := global.DB
+	api := sitemsg_api.SitemsgApi{}
+
+	registerAt := time.Now().Add(-24 * time.Hour).Round(time.Second)
+	if err := db.Model(user).Update("created_at", registerAt).Error; err != nil {
+		t.Fatalf("更新用户注册时间失败: %v", err)
+	}
+	if err := db.Take(user, user.ID).Error; err != nil {
+		t.Fatalf("回查用户失败: %v", err)
+	}
+
+	msgs := []models.ArticleMessageModel{
+		{ReceiverID: user.ID, Type: message_enum.CommentArticleType, Content: "comment-unread"},
+		{ReceiverID: user.ID, Type: message_enum.DiggArticleType, Content: "digg-unread"},
+		{ReceiverID: user.ID, Type: message_enum.SystemType, Content: "system-unread"},
+		{ReceiverID: user.ID, Type: message_enum.SystemType, Content: "system-read", IsRead: true},
+	}
+	if err := db.Create(&msgs).Error; err != nil {
+		t.Fatalf("创建站内消息失败: %v", err)
+	}
+
+	notifs := []models.GlobalNotifModel{
+		{
+			Title:           "global-unread",
+			Content:         "global-unread",
+			UserVisibleRule: global_notif_enum.UserVisibleAllUsers,
+			ExpireTime:      time.Now().Add(24 * time.Hour),
+		},
+		{
+			Title:           "global-read",
+			Content:         "global-read",
+			UserVisibleRule: global_notif_enum.UserVisibleAllUsers,
+			ExpireTime:      time.Now().Add(24 * time.Hour),
+		},
+		{
+			Title:           "global-deleted",
+			Content:         "global-deleted",
+			UserVisibleRule: global_notif_enum.UserVisibleAllUsers,
+			ExpireTime:      time.Now().Add(24 * time.Hour),
+		},
+	}
+	if err := db.Create(&notifs).Error; err != nil {
+		t.Fatalf("创建全局通知失败: %v", err)
+	}
+
+	now := time.Now()
+	userStates := []models.UserGlobalNotifModel{
+		{MsgID: notifs[1].ID, UserID: user.ID, IsRead: true, ReadAt: &now},
+		{
+			Model: models.Model{
+				DeletedAt: &now,
+			},
+			MsgID:  notifs[2].ID,
+			UserID: user.ID,
+		},
+	}
+	if err := db.Create(&userStates).Error; err != nil {
+		t.Fatalf("创建全局通知用户态失败: %v", err)
+	}
+
+	c, w := newSitemsgCtx()
+	setClaims(c, user)
+	api.SitemsgUserView(c)
+	if code := readSitemsgCode(t, w); code != 0 {
+		t.Fatalf("查询用户消息统计失败, body=%s", w.Body.String())
+	}
+
+	data := readSitemsgBody(t, w)["data"].(map[string]any)
+	if int(data["comment_msg_count"].(float64)) != 1 {
+		t.Fatalf("评论未读数异常, body=%s", w.Body.String())
+	}
+	if int(data["digg_favor_msg_count"].(float64)) != 1 {
+		t.Fatalf("点赞/收藏未读数异常, body=%s", w.Body.String())
+	}
+	if int(data["system_msg_count"].(float64)) != 2 {
+		t.Fatalf("系统消息未读数应包含1条站内系统消息和1条全局通知, body=%s", w.Body.String())
+	}
 }
 
 func setClaims(c *gin.Context, user *models.UserModel) {

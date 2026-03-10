@@ -23,34 +23,13 @@ func (GlobalNotifApi) GlobalNotifListView(c *gin.Context) {
 
 	switch cr.Type {
 	case 1: // 普通用户能看，且未被删除的通知
-		var user models.UserModel
-		if err := global.DB.Take(&user, claims.UserID).Error; err != nil {
+		state, err := LoadUserGlobalNotifState(claims.UserID, nil)
+		if err != nil {
 			res.FailWithMsg("用户不存在", c)
 			return
 		}
-
-		var ugnmList []models.UserGlobalNotifModel
-		// 如果模型里有 DeletedAt 字段，GORM 查询会自动加上“deleted_at IS NULL”
-		// 因此这里要用 Unscoped 将软删除的数据也查询出来
-		if err := global.DB.Unscoped().Find(&ugnmList, "user_id = ?", claims.UserID).Error; err != nil {
-			res.FailWithError(err, c)
-			return
-		}
-
-		// 过滤掉已经被删除的通知
-		var deletedMsgIDList []uint
-		for _, item := range ugnmList {
-			userNotifMap[item.MsgID] = item
-			if item.DeletedAt != nil {
-				deletedMsgIDList = append(deletedMsgIDList, item.MsgID)
-			}
-		}
-
-		if len(deletedMsgIDList) > 0 {
-			whereQuery = whereQuery.Where("id NOT IN ?", deletedMsgIDList)
-		}
-
-		whereQuery = whereQuery.Where(buildUserVisibleGlobalNotifQuery(user))
+		userNotifMap = state.UserNotifMap
+		whereQuery = BuildUserVisibleGlobalNotifListQuery(state)
 	case 2:
 		if !claims.IsAdmin() {
 			res.FailWithMsg("权限不足", c)

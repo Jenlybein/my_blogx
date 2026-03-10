@@ -22,14 +22,14 @@ func (GlobalNotifApi) GlobalNotifReadView(c *gin.Context) {
 		return
 	}
 
-	var user models.UserModel
-	if err := global.DB.Take(&user, claims.UserID).Error; err != nil {
+	state, err := LoadUserGlobalNotifState(claims.UserID, nil)
+	if err != nil {
 		res.FailWithMsg("用户不存在", c)
 		return
 	}
 
 	var notifList []models.GlobalNotifModel
-	if err := global.DB.Where("id IN ?", cr.IDList).Where(buildUserVisibleGlobalNotifQuery(user)).Find(&notifList).Error; err != nil {
+	if err := BuildUserVisibleGlobalNotifListQuery(state).Where("id IN ?", cr.IDList).Find(&notifList).Error; err != nil {
 		res.FailWithError(err, c)
 		return
 	}
@@ -38,27 +38,11 @@ func (GlobalNotifApi) GlobalNotifReadView(c *gin.Context) {
 		return
 	}
 
-	msgIDList := make([]uint, 0, len(notifList))
-	for _, item := range notifList {
-		msgIDList = append(msgIDList, item.ID)
-	}
-
-	var userNotifList []models.UserGlobalNotifModel
-	if err := global.DB.Unscoped().Find(&userNotifList, "user_id = ? and msg_id IN ?", claims.UserID, msgIDList).Error; err != nil && err != gorm.ErrRecordNotFound {
-		res.FailWithError(err, c)
-		return
-	}
-
-	userNotifMap := make(map[uint]models.UserGlobalNotifModel, len(userNotifList))
-	for _, item := range userNotifList {
-		userNotifMap[item.MsgID] = item
-	}
-
 	var successCount int
-	err := global.DB.Transaction(func(tx *gorm.DB) error {
+	err = global.DB.Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 		for _, notif := range notifList {
-			userNotif, ok := userNotifMap[notif.ID]
+			userNotif, ok := state.UserNotifMap[notif.ID]
 			if ok {
 				if userNotif.DeletedAt != nil || userNotif.IsRead {
 					continue

@@ -23,3 +23,12 @@ type SitemsgRemoveRequest struct {
 	ID uint `json:"id"`
 	T  int8 `json:"t" binding:"omitempty,oneof=1 2 3"` // 批量已读的类型
 }
+
+type SitemsgUserResponse struct {
+	CommentMsgCount   int `json:"comment_msg_count"`
+	DiggFavorMsgCount int `json:"digg_favor_msg_count"`
+	PrivateMsgCount   int `json:"private_msg_count"`
+	SystemMsgCount    int `json:"system_msg_count"`
+	
+}
+

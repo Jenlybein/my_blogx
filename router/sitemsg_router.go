@@ -20,4 +20,6 @@ func SitemsgRouter(r *gin.RouterGroup) {
 
 	authGroup.GET("conf", app.UserMsgConfView)
 	authGroup.PUT("conf", mw.BindJson[sitemsg_api.UserMsgConfResponseAndRequest], app.UserMsgConfUpdateView)
+
+	authGroup.GET("user", app.SitemsgUserView)
 }

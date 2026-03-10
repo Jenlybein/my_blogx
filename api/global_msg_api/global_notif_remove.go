@@ -44,14 +44,14 @@ func (GlobalNotifApi) GlobalNotifUserRemoveView(c *gin.Context) {
 	cr := middleware.GetBindJson[models.IDListRequest](c)
 	claims := jwts.MustGetClaimsByGin(c)
 
-	var user models.UserModel
-	if err := global.DB.Take(&user, claims.UserID).Error; err != nil {
+	state, err := LoadUserGlobalNotifState(claims.UserID, nil)
+	if err != nil {
 		res.FailWithMsg("用户不存在", c)
 		return
 	}
 
 	var notifList []models.GlobalNotifModel
-	if err := global.DB.Where("id IN ?", cr.IDList).Where(buildUserVisibleGlobalNotifQuery(user)).Find(&notifList).Error; err != nil {
+	if err := BuildUserVisibleGlobalNotifListQuery(state).Where("id IN ?", cr.IDList).Find(&notifList).Error; err != nil {
 		res.FailWithError(err, c)
 		return
 	}
@@ -63,31 +63,11 @@ func (GlobalNotifApi) GlobalNotifUserRemoveView(c *gin.Context) {
 		return
 	}
 
-	msgIDList := make([]uint, 0, len(notifList))
-	for _, item := range notifList {
-		msgIDList = append(msgIDList, item.ID)
-	}
-
-	var userNotifList []models.UserGlobalNotifModel
-	if err := global.DB.Unscoped().Find(&userNotifList, "user_id = ? and msg_id IN ?", claims.UserID, msgIDList).Error; err != nil {
-		res.FailWithError(err, c)
-		return
-	}
-
-	// user_global_notif 是“用户对全局通知的个人态”：
-	// 1. 没有记录：表示未读、未删除
-	// 2. 有记录且 DeletedAt 为空：表示用户侧仍可见，可能已读
-	// 3. 有记录且 DeletedAt 非空：表示用户已经删除过
-	userNotifMap := make(map[uint]models.UserGlobalNotifModel, len(userNotifList))
-	for _, item := range userNotifList {
-		userNotifMap[item.MsgID] = item
-	}
-
 	var successCount int
-	err := global.DB.Transaction(func(tx *gorm.DB) error {
+	err = global.DB.Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 		for _, notif := range notifList {
-			userNotif, ok := userNotifMap[notif.ID]
+			userNotif, ok := state.UserNotifMap[notif.ID]
 			if ok {
 				// 执行软删除
 				if userNotif.DeletedAt != nil {
