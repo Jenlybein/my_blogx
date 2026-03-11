@@ -44,7 +44,7 @@ func (GlobalNotifApi) GlobalNotifReadView(c *gin.Context) {
 		for _, notif := range notifList {
 			userNotif, ok := state.UserNotifMap[notif.ID]
 			if ok {
-				if userNotif.DeletedAt != nil || userNotif.IsRead {
+				if userNotif.DeletedAt.Valid || userNotif.IsRead {
 					continue
 				}
 				if err := tx.Model(&userNotif).Updates(map[string]any{

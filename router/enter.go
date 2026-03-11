@@ -26,6 +26,7 @@ func Run() {
 	UserRouter(nr)
 	ArticleRouter(nr)
 	CommentRouter(nr)
+	ChatRouter(nr)
 	SitemsgRouter(nr)
 	GlobalNotifRouter(nr)
 	FollowRouter(nr)

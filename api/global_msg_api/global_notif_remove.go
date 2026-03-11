@@ -70,10 +70,10 @@ func (GlobalNotifApi) GlobalNotifUserRemoveView(c *gin.Context) {
 			userNotif, ok := state.UserNotifMap[notif.ID]
 			if ok {
 				// 执行软删除
-				if userNotif.DeletedAt != nil {
+				if userNotif.DeletedAt.Valid {
 					continue
 				}
-				if err := tx.Model(&userNotif).Update("deleted_at", &now).Error; err != nil {
+				if err := tx.Model(&userNotif).Update("deleted_at", now).Error; err != nil {
 					return err
 				}
 				successCount++
@@ -85,7 +85,7 @@ func (GlobalNotifApi) GlobalNotifUserRemoveView(c *gin.Context) {
 			// 这样后续列表查询时，仍然能识别“这条通知用户已经删过”。
 			userNotif = models.UserGlobalNotifModel{
 				Model: models.Model{
-					DeletedAt: &now,
+					DeletedAt: gorm.DeletedAt{Time: now, Valid: true},
 				},
 				MsgID:  notif.ID,
 				UserID: claims.UserID,

@@ -156,7 +156,7 @@ func TestGlobalNotifRouterDeletePaths(t *testing.T) {
 	if err := db.Unscoped().Take(&userState, "user_id = ? and msg_id = ?", user.ID, userNotif.ID).Error; err != nil {
 		t.Fatalf("查询用户删除状态失败: %v", err)
 	}
-	if userState.DeletedAt == nil {
+	if !userState.DeletedAt.Valid {
 		t.Fatalf("用户删除通知后应存在软删除标记: %+v", userState)
 	}
 

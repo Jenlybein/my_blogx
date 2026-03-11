@@ -4,14 +4,16 @@ package models
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // 基础模型
 type Model struct {
-	ID        uint       `gorm:"primaryKey" json:"id"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `json:"deleted_at"`
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at"`
 }
 
 // ID请求参数

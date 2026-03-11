@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func newGlobalNotifCtx() (*gin.Context, *httptest.ResponseRecorder) {
@@ -166,7 +167,7 @@ func TestGlobalNotifListViewAndUserRemove(t *testing.T) {
 
 	deletedState := models.UserGlobalNotifModel{
 		Model: models.Model{
-			DeletedAt: func() *time.Time { t := time.Now(); return &t }(),
+			DeletedAt: gorm.DeletedAt{Time: time.Now(), Valid: true},
 		},
 		MsgID:  notifs[4].ID,
 		UserID: user.ID,
@@ -226,7 +227,7 @@ func TestGlobalNotifListViewAndUserRemove(t *testing.T) {
 	if err := db.Unscoped().Take(&removed, "user_id = ? and msg_id = ?", user.ID, notifs[1].ID).Error; err != nil {
 		t.Fatalf("查询用户删除状态失败: %v", err)
 	}
-	if removed.DeletedAt == nil {
+	if !removed.DeletedAt.Valid {
 		t.Fatalf("用户删除通知后应保留软删除标记: %+v", removed)
 	}
 }
@@ -264,7 +265,7 @@ func TestGlobalNotifReadView(t *testing.T) {
 
 	deletedState := models.UserGlobalNotifModel{
 		Model: models.Model{
-			DeletedAt: func() *time.Time { t := time.Now(); return &t }(),
+			DeletedAt: gorm.DeletedAt{Time: time.Now(), Valid: true},
 		},
 		MsgID:  notifs[1].ID,
 		UserID: user.ID,

@@ -56,7 +56,7 @@ func LoadUserGlobalNotifState(userID uint, msgIDList []uint) (state UserGlobalNo
 	state.DeletedMsgIDList = make([]uint, 0)
 	for _, item := range userNotifList {
 		state.UserNotifMap[item.MsgID] = item
-		if item.DeletedAt != nil {
+		if item.DeletedAt.Valid {
 			state.DeletedMsgIDList = append(state.DeletedMsgIDList, item.MsgID)
 		}
 	}

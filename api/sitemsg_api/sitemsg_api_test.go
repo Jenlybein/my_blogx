@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func newSitemsgCtx() (*gin.Context, *httptest.ResponseRecorder) {
@@ -111,7 +112,7 @@ func TestSitemsgUserViewCountsUnreadGlobalNotif(t *testing.T) {
 		{MsgID: notifs[1].ID, UserID: user.ID, IsRead: true, ReadAt: &now},
 		{
 			Model: models.Model{
-				DeletedAt: &now,
+				DeletedAt: gorm.DeletedAt{Time: now, Valid: true},
 			},
 			MsgID:  notifs[2].ID,
 			UserID: user.ID,

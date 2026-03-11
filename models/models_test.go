@@ -9,6 +9,8 @@ import (
 	"myblogx/test/testutil"
 	"testing"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 func TestListScanAndValue(t *testing.T) {
@@ -186,7 +188,7 @@ func TestGlobalNotifBeforeDeleteHook(t *testing.T) {
 		{MsgID: notif.ID, UserID: 1, IsRead: true, ReadAt: &now},
 		{
 			Model: models.Model{
-				DeletedAt: &now,
+				DeletedAt: gorm.DeletedAt{Time: now, Valid: true},
 			},
 			MsgID:  notif.ID,
 			UserID: 2,

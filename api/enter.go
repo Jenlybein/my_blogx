@@ -6,6 +6,7 @@ import (
 	"myblogx/api/article_api"
 	"myblogx/api/banner_api"
 	"myblogx/api/captcha_api"
+	"myblogx/api/chat_api"
 	"myblogx/api/comment_api"
 	"myblogx/api/follow_api"
 	global_notif_api "myblogx/api/global_msg_api"
@@ -25,6 +26,7 @@ type Api struct {
 	UserApi         user_api.UserApi
 	ArticleApi      article_api.ArticleApi
 	CommentApi      comment_api.CommentApi
+	ChatApi         chat_api.ChatApi
 	SitemsgApi      sitemsg_api.SitemsgApi
 	GlobalNotifApi  global_notif_api.GlobalNotifApi
 	FollowApi       follow_api.FollowApi
