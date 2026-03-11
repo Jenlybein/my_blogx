@@ -9,6 +9,8 @@ import (
 type ChatMsgListRequest struct {
 	common.PageInfo
 	SessionID string `form:"session_id" binding:"required"`
+	UserID    uint   `form:"user_id"`
+	Type      int8   `form:"type" binding:"required,oneof=1 2"`
 }
 
 type ChatMsgListResponse struct {
@@ -26,6 +28,8 @@ type ChatMsgListResponse struct {
 
 type ChatSessionListRequest struct {
 	common.PageInfo
+	UserID uint `form:"user_id"`
+	Type   int8 `form:"type" binding:"required,oneof=1 2"`
 }
 
 type ChatSessionListResponse struct {
@@ -38,4 +42,5 @@ type ChatSessionListResponse struct {
 	UnreadCount      int       `json:"unread_count"`
 	IsTop            bool      `json:"is_top"`
 	IsMute           bool      `json:"is_mute"`
+	DeletedAt        time.Time `json:"deleted_at,omitempty"`
 }

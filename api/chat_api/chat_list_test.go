@@ -16,6 +16,7 @@ import (
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type chatListTestResponse struct {
@@ -73,6 +74,7 @@ func TestChatSessionListView(t *testing.T) {
 
 	c, w := newChatListCtx(t, users.owner, ChatSessionListRequest{
 		PageInfo: common.PageInfo{Page: 1, Limit: 10},
+		Type:     1,
 	})
 	api.ChatSessionListView(c)
 
@@ -159,6 +161,7 @@ func TestChatMsgListView(t *testing.T) {
 	c, w := newChatMsgListCtx(t, users.owner, ChatMsgListRequest{
 		PageInfo:  common.PageInfo{Page: 1, Limit: 10},
 		SessionID: sessionID,
+		Type:      1,
 	})
 	api.ChatMsgListView(c)
 
@@ -183,6 +186,154 @@ func TestChatMsgListView(t *testing.T) {
 	}
 	if resp.Data.List[1].IsRead {
 		t.Fatalf("未读消息不应标记 IsRead=true: %+v", resp.Data.List[1])
+	}
+}
+
+func TestChatSessionListViewAdmin(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+
+	now := time.Date(2026, 3, 12, 10, 0, 0, 0, time.Local)
+	rows := []models.ChatSessionModel{
+		{
+			SessionID:      "chat:1:2",
+			UserID:         users.owner.ID,
+			ReceiverID:     users.friendA.ID,
+			LastMsgContent: "active",
+			LastMsgTime:    now,
+		},
+		{
+			SessionID:      "chat:1:3",
+			UserID:         users.owner.ID,
+			ReceiverID:     users.friendB.ID,
+			LastMsgContent: "deleted",
+			LastMsgTime:    now.Add(-time.Hour),
+		},
+	}
+	if err := global.DB.Create(&rows).Error; err != nil {
+		t.Fatalf("创建会话数据失败: %v", err)
+	}
+	if err := global.DB.Where("session_id = ? and user_id = ?", "chat:1:3", users.owner.ID).
+		Delete(&models.ChatSessionModel{}).Error; err != nil {
+		t.Fatalf("软删会话失败: %v", err)
+	}
+
+	c, w := newChatListCtxWithRole(t, users.owner, enum.RoleAdmin, ChatSessionListRequest{
+		PageInfo: common.PageInfo{Page: 1, Limit: 10},
+		UserID:   users.owner.ID,
+		Type:     2,
+	})
+	api.ChatSessionListView(c)
+
+	resp := readChatListResponse(t, w)
+	if resp.Code != 0 {
+		t.Fatalf("管理员 chat_list 应成功, body=%s", w.Body.String())
+	}
+	if resp.Data.Count != 2 || len(resp.Data.List) != 2 {
+		t.Fatalf("管理员会话数量错误: %+v", resp.Data)
+	}
+	if resp.Data.List[1].DeletedAt.IsZero() {
+		t.Fatalf("管理员应看到软删时间: %+v", resp.Data.List[1])
+	}
+}
+
+func TestChatSessionListViewAdminRequiresUserID(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+
+	c, w := newChatListCtxWithRole(t, users.owner, enum.RoleAdmin, ChatSessionListRequest{
+		PageInfo: common.PageInfo{Page: 1, Limit: 10},
+		Type:     2,
+	})
+	api.ChatSessionListView(c)
+
+	resp := readChatListResponse(t, w)
+	if resp.Code == 0 {
+		t.Fatalf("缺少 user_id 时应失败, body=%s", w.Body.String())
+	}
+}
+
+func TestChatMsgListViewAdmin(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+	sessionID := "chat:1:2"
+	sendTimeA := time.Date(2026, 3, 12, 8, 0, 0, 0, time.Local)
+	sendTimeB := time.Date(2026, 3, 12, 9, 0, 0, 0, time.Local)
+
+	sessions := []models.ChatSessionModel{
+		{SessionID: sessionID, UserID: users.owner.ID, ReceiverID: users.friendA.ID},
+		{SessionID: sessionID, UserID: users.friendA.ID, ReceiverID: users.owner.ID},
+	}
+	if err := global.DB.Create(&sessions).Error; err != nil {
+		t.Fatalf("创建会话失败: %v", err)
+	}
+	if err := global.DB.Where("session_id = ? and user_id = ?", sessionID, users.owner.ID).
+		Delete(&models.ChatSessionModel{}).Error; err != nil {
+		t.Fatalf("软删会话失败: %v", err)
+	}
+
+	msgs := []models.ChatMsgModel{
+		{
+			SessionID:  sessionID,
+			SenderID:   users.owner.ID,
+			ReceiverID: users.friendA.ID,
+			Content:    "old",
+			SendTime:   sendTimeA,
+			MsgType:    chat_msg_enum.MsgTypeText,
+			MsgStatus:  chat_msg_enum.MsgStatusSend,
+		},
+		{
+			Model:      models.Model{DeletedAt: gorm.DeletedAt{Time: sendTimeB.Add(time.Minute), Valid: true}},
+			SessionID:  sessionID,
+			SenderID:   users.friendA.ID,
+			ReceiverID: users.owner.ID,
+			Content:    "deleted",
+			SendTime:   sendTimeB,
+			MsgType:    chat_msg_enum.MsgTypeText,
+			MsgStatus:  chat_msg_enum.MsgStatusRead,
+		},
+	}
+	if err := global.DB.Create(&msgs).Error; err != nil {
+		t.Fatalf("创建消息失败: %v", err)
+	}
+
+	c, w := newChatMsgListCtxWithRole(t, users.owner, enum.RoleAdmin, ChatMsgListRequest{
+		PageInfo:  common.PageInfo{Page: 1, Limit: 10},
+		SessionID: sessionID,
+		UserID:    users.owner.ID,
+		Type:      2,
+	})
+	api.ChatMsgListView(c)
+
+	resp := readChatMsgListResponse(t, w)
+	if resp.Code != 0 {
+		t.Fatalf("管理员 chat_msg_list 应成功, body=%s", w.Body.String())
+	}
+	if resp.Data.Count != 2 || len(resp.Data.List) != 2 {
+		t.Fatalf("管理员消息数量错误: %+v", resp.Data)
+	}
+	if resp.Data.List[0].Content != "deleted" {
+		t.Fatalf("管理员应看到软删消息: %+v", resp.Data.List[0])
+	}
+	if resp.Data.List[1].IsSelf != true {
+		t.Fatalf("管理员查看时应按 user_id 计算 IsSelf: %+v", resp.Data.List[1])
+	}
+}
+
+func TestChatMsgListViewAdminRequiresUserID(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+
+	c, w := newChatMsgListCtxWithRole(t, users.owner, enum.RoleAdmin, ChatMsgListRequest{
+		PageInfo:  common.PageInfo{Page: 1, Limit: 10},
+		SessionID: "chat:1:2",
+		Type:      2,
+	})
+	api.ChatMsgListView(c)
+
+	resp := readChatMsgListResponse(t, w)
+	if resp.Code == 0 {
+		t.Fatalf("缺少 user_id 时应失败, body=%s", w.Body.String())
 	}
 }
 
@@ -220,6 +371,10 @@ func createChatUser(t *testing.T, username string) models.UserModel {
 }
 
 func newChatListCtx(t *testing.T, user models.UserModel, query ChatSessionListRequest) (*gin.Context, *httptest.ResponseRecorder) {
+	return newChatListCtxWithRole(t, user, enum.RoleUser, query)
+}
+
+func newChatListCtxWithRole(t *testing.T, user models.UserModel, role enum.RoleType, query ChatSessionListRequest) (*gin.Context, *httptest.ResponseRecorder) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
@@ -230,7 +385,7 @@ func newChatListCtx(t *testing.T, user models.UserModel, query ChatSessionListRe
 	c.Set("claims", &jwts.MyClaims{
 		Claims: jwts.Claims{
 			UserID:   user.ID,
-			Role:     enum.RoleUser,
+			Role:     role,
 			Username: user.Username,
 		},
 	})
@@ -238,6 +393,10 @@ func newChatListCtx(t *testing.T, user models.UserModel, query ChatSessionListRe
 }
 
 func newChatMsgListCtx(t *testing.T, user models.UserModel, query ChatMsgListRequest) (*gin.Context, *httptest.ResponseRecorder) {
+	return newChatMsgListCtxWithRole(t, user, enum.RoleUser, query)
+}
+
+func newChatMsgListCtxWithRole(t *testing.T, user models.UserModel, role enum.RoleType, query ChatMsgListRequest) (*gin.Context, *httptest.ResponseRecorder) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
@@ -248,7 +407,7 @@ func newChatMsgListCtx(t *testing.T, user models.UserModel, query ChatMsgListReq
 	c.Set("claims", &jwts.MyClaims{
 		Claims: jwts.Claims{
 			UserID:   user.ID,
-			Role:     enum.RoleUser,
+			Role:     role,
 			Username: user.Username,
 		},
 	})

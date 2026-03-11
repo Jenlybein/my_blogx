@@ -79,6 +79,7 @@ type Options struct {
 	Debug         bool
 	OrderMap      map[string]bool
 	DefaultOrder  string
+	Unscoped      bool
 }
 
 // IDPageOptions 用于“先分页取主键 ID，再回表查详情”的场景。
@@ -87,6 +88,7 @@ type IDPageOptions struct {
 	IDColumn     string
 	OrderMap     map[string]string
 	DefaultOrder string
+	Unscoped     bool
 }
 
 // ListQuery 适合简单列表查询：
@@ -169,6 +171,10 @@ func ResolveOrder(order string, orderMap map[string]string, defaultOrder string)
 //
 // 适合文章列表这类需要 join/filter 后，再回表查询完整详情的场景。
 func PageIDQuery(query *gorm.DB, option IDPageOptions) (ids []uint, count int, err error) {
+	if option.Unscoped {
+		query = query.Unscoped()
+	}
+
 	count, err = CountQuery(query)
 	if err != nil {
 		return
@@ -202,7 +208,13 @@ func PageIDQuery(query *gorm.DB, option IDPageOptions) (ids []uint, count int, e
 // buildListQuery 只负责拼接公共过滤条件，不执行查询。
 // Where 预期传入附加过滤条件，而不是完整查询链。
 func buildListQuery[T any](model T, option Options) *gorm.DB {
-	query := global.DB.Model(model).Where(model)
+	query := global.DB.Model(model)
+
+	if option.Unscoped {
+		query = query.Unscoped()
+	}
+
+	query = query.Where(model)
 
 	if option.Debug {
 		query = query.Debug()

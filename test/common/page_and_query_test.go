@@ -146,3 +146,86 @@ func TestListQueryCountError(t *testing.T) {
 		t.Fatal("count 阶段 SQL 错误应返回 error")
 	}
 }
+
+func TestListQueryUnscoped(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.BannerModel{})
+
+	item := models.BannerModel{Show: true, Cover: "deleted-cover", Href: "/deleted"}
+	if err := db.Create(&item).Error; err != nil {
+		t.Fatalf("创建数据失败: %v", err)
+	}
+	if err := db.Delete(&item).Error; err != nil {
+		t.Fatalf("软删除数据失败: %v", err)
+	}
+
+	list, count, err := common.ListQuery(
+		models.BannerModel{},
+		common.Options{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+		},
+	)
+	if err != nil {
+		t.Fatalf("默认 ListQuery 查询失败: %v", err)
+	}
+	if count != 0 || len(list) != 0 {
+		t.Fatalf("默认查询不应返回软删数据 count=%d len=%d", count, len(list))
+	}
+
+	list, count, err = common.ListQuery(
+		models.BannerModel{},
+		common.Options{
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+			Unscoped: true,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unscoped ListQuery 查询失败: %v", err)
+	}
+	if count != 1 || len(list) != 1 {
+		t.Fatalf("Unscoped 查询应返回软删数据 count=%d len=%d", count, len(list))
+	}
+	if !list[0].DeletedAt.Valid {
+		t.Fatalf("返回数据应保留软删标记: %+v", list[0])
+	}
+}
+
+func TestPageIDQueryUnscoped(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.BannerModel{})
+
+	item := models.BannerModel{Show: true, Cover: "deleted-cover", Href: "/deleted"}
+	if err := db.Create(&item).Error; err != nil {
+		t.Fatalf("创建数据失败: %v", err)
+	}
+	if err := db.Delete(&item).Error; err != nil {
+		t.Fatalf("软删除数据失败: %v", err)
+	}
+
+	ids, count, err := common.PageIDQuery(
+		db.Model(&models.BannerModel{}),
+		common.IDPageOptions{
+			PageInfo:     common.PageInfo{Page: 1, Limit: 10},
+			DefaultOrder: "id desc",
+		},
+	)
+	if err != nil {
+		t.Fatalf("默认 PageIDQuery 查询失败: %v", err)
+	}
+	if count != 0 || len(ids) != 0 {
+		t.Fatalf("默认 PageIDQuery 不应返回软删数据 count=%d len=%d", count, len(ids))
+	}
+
+	ids, count, err = common.PageIDQuery(
+		db.Model(&models.BannerModel{}),
+		common.IDPageOptions{
+			PageInfo:     common.PageInfo{Page: 1, Limit: 10},
+			DefaultOrder: "id desc",
+			Unscoped:     true,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unscoped PageIDQuery 查询失败: %v", err)
+	}
+	if count != 1 || len(ids) != 1 || ids[0] != item.ID {
+		t.Fatalf("Unscoped PageIDQuery 应返回软删数据 ids=%v count=%d", ids, count)
+	}
+}
