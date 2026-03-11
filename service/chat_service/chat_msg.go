@@ -69,7 +69,7 @@ type imageChatContent struct {
 func ToImageChat(req ToImageChatRequest) (*models.ChatMsgModel, error) {
 	req.ImageURL = strings.TrimSpace(req.ImageURL)
 	if req.ImageURL == "" {
-		return nil, ErrEmptyImageURL
+		return nil, errors.New("图片消息缺少图片地址")
 	}
 
 	// 图片消息统一序列化成 JSON，避免后续再去猜 Content 字段语义。
@@ -120,32 +120,17 @@ type markdownChatContent struct {
 
 // ToMarkdownChat 创建 Markdown 消息。
 func ToMarkdownChat(req ToMarkdownChatRequest) (*models.ChatMsgModel, error) {
-	markdown := strings.TrimSpace(req.Markdown)
-	if markdown == "" {
-		return nil, ErrEmptyMarkdownBody
+	text := strings.TrimSpace(req.Markdown)
+	if text == "" {
+		return nil, errors.New("消息内容不能为空")
 	}
 
-	summary := strings.TrimSpace(req.Summary)
-	if summary == "" {
-		summary = buildMarkdownSummary(markdown, defaultMarkdownDigest)
-	}
-
-	// Markdown 同时保存原文和摘要，兼顾详情展示与会话列表预览。
-	content, err := marshalChatContent(markdownChatContent{
-		Kind:     "markdown",
-		Title:    strings.TrimSpace(req.Title),
-		Markdown: markdown,
-		Summary:  summary,
-	})
-	if err != nil {
-		return nil, err
-	}
-
+	// TODO：Markdown处理
 	return ToChat(ToChatRequest{
 		SenderID:   req.SenderID,
 		ReceiverID: req.ReceiverID,
 		MsgType:    chat_msg_enum.MsgTypeMarkdown,
-		Content:    content,
+		Content:    text,
 		SendTime:   req.SendTime,
 	})
 }

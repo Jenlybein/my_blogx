@@ -13,12 +13,7 @@ import (
 type ChatService struct {
 }
 
-// ToChatRequest 是统一的消息创建入口。
-// 当前阶段先负责四件事：
-// 1. 基础校验
-// 2. 会话查找或创建
-// 3. 消息落库
-// 4. 同步更新双方会话的最后一条消息和未读数
+// ToChat 创建一条聊天消息
 type ToChatRequest struct {
 	SenderID   uint
 	ReceiverID uint
@@ -28,7 +23,6 @@ type ToChatRequest struct {
 	MsgStatus  chat_msg_enum.MsgStatus
 }
 
-// ToChat 创建一条聊天消息。
 func ToChat(req ToChatRequest) (*models.ChatMsgModel, error) {
 	// 基础校验
 	if err := validateChatBase(&req); err != nil {
@@ -65,7 +59,7 @@ func ToChat(req ToChatRequest) (*models.ChatMsgModel, error) {
 		lastMsgContent := buildSessionLastMsg(req.MsgType, req.Content)
 
 		// 同步更新双方会话的最后一条消息
-		if err := updateLastMsgSession(tx, sessionID, msg.ID, lastMsgContent, req.SendTime, req.ReceiverID); err != nil {
+		if err := updateLastMsgSession(tx, sessionID, msg.ID, lastMsgContent, req.SendTime, req.SenderID, req.ReceiverID); err != nil {
 			return err
 		}
 

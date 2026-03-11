@@ -11,9 +11,6 @@ import (
 )
 
 var (
-	ErrEmptyImageURL     = errors.New("图片消息缺少图片地址")
-	ErrEmptyMarkdownBody = errors.New("Markdown 内容不能为空")
-
 	defaultMarkdownDigest = 60
 )
 
@@ -77,11 +74,12 @@ func buildSessionLastMsg(msgType chat_msg_enum.MsgType, content string) string {
 	var abstract string
 	switch msgType {
 	case chat_msg_enum.MsgTypeText:
-		abstract = content
+		abstract = markdown.ExtractText(content, 20) + "..."
 	case chat_msg_enum.MsgTypeImage:
 		abstract = "[图片]"
 	case chat_msg_enum.MsgTypeMarkdown:
 		abstract = markdown.MdToText(content)
+		abstract = markdown.ExtractText(abstract, 20) + "..."
 	case chat_msg_enum.MsgTypeAudio:
 		abstract = "[语音]"
 	case chat_msg_enum.MsgTypeVideo:
@@ -94,5 +92,5 @@ func buildSessionLastMsg(msgType chat_msg_enum.MsgType, content string) string {
 		abstract = "[消息]"
 	}
 
-	return markdown.ExtractText(abstract, 20) + "..."
+	return abstract
 }
