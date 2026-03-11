@@ -109,6 +109,7 @@ func TestArticleBeforeDeleteHook(t *testing.T) {
 		&models.CommentModel{},
 		&models.ArticleDiggModel{},
 		&models.FavoriteModel{},
+		&models.UserArticleFavorModel{},
 		&models.UserTopArticleModel{},
 		&models.UserArticleViewHistoryModel{},
 	)
@@ -128,6 +129,11 @@ func TestArticleBeforeDeleteHook(t *testing.T) {
 	if err := db.Create(&favorite).Error; err != nil {
 		t.Fatalf("创建收藏夹失败: %v", err)
 	}
+	favorRelation := models.UserArticleFavorModel{
+		ArticleID: article.ID,
+		UserID:    author.ID,
+		FavorID:   favorite.ID,
+	}
 	top := models.UserTopArticleModel{UserID: author.ID, ArticleID: article.ID}
 	view := models.UserArticleViewHistoryModel{UserID: author.ID, ArticleID: article.ID}
 
@@ -136,6 +142,9 @@ func TestArticleBeforeDeleteHook(t *testing.T) {
 	}
 	if err := db.Create(&digg).Error; err != nil {
 		t.Fatalf("创建点赞失败: %v", err)
+	}
+	if err := db.Create(&favorRelation).Error; err != nil {
+		t.Fatalf("创建收藏关系失败: %v", err)
 	}
 	if err := db.Create(&top).Error; err != nil {
 		t.Fatalf("创建置顶失败: %v", err)
@@ -156,6 +165,10 @@ func TestArticleBeforeDeleteHook(t *testing.T) {
 	_ = db.Model(&models.ArticleDiggModel{}).Where("article_id = ?", article.ID).Count(&cnt).Error
 	if cnt != 0 {
 		t.Fatalf("点赞未清理, cnt=%d", cnt)
+	}
+	_ = db.Model(&models.UserArticleFavorModel{}).Where("article_id = ?", article.ID).Count(&cnt).Error
+	if cnt != 0 {
+		t.Fatalf("收藏关系未清理, cnt=%d", cnt)
 	}
 	_ = db.Model(&models.UserTopArticleModel{}).Where("article_id = ?", article.ID).Count(&cnt).Error
 	if cnt != 0 {

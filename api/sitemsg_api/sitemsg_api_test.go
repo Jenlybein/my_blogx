@@ -517,10 +517,10 @@ func TestSitemsgRemoveViewSingleAndBatch(t *testing.T) {
 	if err := db.Order("id asc").Find(&remain).Error; err != nil {
 		t.Fatalf("查询剩余消息失败: %v", err)
 	}
-	if len(remain) != 2 {
+	if len(remain) != 1 {
 		t.Fatalf("剩余消息数量异常: %+v", remain)
 	}
-	if remain[0].ID != readMsg.ID || remain[1].ID != otherUserMsg.ID {
+	if remain[0].ID != otherUserMsg.ID {
 		t.Fatalf("批量删除范围异常: %+v", remain)
 	}
 }

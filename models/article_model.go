@@ -54,22 +54,52 @@ func (ArticleModel) PipelineName() string {
 
 func (a *ArticleModel) BeforeDelete(tx *gorm.DB) (err error) {
 	var commentList []CommentModel
-	tx.Find(&commentList, "article_id = ?", a.ID).Delete(&commentList)
+	if err = tx.Where("article_id = ?", a.ID).Find(&commentList).Error; err != nil {
+		return err
+	}
+	if err = tx.Where("article_id = ?", a.ID).Delete(&CommentModel{}).Error; err != nil {
+		return err
+	}
 
 	var diggList []ArticleDiggModel
-	tx.Find(&diggList, "article_id = ?", a.ID).Delete(&diggList)
+	if err = tx.Where("article_id = ?", a.ID).Find(&diggList).Error; err != nil {
+		return err
+	}
+	if err = tx.Where("article_id = ?", a.ID).Delete(&ArticleDiggModel{}).Error; err != nil {
+		return err
+	}
 
 	var favoriteList []UserArticleFavorModel
-	tx.Find(&favoriteList, "article_id = ?", a.ID).Delete(&favoriteList)
+	if err = tx.Where("article_id = ?", a.ID).Find(&favoriteList).Error; err != nil {
+		return err
+	}
+	if err = tx.Where("article_id = ?", a.ID).Delete(&UserArticleFavorModel{}).Error; err != nil {
+		return err
+	}
 
 	var topList []UserTopArticleModel
-	tx.Find(&topList, "article_id = ?", a.ID).Delete(&topList)
+	if err = tx.Where("article_id = ?", a.ID).Find(&topList).Error; err != nil {
+		return err
+	}
+	if err = tx.Where("article_id = ?", a.ID).Delete(&UserTopArticleModel{}).Error; err != nil {
+		return err
+	}
 
 	var viewList []UserArticleViewHistoryModel
-	tx.Find(&viewList, "article_id = ?", a.ID).Delete(&viewList)
+	if err = tx.Where("article_id = ?", a.ID).Find(&viewList).Error; err != nil {
+		return err
+	}
+	if err = tx.Where("article_id = ?", a.ID).Delete(&UserArticleViewHistoryModel{}).Error; err != nil {
+		return err
+	}
 
 	var articleTagList []ArticleTagModel
-	tx.Find(&articleTagList, "article_id = ?", a.ID).Delete(&articleTagList)
+	if err = tx.Where("article_id = ?", a.ID).Find(&articleTagList).Error; err != nil {
+		return err
+	}
+	if err = tx.Where("article_id = ?", a.ID).Delete(&ArticleTagModel{}).Error; err != nil {
+		return err
+	}
 	if global.Redis != nil {
 		for _, relation := range articleTagList {
 			if cacheErr := redis_tag.SetCacheArticleCount(relation.TagID, -1); cacheErr != nil {
