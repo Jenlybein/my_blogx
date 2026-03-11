@@ -16,12 +16,12 @@ import (
 // 聊天会话
 type ChatSessionModel struct {
 	Model
-	SessionID      string    `json:"session_id"`
-	UserID         uint      `json:"user_id"`
-	ReceiverID     uint      `json:"receiver_id"`
+	SessionID      string    `gorm:"size:64;not null;index:idx_chat_session_id" json:"session_id"`
+	UserID         uint      `gorm:"not null;uniqueIndex:uk_chat_session_user_receiver,priority:1;index:idx_chat_session_user_time,priority:1" json:"user_id"`
+	ReceiverID     uint      `gorm:"not null;uniqueIndex:uk_chat_session_user_receiver,priority:2" json:"receiver_id"`
 	LastMsgID      uint      `json:"last_msg_id"`
 	LastMsgContent string    `json:"last_msg_content"`
-	LastMsgTime    time.Time `json:"last_msg_time"`
+	LastMsgTime    time.Time `gorm:"index:idx_chat_session_user_time,priority:2,sort:desc" json:"last_msg_time"`
 	UnreadCount    int       `json:"unread_count"`
 	UserModel      UserModel `gorm:"foreignKey:UserID;references:ID" json:"-"`
 	ReceiverModel  UserModel `gorm:"foreignKey:ReceiverID;references:ID" json:"-"`
@@ -32,13 +32,13 @@ type ChatSessionModel struct {
 // 聊天消息
 type ChatMsgModel struct {
 	Model
-	SenderID     uint                    `json:"sender_id"`
-	ReceiverID   uint                    `json:"receiver_id"`
-	SessionID    string                  `json:"session_id"`
-	Content      string                  `json:"content"`
-	SendTime     time.Time               `json:"send_time"`
-	ReadAt       *time.Time              `json:"read_at"`
-	MsgStatus    chat_msg_enum.MsgStatus `json:"msg_status"`
-	MsgType      chat_msg_enum.MsgType   `json:"msg_type"`
-	SessionModel ChatSessionModel        `gorm:"foreignKey:SessionID;references:ID" json:"-"`
+	SenderID    uint                    `json:"sender_id"`
+	ReceiverID  uint                    `json:"receiver_id"`
+	SessionID   string                  `gorm:"size:64;not null;index:idx_chat_msg_session_time,priority:1" json:"session_id"`
+	Content     string                  `json:"content"`
+	SendTime    time.Time               `gorm:"index:idx_chat_msg_session_time,priority:2,sort:desc" json:"send_time"`
+	ReadAt      *time.Time              `json:"read_at"`
+	MsgStatus   chat_msg_enum.MsgStatus `json:"msg_status"`
+	MsgType     chat_msg_enum.MsgType   `json:"msg_type"`
+	SessionList []ChatSessionModel      `gorm:"foreignKey:SessionID;references:SessionID" json:"-"`
 }

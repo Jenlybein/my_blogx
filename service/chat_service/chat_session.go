@@ -1,13 +1,13 @@
 package chat_service
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"myblogx/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // 为一对聊天用户生成稳定的逻辑会话标识。
@@ -20,32 +20,29 @@ func buildSessionID(a, b uint) string {
 
 // 检查聊天双方的会话记录，不存在则分别创建。
 func ensureChatSessions(tx *gorm.DB, req ToChatRequest, sessionID string) error {
-	if _, err := findOrCreateSession(tx, sessionID, req.SenderID, req.ReceiverID); err != nil {
+	if err := findOrCreateSession(tx, sessionID, req.SenderID, req.ReceiverID); err != nil {
 		return err
 	}
-	_, err := findOrCreateSession(tx, sessionID, req.ReceiverID, req.SenderID)
-	return err
+	return findOrCreateSession(tx, sessionID, req.ReceiverID, req.SenderID)
 }
 
-func findOrCreateSession(tx *gorm.DB, sessionID string, userID, receiverID uint) (models.ChatSessionModel, error) {
-	var session models.ChatSessionModel
-	err := tx.Take(&session, "session_id = ? and user_id = ? and receiver_id = ?", sessionID, userID, receiverID).Error
-	if err == nil {
-		return session, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return session, err
-	}
-
-	session = models.ChatSessionModel{
+// 使用唯一索引 + upsert，避免“先查后插”在并发下产生重复会话。
+func findOrCreateSession(tx *gorm.DB, sessionID string, userID, receiverID uint) error {
+	session := models.ChatSessionModel{
 		SessionID:  sessionID,
 		UserID:     userID,
 		ReceiverID: receiverID,
 	}
-	if err = tx.Create(&session).Error; err != nil {
-		return session, err
-	}
-	return session, nil
+
+	return tx.Clauses(clause.OnConflict{
+		Columns: []clause.Column{
+			{Name: "user_id"},
+			{Name: "receiver_id"},
+		},
+		DoUpdates: clause.Assignments(map[string]any{
+			"session_id": sessionID,
+		}),
+	}).Create(&session).Error
 }
 
 // updateLastMsgSession 更新双方会话的最后一条消息。
