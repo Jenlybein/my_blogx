@@ -40,7 +40,9 @@ func ensureChatSessions(tx *gorm.DB, req ToChatRequest, sessionID string) error 
 			{Name: "receiver_id"},
 		},
 		DoUpdates: clause.Assignments(map[string]any{
-			"session_id": sessionID,
+			"session_id":   sessionID,
+			"deleted_at":   nil,
+			"unread_count": gorm.Expr("CASE WHEN deleted_at IS NOT NULL THEN 0 ELSE unread_count END"),
 		}),
 	}).Create(&sessions).Error
 }

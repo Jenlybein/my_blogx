@@ -33,6 +33,14 @@ type ChatSessionListRequest struct {
 	Type   int8 `form:"type" binding:"required,oneof=1 2"`
 }
 
+type ChatSessionDeleteUserRequest struct {
+	SessionIDList []string `json:"session_id_list" binding:"required"`
+}
+
+type ChatMsgDeleteUserRequest struct {
+	MsgIDList []uint `json:"msg_id_list" binding:"required"`
+}
+
 type ChatSessionListResponse struct {
 	SessionID        string     `json:"session_id"`
 	ReceiverID       uint       `json:"receiver_id"`

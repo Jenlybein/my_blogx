@@ -8,6 +8,7 @@ import (
 	"myblogx/models"
 	"myblogx/models/enum/chat_msg_enum"
 	"myblogx/utils/jwts"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -92,7 +93,7 @@ func (a *ChatApi) ChatMsgListView(c *gin.Context) {
 	}
 
 	var session models.ChatSessionModel
-	sessionQuery := global.DB.Select("session_id")
+	sessionQuery := global.DB.Select("session_id", "clear_before_msg_id")
 	if allowUnscoped {
 		sessionQuery = sessionQuery.Unscoped()
 	}
@@ -108,7 +109,14 @@ func (a *ChatApi) ChatMsgListView(c *gin.Context) {
 		PageInfo:     cr.PageInfo,
 		DefaultOrder: "send_time desc, id desc",
 		Unscoped:     allowUnscoped,
+		Where:        buildChatMsgVisibleWhere(cr.UserID, cr.SessionID, session.ClearBeforeMsgID, allowUnscoped),
 	})
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
+
+	stateMap, err := loadChatMsgDeletedAtMap(cr.UserID, cr.SessionID, allowUnscoped, list)
 	if err != nil {
 		res.FailWithError(err, c)
 		return
@@ -128,11 +136,37 @@ func (a *ChatApi) ChatMsgListView(c *gin.Context) {
 			IsSelf:     item.SenderID == cr.UserID,
 			IsRead:     int8(item.MsgStatus) >= int8(chat_msg_enum.MsgStatusRead),
 		}
-		if allowUnscoped && item.DeletedAt.Valid {
-			data.DeletedAt = &item.DeletedAt.Time
+		if deletedAt, ok := stateMap[item.ID]; ok {
+			data.DeletedAt = &deletedAt
 		}
 		respList = append(respList, data)
 	}
 
 	res.OkWithList(respList, count, c)
+}
+
+func loadChatMsgDeletedAtMap(userID uint, sessionID string, allowUnscoped bool, msgList []models.ChatMsgModel) (map[uint]time.Time, error) {
+	if !allowUnscoped || len(msgList) == 0 {
+		return nil, nil
+	}
+
+	msgIDList := make([]uint, 0, len(msgList))
+	for _, item := range msgList {
+		msgIDList = append(msgIDList, item.ID)
+	}
+
+	var stateList []models.ChatMsgUserStateModel
+	err := global.DB.Unscoped().
+		Find(&stateList, "user_id = ? AND session_id = ? AND msg_id IN ? AND deleted_at IS NOT NULL", userID, sessionID, msgIDList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	stateMap := make(map[uint]time.Time, len(stateList))
+	for _, item := range stateList {
+		if item.DeletedAt.Valid {
+			stateMap[item.MsgID] = item.DeletedAt.Time
+		}
+	}
+	return stateMap, nil
 }

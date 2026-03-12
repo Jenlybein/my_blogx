@@ -35,6 +35,95 @@ type chatMsgListPayload struct {
 	Count int                   `json:"count"`
 }
 
+func TestChatSessionDeleteUserView(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+
+	msgs := []models.ChatMsgModel{
+		{SessionID: "chat:1:2", SenderID: users.owner.ID, ReceiverID: users.friendA.ID, Content: "a"},
+		{SessionID: "chat:1:2", SenderID: users.friendA.ID, ReceiverID: users.owner.ID, Content: "b"},
+		{SessionID: "chat:1:3", SenderID: users.owner.ID, ReceiverID: users.friendB.ID, Content: "c"},
+	}
+	if err := global.DB.Create(&msgs).Error; err != nil {
+		t.Fatalf("创建消息数据失败: %v", err)
+	}
+
+	rows := []models.ChatSessionModel{
+		{SessionID: "chat:1:2", UserID: users.owner.ID, ReceiverID: users.friendA.ID},
+		{SessionID: "chat:1:2", UserID: users.friendA.ID, ReceiverID: users.owner.ID},
+		{SessionID: "chat:1:3", UserID: users.owner.ID, ReceiverID: users.friendB.ID},
+		{SessionID: "chat:4:2", UserID: users.other.ID, ReceiverID: users.friendA.ID},
+	}
+	if err := global.DB.Create(&rows).Error; err != nil {
+		t.Fatalf("创建会话数据失败: %v", err)
+	}
+
+	c, w := newChatDeleteCtx(t, users.owner, ChatSessionDeleteUserRequest{
+		SessionIDList: []string{"chat:1:2", "chat:4:2", "not-exist"},
+	})
+	api.ChatSessionDeleteUserView(c)
+
+	resp := readChatListResponse(t, w)
+	if resp.Code != 0 {
+		t.Fatalf("删除会话应成功, body=%s", w.Body.String())
+	}
+
+	var ownerVisibleCount int64
+	if err := global.DB.Model(&models.ChatSessionModel{}).
+		Where("user_id = ?", users.owner.ID).
+		Count(&ownerVisibleCount).Error; err != nil {
+		t.Fatalf("统计用户可见会话失败: %v", err)
+	}
+	if ownerVisibleCount != 1 {
+		t.Fatalf("当前用户剩余可见会话数量错误: %d", ownerVisibleCount)
+	}
+
+	var ownerDeleted models.ChatSessionModel
+	if err := global.DB.Unscoped().
+		Take(&ownerDeleted, "user_id = ? and session_id = ?", users.owner.ID, "chat:1:2").Error; err != nil {
+		t.Fatalf("查询被删会话失败: %v", err)
+	}
+	if !ownerDeleted.DeletedAt.Valid {
+		t.Fatalf("当前用户会话应被软删: %+v", ownerDeleted)
+	}
+	if ownerDeleted.ClearBeforeMsgID != msgs[1].ID {
+		t.Fatalf("删除会话后应记录清空水位, got=%d", ownerDeleted.ClearBeforeMsgID)
+	}
+
+	var peerSession models.ChatSessionModel
+	if err := global.DB.Take(&peerSession, "user_id = ? and session_id = ?", users.friendA.ID, "chat:1:2").Error; err != nil {
+		t.Fatalf("对端会话不应被删除: %v", err)
+	}
+
+	var otherUserSession models.ChatSessionModel
+	if err := global.DB.Take(&otherUserSession, "user_id = ? and session_id = ?", users.other.ID, "chat:4:2").Error; err != nil {
+		t.Fatalf("他人会话不应被删除: %v", err)
+	}
+
+	var stateCount int64
+	if err := global.DB.Unscoped().Model(&models.ChatMsgUserStateModel{}).
+		Where("user_id = ? and session_id = ?", users.owner.ID, "chat:1:2").
+		Count(&stateCount).Error; err != nil {
+		t.Fatalf("统计消息用户态失败: %v", err)
+	}
+	if stateCount != 0 {
+		t.Fatalf("删除会话后不应批量写消息用户态, got=%d", stateCount)
+	}
+}
+
+func TestChatSessionDeleteUserViewRequiresList(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+
+	c, w := newChatDeleteCtx(t, users.owner, ChatSessionDeleteUserRequest{})
+	api.ChatSessionDeleteUserView(c)
+
+	resp := readChatListResponse(t, w)
+	if resp.Code == 0 {
+		t.Fatalf("空列表应失败, body=%s", w.Body.String())
+	}
+}
+
 func TestChatSessionListView(t *testing.T) {
 	api := ChatApi{}
 	users := setupChatListEnv(t)
@@ -195,6 +284,178 @@ func TestChatMsgListView(t *testing.T) {
 	}
 }
 
+func TestChatMsgListViewFiltersDeletedByUserState(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+	sessionID := "chat:1:2"
+	sendTimeA := time.Date(2026, 3, 12, 8, 0, 0, 0, time.Local)
+	sendTimeB := time.Date(2026, 3, 12, 9, 0, 0, 0, time.Local)
+
+	sessions := []models.ChatSessionModel{
+		{SessionID: sessionID, UserID: users.owner.ID, ReceiverID: users.friendA.ID},
+		{SessionID: sessionID, UserID: users.friendA.ID, ReceiverID: users.owner.ID},
+	}
+	if err := global.DB.Create(&sessions).Error; err != nil {
+		t.Fatalf("创建会话失败: %v", err)
+	}
+
+	msgs := []models.ChatMsgModel{
+		{
+			SessionID:  sessionID,
+			SenderID:   users.owner.ID,
+			ReceiverID: users.friendA.ID,
+			Content:    "old",
+			SendTime:   sendTimeA,
+			MsgType:    chat_msg_enum.MsgTypeText,
+			MsgStatus:  chat_msg_enum.MsgStatusSend,
+		},
+		{
+			SessionID:  sessionID,
+			SenderID:   users.friendA.ID,
+			ReceiverID: users.owner.ID,
+			Content:    "hidden",
+			SendTime:   sendTimeB,
+			MsgType:    chat_msg_enum.MsgTypeText,
+			MsgStatus:  chat_msg_enum.MsgStatusSend,
+		},
+	}
+	if err := global.DB.Create(&msgs).Error; err != nil {
+		t.Fatalf("创建消息失败: %v", err)
+	}
+	if err := global.DB.Create(&models.ChatMsgUserStateModel{
+		Model: models.Model{
+			DeletedAt: gorm.DeletedAt{Time: sendTimeB.Add(time.Minute), Valid: true},
+		},
+		MsgID:     msgs[1].ID,
+		UserID:    users.owner.ID,
+		SessionID: sessionID,
+	}).Error; err != nil {
+		t.Fatalf("创建消息用户态失败: %v", err)
+	}
+
+	c, w := newChatMsgListCtx(t, users.owner, ChatMsgListRequest{
+		PageInfo:  common.PageInfo{Page: 1, Limit: 10},
+		SessionID: sessionID,
+		Type:      1,
+	})
+	api.ChatMsgListView(c)
+
+	resp := readChatMsgListResponse(t, w)
+	if resp.Code != 0 {
+		t.Fatalf("chat_msg_list 应成功, body=%s", w.Body.String())
+	}
+	if resp.Data.Count != 1 || len(resp.Data.List) != 1 {
+		t.Fatalf("已删除消息应被过滤: %+v", resp.Data)
+	}
+	if resp.Data.List[0].Content != "old" {
+		t.Fatalf("剩余消息错误: %+v", resp.Data.List[0])
+	}
+}
+
+func TestChatMsgDeleteUserView(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+	sessionID := "chat:1:2"
+
+	msgs := []models.ChatMsgModel{
+		{SessionID: sessionID, SenderID: users.owner.ID, ReceiverID: users.friendA.ID, Content: "a"},
+		{SessionID: sessionID, SenderID: users.friendA.ID, ReceiverID: users.owner.ID, Content: "b"},
+		{SessionID: "chat:4:5", SenderID: users.other.ID, ReceiverID: users.friendB.ID, Content: "c"},
+	}
+	if err := global.DB.Create(&msgs).Error; err != nil {
+		t.Fatalf("创建消息失败: %v", err)
+	}
+
+	c, w := newChatMsgDeleteCtx(t, users.owner, ChatMsgDeleteUserRequest{
+		MsgIDList: []uint{msgs[0].ID, msgs[1].ID, msgs[2].ID, 99999},
+	})
+	api.ChatMsgDeleteUserView(c)
+
+	resp := readChatListResponse(t, w)
+	if resp.Code != 0 {
+		t.Fatalf("删除消息应成功, body=%s", w.Body.String())
+	}
+
+	var stateList []models.ChatMsgUserStateModel
+	if err := global.DB.Unscoped().Find(&stateList, "user_id = ? and deleted_at is not null", users.owner.ID).Error; err != nil {
+		t.Fatalf("查询消息用户态失败: %v", err)
+	}
+	if len(stateList) != 2 {
+		t.Fatalf("应只删除当前用户可见的 2 条消息, got=%d", len(stateList))
+	}
+}
+
+func TestChatMsgListViewFiltersByClearBeforeMsgID(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+	sessionID := "chat:1:2"
+	sendTimeA := time.Date(2026, 3, 12, 8, 0, 0, 0, time.Local)
+	sendTimeB := time.Date(2026, 3, 12, 9, 0, 0, 0, time.Local)
+
+	msgs := []models.ChatMsgModel{
+		{
+			SessionID:  sessionID,
+			SenderID:   users.owner.ID,
+			ReceiverID: users.friendA.ID,
+			Content:    "old",
+			SendTime:   sendTimeA,
+			MsgType:    chat_msg_enum.MsgTypeText,
+			MsgStatus:  chat_msg_enum.MsgStatusSend,
+		},
+		{
+			SessionID:  sessionID,
+			SenderID:   users.friendA.ID,
+			ReceiverID: users.owner.ID,
+			Content:    "new",
+			SendTime:   sendTimeB,
+			MsgType:    chat_msg_enum.MsgTypeText,
+			MsgStatus:  chat_msg_enum.MsgStatusSend,
+		},
+	}
+	if err := global.DB.Create(&msgs).Error; err != nil {
+		t.Fatalf("创建消息失败: %v", err)
+	}
+
+	sessions := []models.ChatSessionModel{
+		{SessionID: sessionID, UserID: users.owner.ID, ReceiverID: users.friendA.ID, ClearBeforeMsgID: msgs[0].ID},
+		{SessionID: sessionID, UserID: users.friendA.ID, ReceiverID: users.owner.ID},
+	}
+	if err := global.DB.Create(&sessions).Error; err != nil {
+		t.Fatalf("创建会话失败: %v", err)
+	}
+
+	c, w := newChatMsgListCtx(t, users.owner, ChatMsgListRequest{
+		PageInfo:  common.PageInfo{Page: 1, Limit: 10},
+		SessionID: sessionID,
+		Type:      1,
+	})
+	api.ChatMsgListView(c)
+
+	resp := readChatMsgListResponse(t, w)
+	if resp.Code != 0 {
+		t.Fatalf("chat_msg_list 应成功, body=%s", w.Body.String())
+	}
+	if resp.Data.Count != 1 || len(resp.Data.List) != 1 {
+		t.Fatalf("清空水位前的消息应被过滤: %+v", resp.Data)
+	}
+	if resp.Data.List[0].Content != "new" {
+		t.Fatalf("剩余消息错误: %+v", resp.Data.List[0])
+	}
+}
+
+func TestChatMsgDeleteUserViewRequiresList(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+
+	c, w := newChatMsgDeleteCtx(t, users.owner, ChatMsgDeleteUserRequest{})
+	api.ChatMsgDeleteUserView(c)
+
+	resp := readChatListResponse(t, w)
+	if resp.Code == 0 {
+		t.Fatalf("空消息列表应失败, body=%s", w.Body.String())
+	}
+}
+
 func TestChatSessionListViewAdmin(t *testing.T) {
 	api := ChatApi{}
 	users := setupChatListEnv(t)
@@ -289,7 +550,6 @@ func TestChatMsgListViewAdmin(t *testing.T) {
 			MsgStatus:  chat_msg_enum.MsgStatusSend,
 		},
 		{
-			Model:      models.Model{DeletedAt: gorm.DeletedAt{Time: sendTimeB.Add(time.Minute), Valid: true}},
 			SessionID:  sessionID,
 			SenderID:   users.friendA.ID,
 			ReceiverID: users.owner.ID,
@@ -301,6 +561,16 @@ func TestChatMsgListViewAdmin(t *testing.T) {
 	}
 	if err := global.DB.Create(&msgs).Error; err != nil {
 		t.Fatalf("创建消息失败: %v", err)
+	}
+	if err := global.DB.Create(&models.ChatMsgUserStateModel{
+		Model: models.Model{
+			DeletedAt: gorm.DeletedAt{Time: sendTimeB.Add(time.Minute), Valid: true},
+		},
+		MsgID:     msgs[1].ID,
+		UserID:    users.owner.ID,
+		SessionID: sessionID,
+	}).Error; err != nil {
+		t.Fatalf("创建消息用户态失败: %v", err)
 	}
 
 	c, w := newChatMsgListCtxWithRole(t, users.owner, enum.RoleAdmin, ChatMsgListRequest{
@@ -358,7 +628,7 @@ type chatUsers struct {
 
 func setupChatListEnv(t *testing.T) chatUsers {
 	t.Helper()
-	testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.ChatSessionModel{}, &models.ChatMsgModel{})
+	testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.ChatSessionModel{}, &models.ChatMsgModel{}, &models.ChatMsgUserStateModel{})
 
 	return chatUsers{
 		owner:   createChatUser(t, "chat_owner"),
@@ -410,6 +680,42 @@ func newChatListCtxWithRole(t *testing.T, user models.UserModel, role enum.RoleT
 
 func newChatMsgListCtx(t *testing.T, user models.UserModel, query ChatMsgListRequest) (*gin.Context, *httptest.ResponseRecorder) {
 	return newChatMsgListCtxWithRole(t, user, enum.RoleUser, query)
+}
+
+func newChatDeleteCtx(t *testing.T, user models.UserModel, body ChatSessionDeleteUserRequest) (*gin.Context, *httptest.ResponseRecorder) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodDelete, "/chat/sessions", nil)
+	c.Set("requestJson", body)
+	c.Set("claims", &jwts.MyClaims{
+		Claims: jwts.Claims{
+			UserID:   user.ID,
+			Role:     enum.RoleUser,
+			Username: user.Username,
+		},
+	})
+	return c, w
+}
+
+func newChatMsgDeleteCtx(t *testing.T, user models.UserModel, body ChatMsgDeleteUserRequest) (*gin.Context, *httptest.ResponseRecorder) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodDelete, "/chat/messages", nil)
+	c.Set("requestJson", body)
+	c.Set("claims", &jwts.MyClaims{
+		Claims: jwts.Claims{
+			UserID:   user.ID,
+			Role:     enum.RoleUser,
+			Username: user.Username,
+		},
+	})
+	return c, w
 }
 
 func newChatMsgListCtxWithRole(t *testing.T, user models.UserModel, role enum.RoleType, query ChatMsgListRequest) (*gin.Context, *httptest.ResponseRecorder) {

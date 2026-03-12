@@ -187,6 +187,49 @@ func TestToTextChatReusesSessions(t *testing.T) {
 	}
 }
 
+func TestToTextChatRestoresDeletedSession(t *testing.T) {
+	userA, userB := setupChatServiceTestDB(t)
+
+	_, err := ToTextChat(ToTextChatRequest{
+		SenderID:   userA.ID,
+		ReceiverID: userB.ID,
+		Text:       "first",
+		SendTime:   time.Date(2026, 3, 12, 10, 0, 0, 0, time.Local),
+	})
+	if err != nil {
+		t.Fatalf("第一次发送失败: %v", err)
+	}
+
+	var deletedSession models.ChatSessionModel
+	if err := global.DB.Take(&deletedSession, "user_id = ? and receiver_id = ?", userA.ID, userB.ID).Error; err != nil {
+		t.Fatalf("查询待删除会话失败: %v", err)
+	}
+	if err := global.DB.Delete(&deletedSession).Error; err != nil {
+		t.Fatalf("软删会话失败: %v", err)
+	}
+
+	_, err = ToTextChat(ToTextChatRequest{
+		SenderID:   userB.ID,
+		ReceiverID: userA.ID,
+		Text:       "second",
+		SendTime:   time.Date(2026, 3, 12, 11, 0, 0, 0, time.Local),
+	})
+	if err != nil {
+		t.Fatalf("第二次发送失败: %v", err)
+	}
+
+	var restoredSession models.ChatSessionModel
+	if err := global.DB.Take(&restoredSession, "user_id = ? and receiver_id = ?", userA.ID, userB.ID).Error; err != nil {
+		t.Fatalf("被删除的会话应被恢复: %v", err)
+	}
+	if restoredSession.DeletedAt.Valid {
+		t.Fatalf("会话恢复后不应仍为软删状态: %+v", restoredSession)
+	}
+	if restoredSession.UnreadCount != 1 {
+		t.Fatalf("恢复后的会话未读数应为 1, got=%d", restoredSession.UnreadCount)
+	}
+}
+
 func TestToImageChatStoresJSONAndUpdatesSession(t *testing.T) {
 	userA, userB := setupChatServiceTestDB(t)
 
