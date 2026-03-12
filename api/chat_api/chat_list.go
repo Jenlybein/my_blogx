@@ -61,7 +61,7 @@ func (a *ChatApi) ChatSessionListView(c *gin.Context) {
 		}
 
 		if cr.Type == 2 && item.DeletedAt.Valid {
-			data.DeletedAt = item.DeletedAt.Time
+			data.DeletedAt = &item.DeletedAt.Time
 		}
 
 		respList = append(respList, data)
@@ -116,7 +116,7 @@ func (a *ChatApi) ChatMsgListView(c *gin.Context) {
 
 	respList := make([]ChatMsgListResponse, 0, len(list))
 	for _, item := range list {
-		respList = append(respList, ChatMsgListResponse{
+		data := ChatMsgListResponse{
 			ID:         item.ID,
 			SenderID:   item.SenderID,
 			ReceiverID: item.ReceiverID,
@@ -127,7 +127,11 @@ func (a *ChatApi) ChatMsgListView(c *gin.Context) {
 			MsgType:    item.MsgType,
 			IsSelf:     item.SenderID == cr.UserID,
 			IsRead:     int8(item.MsgStatus) >= int8(chat_msg_enum.MsgStatusRead),
-		})
+		}
+		if allowUnscoped && item.DeletedAt.Valid {
+			data.DeletedAt = &item.DeletedAt.Time
+		}
+		respList = append(respList, data)
 	}
 
 	res.OkWithList(respList, count, c)

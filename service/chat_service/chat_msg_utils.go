@@ -74,12 +74,11 @@ func buildSessionLastMsg(msgType chat_msg_enum.MsgType, content string) string {
 	var abstract string
 	switch msgType {
 	case chat_msg_enum.MsgTypeText:
-		abstract = markdown.ExtractText(content, 20) + "..."
+		abstract = content
 	case chat_msg_enum.MsgTypeImage:
 		abstract = "[图片]"
 	case chat_msg_enum.MsgTypeMarkdown:
 		abstract = markdown.MdToText(content)
-		abstract = markdown.ExtractText(abstract, 20) + "..."
 	case chat_msg_enum.MsgTypeAudio:
 		abstract = "[语音]"
 	case chat_msg_enum.MsgTypeVideo:
@@ -90,6 +89,11 @@ func buildSessionLastMsg(msgType chat_msg_enum.MsgType, content string) string {
 		abstract = "[表情]"
 	default:
 		abstract = "[消息]"
+	}
+
+	// 控制字数在 20 字以内
+	if len(abstract) > 20 {
+		return string([]rune(abstract)[:20]) + "..."
 	}
 
 	return abstract

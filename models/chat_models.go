@@ -16,17 +16,17 @@ import (
 // 聊天会话
 type ChatSessionModel struct {
 	Model
-	SessionID      string    `gorm:"size:64;not null;index:idx_chat_session_id" json:"session_id"`
-	UserID         uint      `gorm:"not null;uniqueIndex:uk_chat_session_user_receiver,priority:1;index:idx_chat_session_user_time,priority:1" json:"user_id"`
-	ReceiverID     uint      `gorm:"not null;uniqueIndex:uk_chat_session_user_receiver,priority:2" json:"receiver_id"`
-	LastMsgID      uint      `json:"last_msg_id"`
-	LastMsgContent string    `json:"last_msg_content"`
-	LastMsgTime    time.Time `gorm:"index:idx_chat_session_user_time,priority:2,sort:desc" json:"last_msg_time"`
-	UnreadCount    int       `json:"unread_count"`
-	UserModel      UserModel `gorm:"foreignKey:UserID;references:ID" json:"-"`
-	ReceiverModel  UserModel `gorm:"foreignKey:ReceiverID;references:ID" json:"-"`
-	IsTop          bool      `json:"is_top"`  // 是否置顶
-	IsMute         bool      `json:"is_mute"` // 是否静音
+	SessionID      string     `gorm:"size:64;not null;index:idx_chat_session_id" json:"session_id"`
+	UserID         uint       `gorm:"not null;uniqueIndex:uk_chat_session_user_receiver,priority:1;index:idx_chat_session_user_time,priority:1" json:"user_id"`
+	ReceiverID     uint       `gorm:"not null;uniqueIndex:uk_chat_session_user_receiver,priority:2" json:"receiver_id"`
+	LastMsgID      uint       `json:"last_msg_id"`
+	LastMsgContent string     `json:"last_msg_content"`
+	LastMsgTime    *time.Time `gorm:"index:idx_chat_session_user_time,priority:2,sort:desc" json:"last_msg_time"`
+	UnreadCount    int        `json:"unread_count"`
+	UserModel      UserModel  `gorm:"foreignKey:UserID;references:ID" json:"-"`
+	ReceiverModel  UserModel  `gorm:"foreignKey:ReceiverID;references:ID" json:"-"`
+	IsTop          bool       `json:"is_top"`  // 是否置顶
+	IsMute         bool       `json:"is_mute"` // 是否静音
 }
 
 // 聊天消息

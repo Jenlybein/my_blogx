@@ -47,7 +47,7 @@ func TestChatSessionListView(t *testing.T) {
 			ReceiverID:     users.friendA.ID,
 			LastMsgID:      101,
 			LastMsgContent: "first",
-			LastMsgTime:    now.Add(-2 * time.Hour),
+			LastMsgTime:    timePtr(now.Add(-2 * time.Hour)),
 			UnreadCount:    3,
 		},
 		{
@@ -56,7 +56,7 @@ func TestChatSessionListView(t *testing.T) {
 			ReceiverID:     users.friendB.ID,
 			LastMsgID:      102,
 			LastMsgContent: "top",
-			LastMsgTime:    now.Add(-3 * time.Hour),
+			LastMsgTime:    timePtr(now.Add(-3 * time.Hour)),
 			IsTop:          true,
 		},
 		{
@@ -65,7 +65,7 @@ func TestChatSessionListView(t *testing.T) {
 			ReceiverID:     users.friendA.ID,
 			LastMsgID:      103,
 			LastMsgContent: "other",
-			LastMsgTime:    now,
+			LastMsgTime:    timePtr(now),
 		},
 	}
 	if err := global.DB.Create(&rows).Error; err != nil {
@@ -103,8 +103,11 @@ func TestChatSessionListView(t *testing.T) {
 		t.Fatalf("未读数错误: %+v", resp.Data.List[1])
 	}
 	expectTime := time.Date(2026, 3, 12, 7, 0, 0, 0, time.Local)
-	if !resp.Data.List[1].LastMsgTime.Equal(expectTime) {
+	if resp.Data.List[1].LastMsgTime == nil || !resp.Data.List[1].LastMsgTime.Equal(expectTime) {
 		t.Fatalf("时间错误: %v", resp.Data.List[1].LastMsgTime)
+	}
+	if resp.Data.List[0].DeletedAt != nil || resp.Data.List[1].DeletedAt != nil {
+		t.Fatalf("未删除会话不应返回 deleted_at: %+v", resp.Data.List)
 	}
 }
 
@@ -187,6 +190,9 @@ func TestChatMsgListView(t *testing.T) {
 	if resp.Data.List[1].IsRead {
 		t.Fatalf("未读消息不应标记 IsRead=true: %+v", resp.Data.List[1])
 	}
+	if resp.Data.List[0].DeletedAt != nil || resp.Data.List[1].DeletedAt != nil {
+		t.Fatalf("未删除消息不应返回 deleted_at: %+v", resp.Data.List)
+	}
 }
 
 func TestChatSessionListViewAdmin(t *testing.T) {
@@ -200,14 +206,14 @@ func TestChatSessionListViewAdmin(t *testing.T) {
 			UserID:         users.owner.ID,
 			ReceiverID:     users.friendA.ID,
 			LastMsgContent: "active",
-			LastMsgTime:    now,
+			LastMsgTime:    timePtr(now),
 		},
 		{
 			SessionID:      "chat:1:3",
 			UserID:         users.owner.ID,
 			ReceiverID:     users.friendB.ID,
 			LastMsgContent: "deleted",
-			LastMsgTime:    now.Add(-time.Hour),
+			LastMsgTime:    timePtr(now.Add(-time.Hour)),
 		},
 	}
 	if err := global.DB.Create(&rows).Error; err != nil {
@@ -232,7 +238,7 @@ func TestChatSessionListViewAdmin(t *testing.T) {
 	if resp.Data.Count != 2 || len(resp.Data.List) != 2 {
 		t.Fatalf("管理员会话数量错误: %+v", resp.Data)
 	}
-	if resp.Data.List[1].DeletedAt.IsZero() {
+	if resp.Data.List[1].DeletedAt == nil || resp.Data.List[1].DeletedAt.IsZero() {
 		t.Fatalf("管理员应看到软删时间: %+v", resp.Data.List[1])
 	}
 }
@@ -315,6 +321,12 @@ func TestChatMsgListViewAdmin(t *testing.T) {
 	if resp.Data.List[0].Content != "deleted" {
 		t.Fatalf("管理员应看到软删消息: %+v", resp.Data.List[0])
 	}
+	if resp.Data.List[0].DeletedAt == nil || resp.Data.List[0].DeletedAt.IsZero() {
+		t.Fatalf("管理员应看到消息软删时间: %+v", resp.Data.List[0])
+	}
+	if resp.Data.List[1].DeletedAt != nil {
+		t.Fatalf("未删除消息不应返回 deleted_at: %+v", resp.Data.List[1])
+	}
 	if resp.Data.List[1].IsSelf != true {
 		t.Fatalf("管理员查看时应按 user_id 计算 IsSelf: %+v", resp.Data.List[1])
 	}
@@ -368,6 +380,10 @@ func createChatUser(t *testing.T, username string) models.UserModel {
 		t.Fatalf("创建用户失败: %v", err)
 	}
 	return user
+}
+
+func timePtr(t time.Time) *time.Time {
+	return &t
 }
 
 func newChatListCtx(t *testing.T, user models.UserModel, query ChatSessionListRequest) (*gin.Context, *httptest.ResponseRecorder) {

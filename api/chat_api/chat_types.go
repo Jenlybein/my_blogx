@@ -24,6 +24,7 @@ type ChatMsgListResponse struct {
 	MsgType    chat_msg_enum.MsgType   `json:"msg_type"`
 	IsSelf     bool                    `json:"is_self"`
 	IsRead     bool                    `json:"is_read"`
+	DeletedAt  *time.Time              `json:"deleted_at,omitempty"`
 }
 
 type ChatSessionListRequest struct {
@@ -33,14 +34,14 @@ type ChatSessionListRequest struct {
 }
 
 type ChatSessionListResponse struct {
-	SessionID        string    `json:"session_id"`
-	ReceiverID       uint      `json:"receiver_id"`
-	ReceiverNickname string    `json:"receiver_nickname"`
-	ReceiverAvatar   string    `json:"receiver_avatar"`
-	LastMsgContent   string    `json:"last_msg_content"`
-	LastMsgTime      time.Time `json:"last_msg_time"`
-	UnreadCount      int       `json:"unread_count"`
-	IsTop            bool      `json:"is_top"`
-	IsMute           bool      `json:"is_mute"`
-	DeletedAt        time.Time `json:"deleted_at,omitempty"`
+	SessionID        string     `json:"session_id"`
+	ReceiverID       uint       `json:"receiver_id"`
+	ReceiverNickname string     `json:"receiver_nickname"`
+	ReceiverAvatar   string     `json:"receiver_avatar"`
+	LastMsgContent   string     `json:"last_msg_content"`
+	LastMsgTime      *time.Time `json:"last_msg_time"`
+	UnreadCount      int        `json:"unread_count"`
+	IsTop            bool       `json:"is_top"`
+	IsMute           bool       `json:"is_mute"`
+	DeletedAt        *time.Time `json:"deleted_at,omitempty"`
 }

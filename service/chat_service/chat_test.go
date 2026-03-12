@@ -134,10 +134,10 @@ func TestToTextChatCreatesMessageAndSessions(t *testing.T) {
 	if receiverSession.UnreadCount != 1 {
 		t.Fatalf("接收方未读数错误: %d", receiverSession.UnreadCount)
 	}
-	if senderSession.LastMsgContent != "hello..." {
+	if senderSession.LastMsgContent != "hello" {
 		t.Fatalf("发送方最后消息摘要错误: %s", senderSession.LastMsgContent)
 	}
-	if receiverSession.LastMsgContent != "hello..." {
+	if receiverSession.LastMsgContent != "hello" {
 		t.Fatalf("接收方最后消息摘要错误: %s", receiverSession.LastMsgContent)
 	}
 }
