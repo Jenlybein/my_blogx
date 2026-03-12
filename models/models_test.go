@@ -153,7 +153,7 @@ func TestArticleBeforeDeleteHook(t *testing.T) {
 		t.Fatalf("创建浏览记录失败: %v", err)
 	}
 
-	if err := db.Delete(&article).Error; err != nil {
+	if err := db.Unscoped().Delete(&article).Error; err != nil {
 		t.Fatalf("删除文章失败: %v", err)
 	}
 
@@ -211,7 +211,7 @@ func TestGlobalNotifBeforeDeleteHook(t *testing.T) {
 		t.Fatalf("创建通知关系失败: %v", err)
 	}
 
-	if err := db.Delete(&notif).Error; err != nil {
+	if err := db.Unscoped().Delete(&notif).Error; err != nil {
 		t.Fatalf("删除全局通知失败: %v", err)
 	}
 

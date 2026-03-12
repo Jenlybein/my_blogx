@@ -58,7 +58,7 @@ func (ImageApi) ImageRemoveView(c *gin.Context) {
 	var successCount, errCount int64
 	if len(list) > 0 {
 		// 删除数据库记录
-		successCount = global.DB.Delete(&list).RowsAffected
+		successCount = global.DB.Unscoped().Delete(&list).RowsAffected
 		errCount = int64(len(list)) - successCount
 	} else {
 		res.FailWithMsg("删除失败，图片不存在", c)

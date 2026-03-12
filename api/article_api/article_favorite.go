@@ -50,7 +50,7 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 			return err
 		}
 
-		if err = tx.Delete(&articleFavorite).Error; err != nil {
+		if err = tx.Unscoped().Delete(&articleFavorite).Error; err != nil {
 			return err
 		}
 

@@ -39,7 +39,7 @@ func (TagsApi) TagDeleteView(c *gin.Context) {
 		return
 	}
 
-	if err := global.DB.Delete(&list).Error; err != nil {
+	if err := global.DB.Unscoped().Delete(&list).Error; err != nil {
 		res.FailWithMsg("删除标签失败", c)
 		return
 	}

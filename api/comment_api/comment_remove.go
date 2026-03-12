@@ -66,7 +66,7 @@ func (CommentApi) CommentRemoveView(c *gin.Context) {
 			articleDelta--
 		}
 	}
-
+	// 软删除
 	if err := global.DB.Delete(&models.CommentModel{}, "id IN ?", deleteIDs).Error; err != nil {
 		res.FailWithMsg("删除评论失败", c)
 		return

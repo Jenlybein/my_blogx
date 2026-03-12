@@ -53,7 +53,7 @@ func (ArticleApi) ArticleDiggView(c *gin.Context) {
 		return
 	} else {
 		// 如果已点赞
-		if err := global.DB.Delete(&models.ArticleDiggModel{}, "article_id = ? and user_id = ?", id.ID, claims.UserID).Error; err != nil {
+		if err := global.DB.Unscoped().Delete(&models.ArticleDiggModel{}, "article_id = ? and user_id = ?", id.ID, claims.UserID).Error; err != nil {
 			res.FailWithMsg("取消点赞失败", c)
 			return
 		}

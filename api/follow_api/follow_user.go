@@ -61,7 +61,7 @@ func (FollowApi) UnfollowUserView(c *gin.Context) {
 		return
 	}
 
-	if err := global.DB.Delete(&follow).Error; err != nil {
+	if err := global.DB.Unscoped().Delete(&follow).Error; err != nil {
 		res.FailWithMsg("取消关注失败", c)
 		return
 	}

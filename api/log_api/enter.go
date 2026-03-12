@@ -97,7 +97,7 @@ func (l *LogApi) LogRemoveView(c *gin.Context) {
 	global.DB.Find(&logList, "id IN ?", cr.IDList)
 
 	if len(logList) > 0 {
-		global.DB.Delete(&logList)
+		global.DB.Unscoped().Delete(&logList)
 	}
 
 	msg := fmt.Sprintf("删除了 %d 条日志", len(logList))

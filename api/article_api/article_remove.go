@@ -20,7 +20,7 @@ func (ArticleApi) ArticleRemoveView(c *gin.Context) {
 		res.FailWithMsg("删除失败，文章不存在", c)
 		return
 	}
-	if err := global.DB.Delete(&list).Error; err != nil {
+	if err := global.DB.Unscoped().Delete(&list).Error; err != nil {
 		res.FailWithMsg("删除文章失败", c)
 		return
 	}

@@ -54,50 +54,50 @@ func (ArticleModel) PipelineName() string {
 
 func (a *ArticleModel) BeforeDelete(tx *gorm.DB) (err error) {
 	var commentList []CommentModel
-	if err = tx.Where("article_id = ?", a.ID).Find(&commentList).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Find(&commentList).Error; err != nil {
 		return err
 	}
-	if err = tx.Where("article_id = ?", a.ID).Delete(&CommentModel{}).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Delete(&CommentModel{}).Error; err != nil {
 		return err
 	}
 
 	var diggList []ArticleDiggModel
-	if err = tx.Where("article_id = ?", a.ID).Find(&diggList).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Find(&diggList).Error; err != nil {
 		return err
 	}
-	if err = tx.Where("article_id = ?", a.ID).Delete(&ArticleDiggModel{}).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Delete(&ArticleDiggModel{}).Error; err != nil {
 		return err
 	}
 
 	var favoriteList []UserArticleFavorModel
-	if err = tx.Where("article_id = ?", a.ID).Find(&favoriteList).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Find(&favoriteList).Error; err != nil {
 		return err
 	}
-	if err = tx.Where("article_id = ?", a.ID).Delete(&UserArticleFavorModel{}).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Delete(&UserArticleFavorModel{}).Error; err != nil {
 		return err
 	}
 
 	var topList []UserTopArticleModel
-	if err = tx.Where("article_id = ?", a.ID).Find(&topList).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Find(&topList).Error; err != nil {
 		return err
 	}
-	if err = tx.Where("article_id = ?", a.ID).Delete(&UserTopArticleModel{}).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Delete(&UserTopArticleModel{}).Error; err != nil {
 		return err
 	}
 
 	var viewList []UserArticleViewHistoryModel
-	if err = tx.Where("article_id = ?", a.ID).Find(&viewList).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Find(&viewList).Error; err != nil {
 		return err
 	}
-	if err = tx.Where("article_id = ?", a.ID).Delete(&UserArticleViewHistoryModel{}).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Delete(&UserArticleViewHistoryModel{}).Error; err != nil {
 		return err
 	}
 
 	var articleTagList []ArticleTagModel
-	if err = tx.Where("article_id = ?", a.ID).Find(&articleTagList).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Find(&articleTagList).Error; err != nil {
 		return err
 	}
-	if err = tx.Where("article_id = ?", a.ID).Delete(&ArticleTagModel{}).Error; err != nil {
+	if err = tx.Where("article_id = ?", a.ID).Unscoped().Delete(&ArticleTagModel{}).Error; err != nil {
 		return err
 	}
 	if global.Redis != nil {

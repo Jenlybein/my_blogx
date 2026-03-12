@@ -21,6 +21,7 @@ func (ArticleApi) ArticleRemoveUserView(c *gin.Context) {
 		return
 	}
 
+	// 软删除
 	if err := global.DB.Delete(&model).Error; err != nil {
 		res.FailWithMsg("删除文章失败", c)
 		return

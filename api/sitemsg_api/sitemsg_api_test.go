@@ -197,7 +197,7 @@ func TestUserMsgConfViewAndUpdateFailBranches(t *testing.T) {
 	user := setupSitemsgEnv(t)
 	api := sitemsg_api.SitemsgApi{}
 
-	if err := global.DB.Delete(&models.UserConfModel{}, "user_id = ?", user.ID).Error; err != nil {
+	if err := global.DB.Unscoped().Delete(&models.UserConfModel{}, "user_id = ?", user.ID).Error; err != nil {
 		t.Fatalf("删除用户配置失败: %v", err)
 	}
 

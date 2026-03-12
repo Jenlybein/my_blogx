@@ -28,7 +28,7 @@ func (f *FavoriteModel) BeforeDelete(tx *gorm.DB) (err error) {
 		return err
 	}
 
-	if err = tx.Delete(&favorList).Error; err != nil {
+	if err = tx.Unscoped().Delete(&favorList).Error; err != nil {
 		return err
 	}
 

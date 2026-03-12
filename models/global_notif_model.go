@@ -22,5 +22,5 @@ type GlobalNotifModel struct {
 }
 
 func (g *GlobalNotifModel) BeforeDelete(tx *gorm.DB) (err error) {
-	return tx.Where("msg_id = ?", g.ID).Delete(&UserGlobalNotifModel{}).Error
+	return tx.Where("msg_id = ?", g.ID).Unscoped().Delete(&UserGlobalNotifModel{}).Error
 }

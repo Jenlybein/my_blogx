@@ -55,7 +55,7 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 		return
 	}
 
-	if err := global.DB.Delete(&models.CommentDiggModel{}, "comment_id = ? and user_id = ?", id.ID, claims.UserID).Error; err != nil {
+	if err := global.DB.Unscoped().Delete(&models.CommentDiggModel{}, "comment_id = ? and user_id = ?", id.ID, claims.UserID).Error; err != nil {
 		res.FailWithMsg("取消点赞失败", c)
 		return
 	}
