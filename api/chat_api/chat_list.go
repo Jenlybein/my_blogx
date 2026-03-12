@@ -107,7 +107,7 @@ func (a *ChatApi) ChatMsgListView(c *gin.Context) {
 		SessionID: cr.SessionID,
 	}, common.Options{
 		PageInfo:     cr.PageInfo,
-		DefaultOrder: "send_time desc, id desc",
+		DefaultOrder: "send_time desc",
 		Unscoped:     allowUnscoped,
 		Where:        buildChatMsgVisibleWhere(cr.UserID, cr.SessionID, session.ClearBeforeMsgID, allowUnscoped),
 	})
