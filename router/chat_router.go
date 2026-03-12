@@ -16,5 +16,6 @@ func ChatRouter(r *gin.RouterGroup) {
 	authGroup.GET("sessions", mw.BindQuery[chat_api.ChatSessionListRequest], app.ChatSessionListView)
 	authGroup.DELETE("sessions", mw.BindJson[chat_api.ChatSessionDeleteUserRequest], app.ChatSessionDeleteUserView)
 	authGroup.GET("messages", mw.BindQuery[chat_api.ChatMsgListRequest], app.ChatMsgListView)
+	authGroup.POST("messages/read", mw.BindJson[chat_api.ChatMsgReadUserRequest], app.ChatMsgReadUserView)
 	authGroup.DELETE("messages", mw.BindJson[chat_api.ChatMsgDeleteUserRequest], app.ChatMsgDeleteUserView)
 }

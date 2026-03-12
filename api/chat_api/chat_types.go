@@ -41,6 +41,10 @@ type ChatMsgDeleteUserRequest struct {
 	MsgIDList []uint `json:"msg_id_list" binding:"required"`
 }
 
+type ChatMsgReadUserRequest struct {
+	MsgIDList []uint `json:"msg_id_list" binding:"required"`
+}
+
 type ChatSessionListResponse struct {
 	SessionID        string     `json:"session_id"`
 	ReceiverID       uint       `json:"receiver_id"`

@@ -385,6 +385,128 @@ func TestChatMsgDeleteUserView(t *testing.T) {
 	}
 }
 
+func TestChatMsgReadUserView(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+
+	sessions := []models.ChatSessionModel{
+		{SessionID: "chat:1:2", UserID: users.owner.ID, ReceiverID: users.friendA.ID, UnreadCount: 2},
+		{SessionID: "chat:1:3", UserID: users.owner.ID, ReceiverID: users.friendB.ID, UnreadCount: 1},
+	}
+	if err := global.DB.Create(&sessions).Error; err != nil {
+		t.Fatalf("创建会话失败: %v", err)
+	}
+
+	msgs := []models.ChatMsgModel{
+		{SessionID: "chat:1:2", SenderID: users.friendA.ID, ReceiverID: users.owner.ID, Content: "m1", MsgStatus: chat_msg_enum.MsgStatusSend},
+		{SessionID: "chat:1:2", SenderID: users.owner.ID, ReceiverID: users.friendA.ID, Content: "self", MsgStatus: chat_msg_enum.MsgStatusSend},
+		{SessionID: "chat:1:2", SenderID: users.friendA.ID, ReceiverID: users.owner.ID, Content: "m2", MsgStatus: chat_msg_enum.MsgStatusDelivered},
+		{SessionID: "chat:1:3", SenderID: users.friendB.ID, ReceiverID: users.owner.ID, Content: "m3", MsgStatus: chat_msg_enum.MsgStatusSend},
+		{SessionID: "chat:4:5", SenderID: users.other.ID, ReceiverID: users.friendB.ID, Content: "other", MsgStatus: chat_msg_enum.MsgStatusSend},
+	}
+	if err := global.DB.Create(&msgs).Error; err != nil {
+		t.Fatalf("创建消息失败: %v", err)
+	}
+
+	c, w := newChatMsgReadCtx(t, users.owner, ChatMsgReadUserRequest{
+		MsgIDList: []uint{msgs[0].ID, msgs[1].ID, msgs[3].ID, msgs[4].ID, 99999},
+	})
+	api.ChatMsgReadUserView(c)
+
+	resp := readChatListResponse(t, w)
+	if resp.Code != 0 {
+		t.Fatalf("批量已读应成功, body=%s", w.Body.String())
+	}
+
+	var readMsgs []models.ChatMsgModel
+	if err := global.DB.Find(&readMsgs, "id IN ?", []uint{msgs[0].ID, msgs[3].ID}).Error; err != nil {
+		t.Fatalf("查询已读消息失败: %v", err)
+	}
+	for _, item := range readMsgs {
+		if item.MsgStatus != chat_msg_enum.MsgStatusRead || item.ReadAt == nil {
+			t.Fatalf("目标消息应被标记已读: %+v", item)
+		}
+	}
+
+	var selfMsg models.ChatMsgModel
+	if err := global.DB.Take(&selfMsg, "id = ?", msgs[1].ID).Error; err != nil {
+		t.Fatalf("查询自己发送的消息失败: %v", err)
+	}
+	if selfMsg.MsgStatus != chat_msg_enum.MsgStatusSend || selfMsg.ReadAt != nil {
+		t.Fatalf("自己发送的消息不应被标记已读: %+v", selfMsg)
+	}
+
+	var sessionA models.ChatSessionModel
+	if err := global.DB.Take(&sessionA, "user_id = ? and session_id = ?", users.owner.ID, "chat:1:2").Error; err != nil {
+		t.Fatalf("查询会话A失败: %v", err)
+	}
+	if sessionA.UnreadCount != 1 {
+		t.Fatalf("会话A未读数应重算为 1, got=%d", sessionA.UnreadCount)
+	}
+
+	var sessionB models.ChatSessionModel
+	if err := global.DB.Take(&sessionB, "user_id = ? and session_id = ?", users.owner.ID, "chat:1:3").Error; err != nil {
+		t.Fatalf("查询会话B失败: %v", err)
+	}
+	if sessionB.UnreadCount != 0 {
+		t.Fatalf("会话B未读数应重算为 0, got=%d", sessionB.UnreadCount)
+	}
+}
+
+func TestChatMsgReadUserViewDecreasesUnreadCountByMatchedMessages(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+	sessionID := "chat:1:2"
+
+	msgs := []models.ChatMsgModel{
+		{SessionID: sessionID, SenderID: users.friendA.ID, ReceiverID: users.owner.ID, Content: "cleared", MsgStatus: chat_msg_enum.MsgStatusSend},
+		{SessionID: sessionID, SenderID: users.friendA.ID, ReceiverID: users.owner.ID, Content: "deleted", MsgStatus: chat_msg_enum.MsgStatusSend},
+		{SessionID: sessionID, SenderID: users.friendA.ID, ReceiverID: users.owner.ID, Content: "visible", MsgStatus: chat_msg_enum.MsgStatusSend},
+	}
+	if err := global.DB.Create(&msgs).Error; err != nil {
+		t.Fatalf("创建消息失败: %v", err)
+	}
+
+	session := models.ChatSessionModel{
+		SessionID:        sessionID,
+		UserID:           users.owner.ID,
+		ReceiverID:       users.friendA.ID,
+		ClearBeforeMsgID: msgs[0].ID,
+		UnreadCount:      3,
+	}
+	if err := global.DB.Create(&session).Error; err != nil {
+		t.Fatalf("创建会话失败: %v", err)
+	}
+	if err := global.DB.Create(&models.ChatMsgUserStateModel{
+		Model: models.Model{
+			DeletedAt: gorm.DeletedAt{Time: time.Now(), Valid: true},
+		},
+		MsgID:     msgs[1].ID,
+		UserID:    users.owner.ID,
+		SessionID: sessionID,
+	}).Error; err != nil {
+		t.Fatalf("创建消息用户态失败: %v", err)
+	}
+
+	c, w := newChatMsgReadCtx(t, users.owner, ChatMsgReadUserRequest{
+		MsgIDList: []uint{msgs[2].ID},
+	})
+	api.ChatMsgReadUserView(c)
+
+	resp := readChatListResponse(t, w)
+	if resp.Code != 0 {
+		t.Fatalf("批量已读应成功, body=%s", w.Body.String())
+	}
+
+	var updated models.ChatSessionModel
+	if err := global.DB.Take(&updated, "user_id = ? and session_id = ?", users.owner.ID, sessionID).Error; err != nil {
+		t.Fatalf("查询会话失败: %v", err)
+	}
+	if updated.UnreadCount != 2 {
+		t.Fatalf("未读数应只按本次命中消息递减, got=%d", updated.UnreadCount)
+	}
+}
+
 func TestChatMsgListViewFiltersByClearBeforeMsgID(t *testing.T) {
 	api := ChatApi{}
 	users := setupChatListEnv(t)
@@ -449,6 +571,19 @@ func TestChatMsgDeleteUserViewRequiresList(t *testing.T) {
 
 	c, w := newChatMsgDeleteCtx(t, users.owner, ChatMsgDeleteUserRequest{})
 	api.ChatMsgDeleteUserView(c)
+
+	resp := readChatListResponse(t, w)
+	if resp.Code == 0 {
+		t.Fatalf("空消息列表应失败, body=%s", w.Body.String())
+	}
+}
+
+func TestChatMsgReadUserViewRequiresList(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+
+	c, w := newChatMsgReadCtx(t, users.owner, ChatMsgReadUserRequest{})
+	api.ChatMsgReadUserView(c)
 
 	resp := readChatListResponse(t, w)
 	if resp.Code == 0 {
@@ -707,6 +842,24 @@ func newChatMsgDeleteCtx(t *testing.T, user models.UserModel, body ChatMsgDelete
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodDelete, "/chat/messages", nil)
+	c.Set("requestJson", body)
+	c.Set("claims", &jwts.MyClaims{
+		Claims: jwts.Claims{
+			UserID:   user.ID,
+			Role:     enum.RoleUser,
+			Username: user.Username,
+		},
+	})
+	return c, w
+}
+
+func newChatMsgReadCtx(t *testing.T, user models.UserModel, body ChatMsgReadUserRequest) (*gin.Context, *httptest.ResponseRecorder) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/chat/messages/read", nil)
 	c.Set("requestJson", body)
 	c.Set("claims", &jwts.MyClaims{
 		Claims: jwts.Claims{
