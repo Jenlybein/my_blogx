@@ -64,6 +64,12 @@ func (c *ChatConn) WriteControl(messageType int, data []byte, deadline time.Time
 	return c.Conn.WriteControl(messageType, data, deadline)
 }
 
+// 内部先设置超时，写一条消息。
+func (c *ChatConn) WriteMessageTimeout(msgType int, msgContent []byte, wait time.Duration) error {
+	_ = c.SetWriteDeadline(time.Now().Add(wait))
+	return c.WriteMessage(msgType, []byte(msgContent))
+}
+
 // 把结构体转成 JSON 后发出去
 func (c *ChatConn) WriteJSON(v any) error {
 	data, err := json.Marshal(v)
@@ -163,24 +169,23 @@ func (s *OnlineUserStore) Snapshot(userID uint) []*ChatConn {
 }
 
 // 给某个用户的所有在线连接发一条消息。
-func (s *OnlineUserStore) PushToUser(userID uint, messageType int, data []byte) (successCount, failedCount int) {
+func (s *OnlineUserStore) PushToUser(userID uint, messageType int, data []byte) (successCount int) {
 	for _, conn := range s.Snapshot(userID) {
 		_ = conn.SetWriteDeadline(time.Now().Add(chatPushWriteWait))
 		if err := conn.WriteMessage(messageType, data); err != nil {
 			s.Unregister(conn)
 			_ = conn.Close()
-			failedCount++
 			continue
 		}
 		successCount++
 	}
-	return successCount, failedCount
+	return successCount
 }
 
-func (s *OnlineUserStore) PushJSONToUser(userID uint, v any) (successCount, failedCount int) {
+func (s *OnlineUserStore) PushJSONToUser(userID uint, v any) (successCount int) {
 	data, err := json.Marshal(v)
 	if err != nil {
-		return 0, 0
+		return 0
 	}
 	return s.PushToUser(userID, websocket.TextMessage, data)
 }

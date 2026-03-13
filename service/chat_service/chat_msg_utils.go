@@ -21,9 +21,9 @@ func validateChatBase(req *ToChatRequest) error {
 		return errors.New("聊天双方不能为空")
 	}
 
-	if req.SenderID == req.ReceiverID {
-		return errors.New("不支持给自己发私信")
-	}
+	// if req.SenderID == req.ReceiverID {
+	// 	return errors.New("不支持给自己发私信")
+	// }
 
 	if strings.TrimSpace(req.Content) == "" {
 		return errors.New("消息内容不能为空")

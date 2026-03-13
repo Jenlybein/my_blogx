@@ -1,8 +1,10 @@
 package chat_api
 
 import (
-	"fmt"
+	"encoding/json"
+	"myblogx/common/res"
 	"myblogx/global"
+	"myblogx/models"
 	"myblogx/service/chat_service"
 	"myblogx/utils/jwts"
 	"net/http"
@@ -58,9 +60,9 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 	configureChatWSConn(conn)
 	global.Logger.Infof("聊天 ws 已连接 user_id=%d online_conn_count=%d", claims.UserID, store.Count(claims.UserID))
 
+	// 发送 ws ping 心跳
 	done := make(chan struct{})
 	defer close(done)
-
 	go func() {
 		if err := conn.RunPingLoop(done, chatWSPingPeriod, chatWSWriteWait); err != nil {
 			global.Logger.Warnf("聊天 ws ping 失败 user_id=%d err=%v", conn.UserID, err)
@@ -68,6 +70,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 	}()
 
 	for {
+		// 读取 ws 消息
 		msgType, msgContent, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
@@ -81,7 +84,71 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		if msgType != websocket.TextMessage && msgType != websocket.BinaryMessage {
 			continue
 		}
-		if err := writeChatWSEcho(conn, msgType, msgContent); err != nil {
+
+		// 消息格式校验
+		var req ChatRequest
+		if err := json.Unmarshal(msgContent, &req); err != nil {
+			if err := res.SendConnFailWithMsg("消息格式错误", conn, chatWSWriteWait); err != nil {
+				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				return
+			}
+		}
+
+		// 接收人不存在
+		var revUser models.UserModel
+		if err := global.DB.First(&revUser, req.ReceiverID).Error; err != nil {
+			if err := res.SendConnFailWithMsg("接收人不存在", conn, chatWSWriteWait); err != nil {
+				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				return
+			}
+			continue
+		}
+
+		// 落库（TODO:后续处理MsgType)
+		var msgModel *models.ChatMsgModel
+		if msgModel, err = chat_service.ToTextChat(chat_service.ToTextChatRequest{
+			SenderID:   claims.UserID,
+			ReceiverID: req.ReceiverID,
+			Text:       req.Content,
+		}); err != nil {
+			if err := res.SendConnFailWithMsg("消息发送失败", conn, chatWSWriteWait); err != nil {
+				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				return
+			}
+			global.Logger.Warnf("聊天消息落库失败 user_id=%d err=%v", claims.UserID, err)
+			continue
+		}
+
+		// 判断接收人在不在线
+		if !store.IsOnline(req.ReceiverID) {
+			if err := res.SendConnFailWithMsg("接收人不在线", conn, chatWSWriteWait); err != nil {
+				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				return
+			}
+			continue
+		}
+
+		// 在线则发送消息
+		item := ChatMsgResponse{
+			Content:    msgModel.Content,
+			MsgType:    msgModel.MsgType,
+			ID:         msgModel.ID,
+			SendTime:   msgModel.SendTime,
+			SenderID:   msgModel.SenderID,
+			ReceiverID: msgModel.ReceiverID,
+			SessionID:  msgModel.SessionID,
+			IsSelf:     msgModel.SenderID == claims.UserID,
+			IsRead:     false, // TODO：READ逻辑
+			MsgStatus:  msgModel.MsgStatus,
+		}
+		if successCount := res.SendWsMsg(item, store, req.ReceiverID); successCount == 0 {
+			if err := res.SendConnFailWithMsg("消息发送失败", conn, chatWSWriteWait); err != nil {
+				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				return
+			}
+		}
+		// Debug：给自己发一份
+		if err := res.SendConnOkWithData(item, conn, chatWSWriteWait); err != nil {
 			global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
 			return
 		}
@@ -95,11 +162,4 @@ func configureChatWSConn(conn *chat_service.ChatConn) {
 	conn.SetPongHandler(func(string) error {
 		return conn.SetReadDeadline(time.Now().Add(chatWSPongWait))
 	})
-}
-
-// writeChatWSEcho 发送一条 echo 消息。
-// ChatConn 内部已经封装了写锁，这里只负责设置超时和写业务消息。
-func writeChatWSEcho(conn *chat_service.ChatConn, msgType int, msgContent []byte) error {
-	_ = conn.SetWriteDeadline(time.Now().Add(chatWSWriteWait))
-	return conn.WriteMessage(msgType, []byte(fmt.Sprintf("你说的是：%s", string(msgContent))))
 }

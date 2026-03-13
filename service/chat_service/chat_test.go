@@ -67,9 +67,9 @@ func TestOnlineUserStorePushToUser(t *testing.T) {
 		t.Fatalf("关闭坏连接失败: %v", err)
 	}
 
-	successCount, failedCount := store.PushToUser(1, websocket.TextMessage, []byte("hello"))
-	if successCount != 1 || failedCount != 1 {
-		t.Fatalf("推送结果错误 success=%d failed=%d", successCount, failedCount)
+	successCount := store.PushToUser(1, websocket.TextMessage, []byte("hello"))
+	if successCount != 1 {
+		t.Fatalf("推送结果错误 success=%d", successCount)
 	}
 	if store.Count(1) != 1 {
 		t.Fatalf("坏连接应被移除, 当前数量=%d", store.Count(1))
