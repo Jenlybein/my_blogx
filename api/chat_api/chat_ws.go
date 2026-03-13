@@ -16,6 +16,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"gorm.io/gorm"
 )
 
 const (
@@ -41,14 +42,14 @@ var chatWSUpgrader = websocket.Upgrader{
 func (ChatApi) ChatWsView(c *gin.Context) {
 	claims := jwts.MustGetClaimsByGin(c)
 
-	// 升级 ws 连接
+	// 升级成 ws 连接
 	rawConn, err := chatWSUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		global.Logger.Errorf("升级聊天 ws 连接失败 user_id=%d err=%v", claims.UserID, err)
 		return
 	}
 
-	// 将聊天 ws 连接注册到在线用户中
+	// 注册聊天 ws 连接
 	conn := chat_service.NewChatConn(claims.UserID, rawConn)
 	store := chat_service.GetOnlineUserStore()
 	store.Register(conn)
@@ -60,11 +61,11 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		global.Logger.Infof("聊天 ws 已清理 user_id=%d online_conn_count=%d", claims.UserID, store.Count(claims.UserID))
 	}()
 
-	// 配置 ws 连接
+	// 配置聊天 ws 连接
 	configureChatWSConn(conn)
 	global.Logger.Infof("聊天 ws 已连接 user_id=%d online_conn_count=%d", claims.UserID, store.Count(claims.UserID))
 
-	// 发送 ws ping 心跳
+	// 心跳检测
 	done := make(chan struct{})
 	defer close(done)
 	go func() {
@@ -74,7 +75,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 	}()
 
 	for {
-		// 读取 ws 消息
+		// 读取消息
 		msgType, msgContent, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
@@ -89,7 +90,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 			continue
 		}
 
-		// 消息格式校验
+		// 解析消息
 		var req ChatRequest
 		if err := json.Unmarshal(msgContent, &req); err != nil {
 			if err := res.SendConnFailWithMsg("消息格式错误", conn, chatWSWriteWait); err != nil {
@@ -99,9 +100,9 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 			continue
 		}
 
-		// 接收人不存在
+		// 检测接收人
 		var revUser models.UserModel
-		if err := global.DB.First(&revUser, req.ReceiverID).Error; err != nil {
+		if err := global.DB.Preload("UserConfModel").First(&revUser, req.ReceiverID).Error; err != nil {
 			if err := res.SendConnFailWithMsg("接收人不存在", conn, chatWSWriteWait); err != nil {
 				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
 				return
@@ -109,20 +110,16 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 			continue
 		}
 
-		// 判断好友关系
-		// 陌生人：如果用户设置接收陌生人消息才允许发送
-		// 好友：好友之间可以互发消息
-		// 粉丝：若关注者未回复，粉丝每周可以向关注者发送4条消息
-		// 关注者：若粉丝未回复，关注者每周可以向粉丝发送4条消息
-		relation := follow_service.CalUserRelationship(claims.UserID, req.ReceiverID)
-		switch relation {
-		case relationship_enum.RelationStranger:
-		case relationship_enum.RelationFriend:
-		case relationship_enum.RelationFans:
-		case relationship_enum.RelationFollowed:
+		// 检测发送权限
+		if err := validateChatSendPermission(claims.UserID, &revUser); err != nil {
+			if err := res.SendConnFailWithMsg(err.Error(), conn, chatWSWriteWait); err != nil {
+				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				return
+			}
+			continue
 		}
 
-		// 落库，根据消息类型处理MsgType
+		// 处理消息进入数据库
 		var msgModel *models.ChatMsgModel
 		var msgErr error
 		switch req.MsgType {
@@ -152,11 +149,11 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
 				return
 			}
-			global.Logger.Warnf("聊天消息落库失败 user_id=%d err=%v", claims.UserID, err)
+			global.Logger.Warnf("聊天消息落库失败 user_id=%d err=%v", claims.UserID, msgErr)
 			continue
 		}
 
-		// 判断接收人在不在线
+		// 检测接收人是否在线
 		if !store.IsOnline(req.ReceiverID) {
 			if err := res.SendConnFailWithMsg("接收人不在线", conn, chatWSWriteWait); err != nil {
 				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
@@ -165,7 +162,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 			continue
 		}
 
-		// 在线则发送消息
+		// 发送消息
 		item := ChatMsgResponse{
 			Content:    msgModel.Content,
 			MsgType:    msgModel.MsgType,
@@ -175,11 +172,9 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 			ReceiverID: msgModel.ReceiverID,
 			SessionID:  msgModel.SessionID,
 			IsSelf:     msgModel.SenderID == claims.UserID,
-			IsRead:     false, // TODO：READ逻辑
+			IsRead:     false,
 			MsgStatus:  msgModel.MsgStatus,
 		}
-
-		// 判断是不是给自己发的消息
 		if req.ReceiverID == claims.UserID {
 			if successCount := res.SendWsMsg(item, store, req.ReceiverID); successCount == 0 {
 				if err := res.SendConnOkWithMsg("给自己发送消息", conn, chatWSWriteWait); err != nil {
@@ -189,14 +184,14 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 			}
 			continue
 		}
-
 		if successCount := res.SendWsMsg(item, store, req.ReceiverID); successCount == 0 {
 			if err := res.SendConnFailWithMsg("消息发送失败", conn, chatWSWriteWait); err != nil {
 				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
 				return
 			}
 		}
-		// Debug：给自己发一份
+
+		// DEBUG：给自己也发一份
 		if err := res.SendConnOkWithData(item, conn, chatWSWriteWait); err != nil {
 			global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
 			return
@@ -204,11 +199,61 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 	}
 }
 
-// configureChatWSConn 初始化连接的读限制和 pong 续期逻辑。
+// 初始化连接的读限制和 pong 续期逻辑。
 func configureChatWSConn(conn *chat_service.ChatConn) {
 	conn.SetReadLimit(chatWSReadLimit)
 	_ = conn.SetReadDeadline(time.Now().Add(chatWSPongWait))
 	conn.SetPongHandler(func(string) error {
 		return conn.SetReadDeadline(time.Now().Add(chatWSPongWait))
 	})
+}
+
+// 检测好友关系发送权限
+func validateChatSendPermission(senderID uint, receiver *models.UserModel) error {
+	if senderID == receiver.ID {
+		return nil
+	}
+
+	// 陌生人：如果用户设置接收陌生人消息才允许发送
+	// 好友：好友之间可以互发消息
+	// 粉丝：若关注者未回复，粉丝每周可以向关注者发送4条消息
+	// 关注者：若粉丝未回复，关注者每周可以向粉丝发送4条消息
+	relation := follow_service.CalUserRelationship(senderID, receiver.ID)
+	switch relation {
+	case relationship_enum.RelationFriend:
+		return nil
+	case relationship_enum.RelationStranger:
+		if receiver.UserConfModel != nil && receiver.UserConfModel.StrangerChatEnabled {
+			return nil
+		}
+		return errors.New("对方未开启陌生人私信")
+	case relationship_enum.RelationFans, relationship_enum.RelationFollowed:
+		cutoff := time.Now().AddDate(0, 0, -7)
+		startTime := cutoff
+
+		var lastReply models.ChatMsgModel
+		err := global.DB.Select("send_time").
+			Where("sender_id = ? AND receiver_id = ? AND send_time >= ?", receiver.ID, senderID, cutoff).
+			Order("send_time desc").
+			Take(&lastReply).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		if err == nil && lastReply.SendTime.After(startTime) {
+			startTime = lastReply.SendTime
+		}
+
+		var count int64
+		if err := global.DB.Model(&models.ChatMsgModel{}).
+			Where("sender_id = ? AND receiver_id = ? AND send_time >= ?", senderID, receiver.ID, startTime).
+			Count(&count).Error; err != nil {
+			return err
+		}
+		if count < 4 {
+			return nil
+		}
+		return errors.New("本周可发送消息次数已达上限，请等待对方回复")
+	default:
+		return errors.New("当前关系不支持发送消息")
+	}
 }
