@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const chatPushWriteWait = 10 * time.Second
+
 // ChatConn 表示一条聊天 WebSocket 连接。
 // 写锁和连接绑定，避免心跳和业务推送并发写同一条连接。
 type ChatConn struct {
@@ -28,6 +30,22 @@ func NewChatConn(userID uint, conn *websocket.Conn) *ChatConn {
 // 给写操作设超时，避免连接卡死时一直阻塞。
 func (c *ChatConn) SetWriteDeadline(t time.Time) error {
 	return c.Conn.SetWriteDeadline(t)
+}
+
+func (c *ChatConn) SetReadDeadline(t time.Time) error {
+	return c.Conn.SetReadDeadline(t)
+}
+
+func (c *ChatConn) SetReadLimit(limit int64) {
+	c.Conn.SetReadLimit(limit)
+}
+
+func (c *ChatConn) SetPongHandler(h func(string) error) {
+	c.Conn.SetPongHandler(h)
+}
+
+func (c *ChatConn) ReadMessage() (messageType int, p []byte, err error) {
+	return c.Conn.ReadMessage()
 }
 
 // 内部先加锁，安全写一条普通 ws 消息
@@ -145,26 +163,30 @@ func (s *OnlineUserStore) Snapshot(userID uint) []*ChatConn {
 }
 
 // 给某个用户的所有在线连接发一条消息。
-func (s *OnlineUserStore) PushToUser(userID uint, messageType int, data []byte) int {
-	successCount := 0
+func (s *OnlineUserStore) PushToUser(userID uint, messageType int, data []byte) (successCount, failedCount int) {
 	for _, conn := range s.Snapshot(userID) {
+		_ = conn.SetWriteDeadline(time.Now().Add(chatPushWriteWait))
 		if err := conn.WriteMessage(messageType, data); err != nil {
 			s.Unregister(conn)
 			_ = conn.Close()
+			failedCount++
 			continue
 		}
 		successCount++
 	}
-	return successCount
+	return successCount, failedCount
 }
 
-func (s *OnlineUserStore) PushJSONToUser(userID uint, v any) int {
+func (s *OnlineUserStore) PushJSONToUser(userID uint, v any) (successCount, failedCount int) {
 	data, err := json.Marshal(v)
 	if err != nil {
-		return 0
+		return 0, 0
 	}
 	return s.PushToUser(userID, websocket.TextMessage, data)
 }
 
-// 提供一个全局默认在线池
-var DefaultOnlineUserStore = NewOnlineUserStore()
+var defaultOnlineUserStore = NewOnlineUserStore()
+
+func GetOnlineUserStore() *OnlineUserStore {
+	return defaultOnlineUserStore
+}

@@ -2,6 +2,8 @@ package chat_service
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -9,6 +11,8 @@ import (
 	"myblogx/models"
 	"myblogx/models/enum/chat_msg_enum"
 	"myblogx/test/testutil"
+
+	"github.com/gorilla/websocket"
 )
 
 func TestOnlineUserStoreRegisterAndUnregister(t *testing.T) {
@@ -44,6 +48,92 @@ func TestOnlineUserStoreRegisterAndUnregister(t *testing.T) {
 	store.Unregister(connB)
 	if store.IsOnline(1) {
 		t.Fatal("用户 1 应离线")
+	}
+}
+
+func TestOnlineUserStorePushToUser(t *testing.T) {
+	store := NewOnlineUserStore()
+	serverConnA, clientConnA := mustNewWebSocketPair(t)
+	defer clientConnA.Close()
+	serverConnB, clientConnB := mustNewWebSocketPair(t)
+	defer clientConnB.Close()
+
+	goodConn := NewChatConn(1, serverConnA)
+	badConn := NewChatConn(1, serverConnB)
+	store.Register(goodConn)
+	store.Register(badConn)
+
+	if err := badConn.Close(); err != nil {
+		t.Fatalf("关闭坏连接失败: %v", err)
+	}
+
+	successCount, failedCount := store.PushToUser(1, websocket.TextMessage, []byte("hello"))
+	if successCount != 1 || failedCount != 1 {
+		t.Fatalf("推送结果错误 success=%d failed=%d", successCount, failedCount)
+	}
+	if store.Count(1) != 1 {
+		t.Fatalf("坏连接应被移除, 当前数量=%d", store.Count(1))
+	}
+
+	_, data, err := clientConnA.ReadMessage()
+	if err != nil {
+		t.Fatalf("读取推送消息失败: %v", err)
+	}
+	if string(data) != "hello" {
+		t.Fatalf("推送消息内容错误: %s", string(data))
+	}
+}
+
+func TestOnlineUserStoreSnapshotIsIndependent(t *testing.T) {
+	store := NewOnlineUserStore()
+	connA := &ChatConn{UserID: 1}
+	connB := &ChatConn{UserID: 1}
+	store.Register(connA)
+	store.Register(connB)
+
+	snapshot := store.Snapshot(1)
+	store.Unregister(connA)
+
+	if len(snapshot) != 2 {
+		t.Fatalf("快照应保持原始长度: %d", len(snapshot))
+	}
+	if store.Count(1) != 1 {
+		t.Fatalf("当前在线连接数错误: %d", store.Count(1))
+	}
+}
+
+func mustNewWebSocketPair(t *testing.T) (*websocket.Conn, *websocket.Conn) {
+	t.Helper()
+
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
+	serverConnCh := make(chan *websocket.Conn, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			t.Errorf("升级 ws 失败: %v", err)
+			return
+		}
+		serverConnCh <- conn
+	}))
+	t.Cleanup(srv.Close)
+
+	wsURL := "ws" + srv.URL[len("http"):]
+	clientConn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("拨号 ws 失败: %v", err)
+	}
+
+	select {
+	case serverConn := <-serverConnCh:
+		t.Cleanup(func() {
+			_ = serverConn.Close()
+		})
+		return serverConn, clientConn
+	case <-time.After(3 * time.Second):
+		t.Fatal("等待服务端 ws 连接超时")
+		return nil, nil
 	}
 }
 

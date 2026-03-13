@@ -44,7 +44,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 
 	// 将聊天 ws 连接注册到在线用户中
 	conn := chat_service.NewChatConn(claims.UserID, rawConn)
-	store := chat_service.DefaultOnlineUserStore
+	store := chat_service.GetOnlineUserStore()
 	store.Register(conn)
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -55,7 +55,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 	}()
 
 	// 配置 ws 连接
-	configureChatWSConn(conn.Conn)
+	configureChatWSConn(conn)
 	global.Logger.Infof("聊天 ws 已连接 user_id=%d online_conn_count=%d", claims.UserID, store.Count(claims.UserID))
 
 	done := make(chan struct{})
@@ -68,7 +68,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 	}()
 
 	for {
-		msgType, msgContent, err := conn.Conn.ReadMessage()
+		msgType, msgContent, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				global.Logger.Warnf("聊天 ws 读取异常关闭 user_id=%d err=%v", claims.UserID, err)
@@ -89,9 +89,9 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 }
 
 // configureChatWSConn 初始化连接的读限制和 pong 续期逻辑。
-func configureChatWSConn(conn *websocket.Conn) {
+func configureChatWSConn(conn *chat_service.ChatConn) {
 	conn.SetReadLimit(chatWSReadLimit)
-	conn.SetReadDeadline(time.Now().Add(chatWSPongWait))
+	_ = conn.SetReadDeadline(time.Now().Add(chatWSPongWait))
 	conn.SetPongHandler(func(string) error {
 		return conn.SetReadDeadline(time.Now().Add(chatWSPongWait))
 	})
