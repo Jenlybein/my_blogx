@@ -1,0 +1,118 @@
+package chat_service
+
+import (
+	"errors"
+	"myblogx/models"
+	"myblogx/models/enum/relationship_enum"
+	"myblogx/service/follow_service"
+	"myblogx/service/redis_service/redis_chat"
+	"time"
+)
+
+// ChatSendReservation 表示一次聊天发送前置检查成功后的 Redis 预占结果。
+// 发送链路在消息真正入库成功后调用 Commit，在落库失败时调用 Rollback。
+type ChatSendReservation struct {
+	minuteReservation *redis_chat.MinuteReservation
+	weekReservation   *redis_chat.WeekQuotaReservation
+	resetWeekQuota    bool
+	senderID          uint
+	receiverID        uint
+	now               time.Time
+}
+
+// Commit 在消息真正发送成功后提交本次预占结果。
+// 对单向关系来说，提交时会顺手清空对向自然周配额，表示“对方已回复”。
+func (r *ChatSendReservation) Commit() error {
+	if r == nil || !r.resetWeekQuota {
+		return nil
+	}
+	return redis_chat.ResetChatWeekQuota(r.receiverID, r.senderID, r.now)
+}
+
+// Rollback 在消息最终未落库时撤销本次 Redis 预占，避免失败请求占用额度。
+func (r *ChatSendReservation) Rollback() error {
+	if r == nil {
+		return nil
+	}
+	if r.weekReservation != nil {
+		if err := r.weekReservation.Release(); err != nil {
+			return err
+		}
+	}
+	if r.minuteReservation != nil {
+		if err := r.minuteReservation.Release(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CheckAndReserveChatSend 统一处理聊天发送前的权限校验与 Redis 额度预占。
+func CheckAndReserveChatSend(senderID uint, receiver *models.UserModel) (*ChatSendReservation, error) {
+	// 关系权限校验
+	// 陌生人：如果用户设置接收陌生人消息才允许发送
+	// 好友：好友之间可以互发消息
+	// 粉丝：若关注者未回复，粉丝每周可以向关注者发送 3 条消息
+	// 关注者：若粉丝未回复，关注者每周可以向粉丝发送 3 条消息
+	relation := relationship_enum.RelationStranger
+	if senderID != receiver.ID {
+		relation = follow_service.CalUserRelationship(senderID, receiver.ID)
+	}
+
+	switch relation {
+	case relationship_enum.RelationStranger:
+		if senderID != receiver.ID {
+			if receiver.UserConfModel == nil || !receiver.UserConfModel.StrangerChatEnabled {
+				return nil, errors.New("对方未开启陌生人私信")
+			}
+		}
+	case relationship_enum.RelationFriend:
+	case relationship_enum.RelationFans, relationship_enum.RelationFollowed:
+	default:
+		return nil, errors.New("当前关系不支持发送消息")
+	}
+
+	// 分钟级滑动窗口限流
+	// 每分钟单个会话限制 30 条，跨会话限制 60 条
+	now := time.Now()
+	sessionID := buildSessionID(senderID, receiver.ID)
+	minuteReservation, limitedBy, err := redis_chat.ReserveChatMinuteRate(senderID, sessionID, now)
+	if err != nil {
+		return nil, err
+	}
+	if minuteReservation == nil {
+		switch limitedBy {
+		case "session":
+			return nil, errors.New("当前会话发送过于频繁，请稍后再试")
+		default:
+			return nil, errors.New("发送过于频繁，请稍后再试")
+		}
+	}
+
+	// 单向关系(仅关注，仅粉丝，非好友)的每周聊天次数限制
+	reservation := &ChatSendReservation{
+		minuteReservation: minuteReservation,
+		senderID:          senderID,
+		receiverID:        receiver.ID,
+		now:               now,
+	}
+
+	// 如果是好友关系直接返回，非好友的单向关系则进入下一层判断
+	if relation != relationship_enum.RelationFans && relation != relationship_enum.RelationFollowed {
+		return reservation, nil
+	}
+
+	weekReservation, allowed, err := redis_chat.ReserveChatWeekQuota(senderID, receiver.ID, now)
+	if err != nil {
+		_ = reservation.Rollback()
+		return nil, err
+	}
+	if !allowed {
+		_ = reservation.Rollback()
+		return nil, errors.New("本周可发送消息次数已达上限，对方回复后才可以继续发送消息")
+	}
+
+	reservation.weekReservation = weekReservation
+	reservation.resetWeekQuota = true
+	return reservation, nil
+}

@@ -7,16 +7,13 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum/chat_msg_enum"
-	"myblogx/models/enum/relationship_enum"
 	"myblogx/service/chat_service"
-	"myblogx/service/follow_service"
 	"myblogx/utils/jwts"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"gorm.io/gorm"
 )
 
 const (
@@ -111,7 +108,8 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		}
 
 		// 检测发送权限
-		if err := validateChatSendPermission(claims.UserID, &revUser); err != nil {
+		reservation, err := chat_service.CheckAndReserveChatSend(claims.UserID, &revUser)
+		if err != nil {
 			if err := res.SendConnFailWithMsg(err.Error(), conn, chatWSWriteWait); err != nil {
 				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
 				return
@@ -145,12 +143,16 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 			msgErr = errors.New("不支持的消息类型")
 		}
 		if msgErr != nil {
+			_ = reservation.Rollback()
 			if err := res.SendConnFailWithMsg("消息发送失败", conn, chatWSWriteWait); err != nil {
 				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
 				return
 			}
 			global.Logger.Warnf("聊天消息落库失败 user_id=%d err=%v", claims.UserID, msgErr)
 			continue
+		}
+		if err := reservation.Commit(); err != nil {
+			global.Logger.Warnf("聊天消息提交限流状态失败 user_id=%d err=%v", claims.UserID, err)
 		}
 
 		// 检测接收人是否在线
@@ -206,54 +208,4 @@ func configureChatWSConn(conn *chat_service.ChatConn) {
 	conn.SetPongHandler(func(string) error {
 		return conn.SetReadDeadline(time.Now().Add(chatWSPongWait))
 	})
-}
-
-// 检测好友关系发送权限
-func validateChatSendPermission(senderID uint, receiver *models.UserModel) error {
-	if senderID == receiver.ID {
-		return nil
-	}
-
-	// 陌生人：如果用户设置接收陌生人消息才允许发送
-	// 好友：好友之间可以互发消息
-	// 粉丝：若关注者未回复，粉丝每周可以向关注者发送4条消息
-	// 关注者：若粉丝未回复，关注者每周可以向粉丝发送4条消息
-	relation := follow_service.CalUserRelationship(senderID, receiver.ID)
-	switch relation {
-	case relationship_enum.RelationFriend:
-		return nil
-	case relationship_enum.RelationStranger:
-		if receiver.UserConfModel != nil && receiver.UserConfModel.StrangerChatEnabled {
-			return nil
-		}
-		return errors.New("对方未开启陌生人私信")
-	case relationship_enum.RelationFans, relationship_enum.RelationFollowed:
-		cutoff := time.Now().AddDate(0, 0, -7)
-		startTime := cutoff
-
-		var lastReply models.ChatMsgModel
-		err := global.DB.Select("send_time").
-			Where("sender_id = ? AND receiver_id = ? AND send_time >= ?", receiver.ID, senderID, cutoff).
-			Order("send_time desc").
-			Take(&lastReply).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
-		if err == nil && lastReply.SendTime.After(startTime) {
-			startTime = lastReply.SendTime
-		}
-
-		var count int64
-		if err := global.DB.Model(&models.ChatMsgModel{}).
-			Where("sender_id = ? AND receiver_id = ? AND send_time >= ?", senderID, receiver.ID, startTime).
-			Count(&count).Error; err != nil {
-			return err
-		}
-		if count < 4 {
-			return nil
-		}
-		return errors.New("本周可发送消息次数已达上限，请等待对方回复")
-	default:
-		return errors.New("当前关系不支持发送消息")
-	}
 }

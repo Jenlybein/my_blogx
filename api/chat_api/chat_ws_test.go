@@ -2,10 +2,10 @@ package chat_api
 
 import (
 	"testing"
-	"time"
 
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/service/chat_service"
 	"myblogx/test/testutil"
 )
 
@@ -21,8 +21,12 @@ func TestValidateChatSendPermissionStrangerDependsOnReceiverConfig(t *testing.T)
 		t.Fatalf("查询接收人失败: %v", err)
 	}
 
-	if err := validateChatSendPermission(users.sender.ID, &users.receiver); err == nil || err.Error() != "对方未开启陌生人私信" {
+	reservation, err := validateChatSendPermission(users.sender.ID, &users.receiver)
+	if err == nil || err.Error() != "对方未开启陌生人私信" {
 		t.Fatalf("陌生人应受接收配置限制, got=%v", err)
+	}
+	if reservation != nil {
+		t.Fatal("受限时不应返回预占对象")
 	}
 
 	if err := global.DB.Model(&models.UserConfModel{}).
@@ -34,28 +38,57 @@ func TestValidateChatSendPermissionStrangerDependsOnReceiverConfig(t *testing.T)
 		t.Fatalf("查询接收人失败: %v", err)
 	}
 
-	if err := validateChatSendPermission(users.sender.ID, &users.receiver); err != nil {
+	reservation, err = validateChatSendPermission(users.sender.ID, &users.receiver)
+	if err != nil {
 		t.Fatalf("开启陌生人私信后应允许发送: %v", err)
+	}
+	if reservation == nil {
+		t.Fatal("允许发送时应返回预占对象")
+	}
+	if err := reservation.Rollback(); err != nil {
+		t.Fatalf("回滚预占失败: %v", err)
 	}
 }
 
-func TestValidateChatSendPermissionLimitedByWeeklyCountUntilReply(t *testing.T) {
+func TestValidateChatSendPermissionLimitedByWeeklyQuotaUntilReply(t *testing.T) {
 	users := setupChatWSPermissionEnv(t)
 	createFollowRelation(t, users.sender.ID, users.receiver.ID)
 
-	now := time.Now()
-	createChatRecord(t, users.sender.ID, users.receiver.ID, now.Add(-6*24*time.Hour))
-	createChatRecord(t, users.sender.ID, users.receiver.ID, now.Add(-5*24*time.Hour))
-	createChatRecord(t, users.sender.ID, users.receiver.ID, now.Add(-4*24*time.Hour))
-	createChatRecord(t, users.sender.ID, users.receiver.ID, now.Add(-3*24*time.Hour))
-
-	if err := validateChatSendPermission(users.sender.ID, &users.receiver); err == nil || err.Error() != "本周可发送消息次数已达上限，请等待对方回复" {
-		t.Fatalf("单向关系超过每周 4 条应受限, got=%v", err)
+	for i := 0; i < 3; i++ {
+		reservation, err := validateChatSendPermission(users.sender.ID, &users.receiver)
+		if err != nil {
+			t.Fatalf("第 %d 次发送前置校验失败: %v", i+1, err)
+		}
+		if err := reservation.Commit(); err != nil {
+			t.Fatalf("提交预占失败: %v", err)
+		}
 	}
 
-	createChatRecord(t, users.receiver.ID, users.sender.ID, now.Add(-time.Hour))
-	if err := validateChatSendPermission(users.sender.ID, &users.receiver); err != nil {
+	reservation, err := validateChatSendPermission(users.sender.ID, &users.receiver)
+	if err == nil || err.Error() != "本周可发送消息次数已达上限，请等待对方回复" {
+		t.Fatalf("单向关系超过自然周 3 条应受限, got=%v", err)
+	}
+	if reservation != nil {
+		t.Fatal("受限时不应返回预占对象")
+	}
+
+	replyReservation, err := validateChatSendPermission(users.receiver.ID, &users.sender)
+	if err != nil {
+		t.Fatalf("对方回复前置校验失败: %v", err)
+	}
+	if err := replyReservation.Commit(); err != nil {
+		t.Fatalf("提交回复预占失败: %v", err)
+	}
+
+	reservation, err = validateChatSendPermission(users.sender.ID, &users.receiver)
+	if err != nil {
 		t.Fatalf("对方回复后应重新允许发送: %v", err)
+	}
+	if reservation == nil {
+		t.Fatal("对方回复后应返回预占对象")
+	}
+	if err := reservation.Rollback(); err != nil {
+		t.Fatalf("回滚预占失败: %v", err)
 	}
 }
 
@@ -64,13 +97,36 @@ func TestValidateChatSendPermissionFriendAlwaysAllowed(t *testing.T) {
 	createFollowRelation(t, users.sender.ID, users.receiver.ID)
 	createFollowRelation(t, users.receiver.ID, users.sender.ID)
 
-	now := time.Now()
-	for i := 0; i < 6; i++ {
-		createChatRecord(t, users.sender.ID, users.receiver.ID, now.Add(time.Duration(-i)*time.Hour))
+	for i := 0; i < 5; i++ {
+		reservation, err := validateChatSendPermission(users.sender.ID, &users.receiver)
+		if err != nil {
+			t.Fatalf("好友之间第 %d 次发送应允许: %v", i+1, err)
+		}
+		if err := reservation.Commit(); err != nil {
+			t.Fatalf("提交预占失败: %v", err)
+		}
+	}
+}
+
+func TestValidateChatSendPermissionSessionMinuteLimit(t *testing.T) {
+	users := setupChatWSPermissionEnv(t)
+
+	for i := 0; i < 30; i++ {
+		reservation, err := validateChatSendPermission(users.sender.ID, &users.receiver)
+		if err != nil {
+			t.Fatalf("第 %d 次会话发送应允许: %v", i+1, err)
+		}
+		if err := reservation.Commit(); err != nil {
+			t.Fatalf("提交预占失败: %v", err)
+		}
 	}
 
-	if err := validateChatSendPermission(users.sender.ID, &users.receiver); err != nil {
-		t.Fatalf("好友之间应允许发送: %v", err)
+	reservation, err := validateChatSendPermission(users.sender.ID, &users.receiver)
+	if err == nil || err.Error() != "当前会话发送过于频繁，请稍后再试" {
+		t.Fatalf("同一会话 60 秒内第 31 条应受限, got=%v", err)
+	}
+	if reservation != nil {
+		t.Fatal("受限时不应返回预占对象")
 	}
 }
 
@@ -82,11 +138,11 @@ type chatWSPermissionUsers struct {
 func setupChatWSPermissionEnv(t *testing.T) chatWSPermissionUsers {
 	t.Helper()
 
+	_ = testutil.SetupMiniRedis(t)
 	testutil.SetupSQLite(t,
 		&models.UserModel{},
 		&models.UserConfModel{},
 		&models.UserFollowModel{},
-		&models.ChatMsgModel{},
 	)
 
 	sender := createChatWSPermissionUser(t, "ws_sender")
@@ -125,17 +181,6 @@ func createFollowRelation(t *testing.T, fansUserID, followedUserID uint) {
 	}
 }
 
-func createChatRecord(t *testing.T, senderID, receiverID uint, sendTime time.Time) {
-	t.Helper()
-
-	row := models.ChatMsgModel{
-		SenderID:   senderID,
-		ReceiverID: receiverID,
-		Content:    "hello",
-		SessionID:  "chat:test",
-		SendTime:   sendTime,
-	}
-	if err := global.DB.Create(&row).Error; err != nil {
-		t.Fatalf("创建聊天记录失败: %v", err)
-	}
+func validateChatSendPermission(senderID uint, receiver *models.UserModel) (*chat_service.ChatSendReservation, error) {
+	return chat_service.CheckAndReserveChatSend(senderID, receiver)
 }
