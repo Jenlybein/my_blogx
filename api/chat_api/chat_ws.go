@@ -2,10 +2,14 @@ package chat_api
 
 import (
 	"encoding/json"
+	"errors"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/enum/chat_msg_enum"
+	"myblogx/models/enum/relationship_enum"
 	"myblogx/service/chat_service"
+	"myblogx/service/follow_service"
 	"myblogx/utils/jwts"
 	"net/http"
 	"time"
@@ -92,6 +96,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
 				return
 			}
+			continue
 		}
 
 		// 接收人不存在
@@ -104,13 +109,45 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 			continue
 		}
 
-		// 落库（TODO:后续处理MsgType)
+		// 判断好友关系
+		// 陌生人：如果用户设置接收陌生人消息才允许发送
+		// 好友：好友之间可以互发消息
+		// 粉丝：若关注者未回复，粉丝每周可以向关注者发送4条消息
+		// 关注者：若粉丝未回复，关注者每周可以向粉丝发送4条消息
+		relation := follow_service.CalUserRelationship(claims.UserID, req.ReceiverID)
+		switch relation {
+		case relationship_enum.RelationStranger:
+		case relationship_enum.RelationFriend:
+		case relationship_enum.RelationFans:
+		case relationship_enum.RelationFollowed:
+		}
+
+		// 落库，根据消息类型处理MsgType
 		var msgModel *models.ChatMsgModel
-		if msgModel, err = chat_service.ToTextChat(chat_service.ToTextChatRequest{
-			SenderID:   claims.UserID,
-			ReceiverID: req.ReceiverID,
-			Text:       req.Content,
-		}); err != nil {
+		var msgErr error
+		switch req.MsgType {
+		case chat_msg_enum.MsgTypeText:
+			msgModel, msgErr = chat_service.ToTextChat(chat_service.ToTextChatRequest{
+				SenderID:   claims.UserID,
+				ReceiverID: req.ReceiverID,
+				Text:       req.Content,
+			})
+		case chat_msg_enum.MsgTypeImage:
+			msgModel, msgErr = chat_service.ToImageChat(chat_service.ToImageChatRequest{
+				SenderID:   claims.UserID,
+				ReceiverID: req.ReceiverID,
+				ImageURL:   req.Content,
+			})
+		case chat_msg_enum.MsgTypeMarkdown:
+			msgModel, msgErr = chat_service.ToMarkdownChat(chat_service.ToMarkdownChatRequest{
+				SenderID:   claims.UserID,
+				ReceiverID: req.ReceiverID,
+				Markdown:   req.Content,
+			})
+		default:
+			msgErr = errors.New("不支持的消息类型")
+		}
+		if msgErr != nil {
 			if err := res.SendConnFailWithMsg("消息发送失败", conn, chatWSWriteWait); err != nil {
 				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
 				return
@@ -141,6 +178,18 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 			IsRead:     false, // TODO：READ逻辑
 			MsgStatus:  msgModel.MsgStatus,
 		}
+
+		// 判断是不是给自己发的消息
+		if req.ReceiverID == claims.UserID {
+			if successCount := res.SendWsMsg(item, store, req.ReceiverID); successCount == 0 {
+				if err := res.SendConnOkWithMsg("给自己发送消息", conn, chatWSWriteWait); err != nil {
+					global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+					return
+				}
+			}
+			continue
+		}
+
 		if successCount := res.SendWsMsg(item, store, req.ReceiverID); successCount == 0 {
 			if err := res.SendConnFailWithMsg("消息发送失败", conn, chatWSWriteWait); err != nil {
 				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)

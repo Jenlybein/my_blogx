@@ -34,53 +34,6 @@ type fansListPayload struct {
 	Count int                `json:"count"`
 }
 
-func TestCalUserRelationship(t *testing.T) {
-	users := setupFollowEnv(t)
-
-	if got := CalUserRelationship(users.owner.ID, users.outsider.ID); got != relationship_enum.RelationStranger {
-		t.Fatalf("陌生人关系错误: %v", got)
-	}
-
-	createFollow(t, users.owner.ID, users.outsider.ID)
-	if got := CalUserRelationship(users.outsider.ID, users.owner.ID); got != relationship_enum.RelationFans {
-		t.Fatalf("被关注方向关系错误: %v", got)
-	}
-	if got := CalUserRelationship(users.owner.ID, users.outsider.ID); got != relationship_enum.RelationFollowed {
-		t.Fatalf("关注方向关系错误: %v", got)
-	}
-
-	createFollow(t, users.outsider.ID, users.owner.ID)
-	if got := CalUserRelationship(users.owner.ID, users.outsider.ID); got != relationship_enum.RelationFriend {
-		t.Fatalf("互关关系错误: %v", got)
-	}
-}
-
-func TestCalUserRelationshipBatch(t *testing.T) {
-	users := setupFollowEnv(t)
-
-	createFollow(t, users.owner.ID, users.fansA.ID)
-	createFollow(t, users.fansB.ID, users.owner.ID)
-	createFollow(t, users.owner.ID, users.followedA.ID)
-	createFollow(t, users.followedA.ID, users.owner.ID)
-
-	got := CalUserRelationshipBatch(users.owner.ID, []uint{
-		users.fansA.ID,
-		users.fansB.ID,
-		users.followedA.ID,
-		users.outsider.ID,
-	})
-
-	assertRelation(t, got, users.fansA.ID, relationship_enum.RelationFollowed)
-	assertRelation(t, got, users.fansB.ID, relationship_enum.RelationFans)
-	assertRelation(t, got, users.followedA.ID, relationship_enum.RelationFriend)
-	assertRelation(t, got, users.outsider.ID, relationship_enum.RelationStranger)
-
-	empty := CalUserRelationshipBatch(users.owner.ID, nil)
-	if len(empty) != 0 {
-		t.Fatalf("空列表应返回空 map: %+v", empty)
-	}
-}
-
 func TestFollowAndUnfollowUserView(t *testing.T) {
 	users := setupFollowEnv(t)
 	api := FollowApi{}

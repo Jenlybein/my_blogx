@@ -18,6 +18,10 @@ func buildSessionID(a, b uint) string {
 	return fmt.Sprintf("chat:%d:%d", b, a)
 }
 
+func isSelfChat(senderID, receiverID uint) bool {
+	return senderID == receiverID
+}
+
 // 检查聊天双方的会话记录，不存在则分别创建。
 func ensureChatSessions(tx *gorm.DB, req ToChatRequest, sessionID string) error {
 	sessions := []models.ChatSessionModel{
@@ -26,11 +30,13 @@ func ensureChatSessions(tx *gorm.DB, req ToChatRequest, sessionID string) error 
 			UserID:     req.SenderID,
 			ReceiverID: req.ReceiverID,
 		},
-		{
+	}
+	if !isSelfChat(req.SenderID, req.ReceiverID) {
+		sessions = append(sessions, models.ChatSessionModel{
 			SessionID:  sessionID,
 			UserID:     req.ReceiverID,
 			ReceiverID: req.SenderID,
-		},
+		})
 	}
 
 	// 数据库中必须给 user_id + receiver_id 组合创建唯一索引（否则这个冲突判断不生效）
@@ -50,6 +56,7 @@ func ensureChatSessions(tx *gorm.DB, req ToChatRequest, sessionID string) error 
 // updateLastMsgSession 更新双方会话的最后一条消息。
 // 发送方只更新摘要，接收方同时累加未读数。
 func updateLastMsgSession(tx *gorm.DB, sessionID string, lastMsgID uint, lastMsgContent string, sendTime time.Time, senderID, receiverID uint) error {
+	expectedRows := int64(2)
 	updates := map[string]any{
 		"last_msg_id":      lastMsgID,
 		"last_msg_content": lastMsgContent,
@@ -59,6 +66,10 @@ func updateLastMsgSession(tx *gorm.DB, sessionID string, lastMsgID uint, lastMsg
 			receiverID,
 			senderID,
 		),
+	}
+	if isSelfChat(senderID, receiverID) {
+		expectedRows = 1
+		updates["unread_count"] = gorm.Expr("unread_count")
 	}
 	result := tx.Model(&models.ChatSessionModel{}).
 		Where(
@@ -74,7 +85,7 @@ func updateLastMsgSession(tx *gorm.DB, sessionID string, lastMsgID uint, lastMsg
 	if result.Error != nil {
 		return result.Error
 	}
-	if result.RowsAffected != 2 {
+	if result.RowsAffected != expectedRows {
 		return fmt.Errorf("会话更新数量异常: session_id=%s affected=%d", sessionID, result.RowsAffected)
 	}
 

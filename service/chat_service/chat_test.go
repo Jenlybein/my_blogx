@@ -199,8 +199,8 @@ func TestValidateChatBase(t *testing.T) {
 		}
 
 		err := validateChatBase(&req)
-		if err == nil || err.Error() != "不支持给自己发私信" {
-			t.Fatalf("应返回自发消息错误, got=%v", err)
+		if err != nil {
+			t.Fatalf("自发消息应允许, got=%v", err)
 		}
 	})
 }
@@ -353,6 +353,44 @@ func TestToTextChatRestoresDeletedSession(t *testing.T) {
 	}
 	if restoredSession.UnreadCount != 1 {
 		t.Fatalf("恢复后的会话未读数应为 1, got=%d", restoredSession.UnreadCount)
+	}
+}
+
+func TestToTextChatSupportsSelfChat(t *testing.T) {
+	userA, _ := setupChatServiceTestDB(t)
+	sendTime := time.Date(2026, 3, 13, 18, 10, 0, 0, time.Local)
+
+	msg, err := ToTextChat(ToTextChatRequest{
+		SenderID:   userA.ID,
+		ReceiverID: userA.ID,
+		Text:       "备忘一下",
+		SendTime:   sendTime,
+	})
+	if err != nil {
+		t.Fatalf("自发消息失败: %v", err)
+	}
+
+	if msg.SessionID != buildSessionID(userA.ID, userA.ID) {
+		t.Fatalf("自发消息 session_id 错误: %s", msg.SessionID)
+	}
+
+	var sessionCount int64
+	if err = global.DB.Model(&models.ChatSessionModel{}).Count(&sessionCount).Error; err != nil {
+		t.Fatalf("统计会话失败: %v", err)
+	}
+	if sessionCount != 1 {
+		t.Fatalf("自发消息只应创建 1 条会话, got=%d", sessionCount)
+	}
+
+	session := mustGetSession(t, userA.ID, userA.ID)
+	if session.LastMsgID != msg.ID {
+		t.Fatalf("最后消息 ID 错误: %d", session.LastMsgID)
+	}
+	if session.LastMsgContent != "备忘一下" {
+		t.Fatalf("最后消息摘要错误: %s", session.LastMsgContent)
+	}
+	if session.UnreadCount != 0 {
+		t.Fatalf("自发消息未读数应保持 0, got=%d", session.UnreadCount)
 	}
 }
 

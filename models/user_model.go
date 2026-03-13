@@ -38,6 +38,7 @@ func (u *UserModel) AfterCreate(tx *gorm.DB) (err error) {
 		CommentNoticeEnabled:     true,
 		FavorNoticeEnabled:       true,
 		PrivateChatNoticeEnabled: true,
+		StrangerChatEnabled:      true,
 	}
 	if err = tx.Create(u.UserConfModel).Error; err != nil {
 		return err
@@ -54,13 +55,14 @@ type UserConfModel struct {
 	UserID                   uint       `gorm:"primaryKey" json:"user_id"`
 	UserModel                UserModel  `gorm:"foreignKey:UserID;references:ID" json:"-"`
 	LikeTags                 []string   `gorm:"type:longtext;serializer:json" json:"like_tags"`
-	UpdatedUsernameDate      *time.Time `json:"updated_username_date"` // 上次修改用户名的时间
-	FavoritesVisibility      bool       `json:"favorites_visibility"`  // 收藏夹是否可见
-	FollowVisibility         bool       `json:"followers_visibility"`  // 关注是否可见
-	FansVisibility           bool       `json:"fans_visibility"`       // 粉丝是否可见
-	HomeStyleID              uint       `json:"home_style_id"`         // 首页样式ID
-	DiggNoticeEnabled        bool       `json:"digg_notice_enabled"`   // 是否开启点赞通知
-	CommentNoticeEnabled     bool       `json:"comment_notice_enabled"`
-	FavorNoticeEnabled       bool       `json:"favor_notice_enabled"`
-	PrivateChatNoticeEnabled bool       `json:"private_chat_notice_enabled"`
+	UpdatedUsernameDate      *time.Time `json:"updated_username_date"`       // 上次修改用户名的时间
+	FavoritesVisibility      bool       `json:"favorites_visibility"`        // 收藏夹是否可见
+	FollowVisibility         bool       `json:"followers_visibility"`        // 关注是否可见
+	FansVisibility           bool       `json:"fans_visibility"`             // 粉丝是否可见
+	HomeStyleID              uint       `json:"home_style_id"`               // 首页样式ID
+	DiggNoticeEnabled        bool       `json:"digg_notice_enabled"`         // 是否开启点赞通知
+	CommentNoticeEnabled     bool       `json:"comment_notice_enabled"`      // 是否开启评论通知
+	FavorNoticeEnabled       bool       `json:"favor_notice_enabled"`        // 是否开启收藏通知
+	PrivateChatNoticeEnabled bool       `json:"private_chat_notice_enabled"` // 是否开启私聊通知
+	StrangerChatEnabled      bool       `json:"stranger_msg_enabled"`        // 是否开启陌生人私聊
 }

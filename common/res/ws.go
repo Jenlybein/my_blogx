@@ -14,6 +14,12 @@ func SendConnFailWithMsg(msg string, conn *chat_service.ChatConn, wait time.Dura
 	return conn.WriteMessageTimeout(websocket.TextMessage, byteData, wait)
 }
 
+func SendConnOkWithMsg(msg string, conn *chat_service.ChatConn, wait time.Duration) error {
+	resp := Response{SuccessCode, nil, msg}
+	byteData, _ := json.Marshal(resp)
+	return conn.WriteMessageTimeout(websocket.TextMessage, byteData, wait)
+}
+
 func SendConnOkWithData(data any, conn *chat_service.ChatConn, wait time.Duration) error {
 	resp := Response{SuccessCode, data, "成功"}
 	byteData, _ := json.Marshal(resp)
