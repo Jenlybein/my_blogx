@@ -11,6 +11,42 @@ import (
 	"myblogx/test/testutil"
 )
 
+func TestOnlineUserStoreRegisterAndUnregister(t *testing.T) {
+	store := NewOnlineUserStore()
+	connA := &ChatConn{UserID: 1}
+	connB := &ChatConn{UserID: 1}
+	connC := &ChatConn{UserID: 2}
+
+	store.Register(connA)
+	store.Register(connB)
+	store.Register(connC)
+
+	if !store.IsOnline(1) {
+		t.Fatal("用户 1 应在线")
+	}
+	if store.Count(1) != 2 {
+		t.Fatalf("用户 1 在线连接数错误: %d", store.Count(1))
+	}
+	if store.Count(2) != 1 {
+		t.Fatalf("用户 2 在线连接数错误: %d", store.Count(2))
+	}
+
+	snapshot := store.Snapshot(1)
+	if len(snapshot) != 2 {
+		t.Fatalf("用户 1 快照数量错误: %d", len(snapshot))
+	}
+
+	store.Unregister(connA)
+	if store.Count(1) != 1 {
+		t.Fatalf("用户 1 移除一条连接后数量错误: %d", store.Count(1))
+	}
+
+	store.Unregister(connB)
+	if store.IsOnline(1) {
+		t.Fatal("用户 1 应离线")
+	}
+}
+
 func setupChatServiceTestDB(t *testing.T) (*models.UserModel, *models.UserModel) {
 	t.Helper()
 

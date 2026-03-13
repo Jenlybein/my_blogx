@@ -3,9 +3,9 @@ package chat_api
 import (
 	"fmt"
 	"myblogx/global"
+	"myblogx/service/chat_service"
 	"myblogx/utils/jwts"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -32,34 +32,43 @@ var chatWSUpgrader = websocket.Upgrader{
 }
 
 // ChatWsView 处理聊天 WebSocket 长连接。
-// 当前先保留成一个稳定的 echo 通道，用来验证握手、收发和连接保活链路。
 func (ChatApi) ChatWsView(c *gin.Context) {
 	claims := jwts.MustGetClaimsByGin(c)
 
-	// 升级聊天 ws 连接
-	conn, err := chatWSUpgrader.Upgrade(c.Writer, c.Request, nil)
+	// 升级 ws 连接
+	rawConn, err := chatWSUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		global.Logger.Errorf("升级聊天 ws 连接失败 user_id=%d err=%v", claims.UserID, err)
 		return
 	}
+
+	// 将聊天 ws 连接注册到在线用户中
+	conn := chat_service.NewChatConn(claims.UserID, rawConn)
+	store := chat_service.DefaultOnlineUserStore
+	store.Register(conn)
 	defer func() {
 		if err := conn.Close(); err != nil {
 			global.Logger.Warnf("关闭聊天 ws 连接失败 user_id=%d err=%v", claims.UserID, err)
 		}
+		store.Unregister(conn)
+		global.Logger.Infof("聊天 ws 已清理 user_id=%d online_conn_count=%d", claims.UserID, store.Count(claims.UserID))
 	}()
 
-	var writeMu sync.Mutex
-	configureChatWSConn(conn)
-	global.Logger.Infof("聊天 ws 已连接 user_id=%d", claims.UserID)
+	// 配置 ws 连接
+	configureChatWSConn(conn.Conn)
+	global.Logger.Infof("聊天 ws 已连接 user_id=%d online_conn_count=%d", claims.UserID, store.Count(claims.UserID))
 
 	done := make(chan struct{})
 	defer close(done)
 
-	go startChatWSPingLoop(conn, claims.UserID, done, &writeMu)
+	go func() {
+		if err := conn.RunPingLoop(done, chatWSPingPeriod, chatWSWriteWait); err != nil {
+			global.Logger.Warnf("聊天 ws ping 失败 user_id=%d err=%v", conn.UserID, err)
+		}
+	}()
 
-	// 读取聊天 ws 消息
 	for {
-		msgType, msgContent, err := conn.ReadMessage()
+		msgType, msgContent, err := conn.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				global.Logger.Warnf("聊天 ws 读取异常关闭 user_id=%d err=%v", claims.UserID, err)
@@ -72,7 +81,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		if msgType != websocket.TextMessage && msgType != websocket.BinaryMessage {
 			continue
 		}
-		if err := writeChatWSEcho(conn, msgType, msgContent, &writeMu); err != nil {
+		if err := writeChatWSEcho(conn, msgType, msgContent); err != nil {
 			global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
 			return
 		}
@@ -88,35 +97,9 @@ func configureChatWSConn(conn *websocket.Conn) {
 	})
 }
 
-// startChatWSPingLoop 定时发送 ping，浏览器会自动回 pong。
-// 只要 pong 按时回来，读超时就会持续向后续期。
-func startChatWSPingLoop(conn *websocket.Conn, userID uint, done <-chan struct{}, writeMu *sync.Mutex) {
-	ticker := time.NewTicker(chatWSPingPeriod)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-done:
-			return
-		case <-ticker.C:
-			writeMu.Lock()
-			conn.SetWriteDeadline(time.Now().Add(chatWSWriteWait))
-			err := conn.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(chatWSWriteWait))
-			writeMu.Unlock()
-			if err != nil {
-				global.Logger.Warnf("聊天 ws ping 失败 user_id=%d err=%v", userID, err)
-				return
-			}
-		}
-	}
-}
-
 // writeChatWSEcho 发送一条 echo 消息。
-// ping 和业务回包都会写同一条连接，这里用互斥锁串行化写操作。
-func writeChatWSEcho(conn *websocket.Conn, msgType int, msgContent []byte, writeMu *sync.Mutex) error {
-	writeMu.Lock()
-	defer writeMu.Unlock()
-
-	conn.SetWriteDeadline(time.Now().Add(chatWSWriteWait))
+// ChatConn 内部已经封装了写锁，这里只负责设置超时和写业务消息。
+func writeChatWSEcho(conn *chat_service.ChatConn, msgType int, msgContent []byte) error {
+	_ = conn.SetWriteDeadline(time.Now().Add(chatWSWriteWait))
 	return conn.WriteMessage(msgType, []byte(fmt.Sprintf("你说的是：%s", string(msgContent))))
 }

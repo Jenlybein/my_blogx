@@ -122,9 +122,9 @@ func (a *ChatApi) ChatMsgListView(c *gin.Context) {
 		return
 	}
 
-	respList := make([]ChatMsgListResponse, 0, len(list))
+	respList := make([]ChatMsgResponse, 0, len(list))
 	for _, item := range list {
-		data := ChatMsgListResponse{
+		data := ChatMsgResponse{
 			ID:         item.ID,
 			SenderID:   item.SenderID,
 			ReceiverID: item.ReceiverID,

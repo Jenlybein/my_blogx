@@ -31,7 +31,7 @@ type chatListPayload struct {
 }
 
 type chatMsgListPayload struct {
-	List  []ChatMsgListResponse `json:"list"`
+	List  []ChatMsgResponse `json:"list"`
 	Count int                   `json:"count"`
 }
 
