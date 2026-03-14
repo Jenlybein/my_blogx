@@ -9,19 +9,19 @@ import (
 
 func TestPageInfoHelpers(t *testing.T) {
 	p := common.PageInfo{Page: -1, Limit: 1000}
-	if p.GetPage() != 1 {
-		t.Fatalf("GetPage 默认值错误: %d", p.GetPage())
+	if p.GetPage(100) != 1 {
+		t.Fatalf("GetPage 默认值错误: %d", p.GetPage(100))
 	}
 	if p.GetLimit() != 10 {
 		t.Fatalf("GetLimit 默认值错误: %d", p.GetLimit())
 	}
-	if p.GetOffset() != 0 {
-		t.Fatalf("GetOffset 错误: %d", p.GetOffset())
+	if p.GetOffset(100) != 0 {
+		t.Fatalf("GetOffset 错误: %d", p.GetOffset(100))
 	}
 
 	p = common.PageInfo{Page: 2, Limit: 5}
-	if p.GetOffset() != 5 {
-		t.Fatalf("GetOffset 计算错误: %d", p.GetOffset())
+	if p.GetOffset(100) != 5 {
+		t.Fatalf("GetOffset 计算错误: %d", p.GetOffset(100))
 	}
 }
 

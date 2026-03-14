@@ -12,6 +12,7 @@ import (
 	global_notif_api "myblogx/api/global_msg_api"
 	"myblogx/api/image_api"
 	"myblogx/api/log_api"
+	"myblogx/api/search_api"
 	"myblogx/api/site_api"
 	"myblogx/api/sitemsg_api"
 	"myblogx/api/user_api"
@@ -30,6 +31,7 @@ type Api struct {
 	SitemsgApi      sitemsg_api.SitemsgApi
 	GlobalNotifApi  global_notif_api.GlobalNotifApi
 	FollowApi       follow_api.FollowApi
+	SearchApi       search_api.SearchApi
 }
 
 var App = Api{}

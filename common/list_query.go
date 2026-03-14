@@ -31,27 +31,18 @@ type PageInfo struct {
 	Order string `form:"order"` // 允许前端覆盖排序字段
 }
 
-func (p PageInfo) GetPage(count ...int) int {
+func (p PageInfo) GetPage(count int) int {
 	page := p.Page
 	if page <= 0 {
 		page = 1
 	}
 
-	// 兼容历史行为：未传总数时，页码最大限制为 20。
-	if len(count) == 0 {
-		if page > 20 {
-			return 1
-		}
-		return page
-	}
-
-	total := count[0]
-	if total <= 0 {
+	if count <= 0 {
 		return 1
 	}
 
 	limit := p.GetLimit()
-	max := (total + limit - 1) / limit
+	max := (count + limit - 1) / limit
 	if page > max {
 		return max
 	}
@@ -65,8 +56,8 @@ func (p PageInfo) GetLimit() int {
 	return p.Limit
 }
 
-func (p PageInfo) GetOffset(count ...int) int {
-	return (p.GetPage(count...) - 1) * p.GetLimit()
+func (p PageInfo) GetOffset(count int) int {
+	return (p.GetPage(count) - 1) * p.GetLimit()
 }
 
 type Options struct {

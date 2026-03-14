@@ -30,6 +30,7 @@ func Run() {
 	SitemsgRouter(nr)
 	GlobalNotifRouter(nr)
 	FollowRouter(nr)
+	SearchRouter(nr)
 
 	addr := global.Config.System.Addr()
 	r.Run(addr)
