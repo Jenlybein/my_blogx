@@ -45,6 +45,7 @@ func setupSitemsgEnv(t *testing.T) *models.UserModel {
 		&models.UserModel{},
 		&models.UserConfModel{},
 		&models.ArticleMessageModel{},
+		&models.ChatSessionModel{},
 		&models.GlobalNotifModel{},
 		&models.UserGlobalNotifModel{},
 	)
@@ -81,6 +82,15 @@ func TestSitemsgUserViewCountsUnreadGlobalNotif(t *testing.T) {
 	}
 	if err := db.Create(&msgs).Error; err != nil {
 		t.Fatalf("创建站内消息失败: %v", err)
+	}
+
+	chatSessions := []models.ChatSessionModel{
+		{SessionID: "chat:1:2", UserID: user.ID, ReceiverID: 2, UnreadCount: 2},
+		{SessionID: "chat:1:3", UserID: user.ID, ReceiverID: 3, UnreadCount: 1},
+		{SessionID: "chat:4:5", UserID: user.ID, ReceiverID: 4, UnreadCount: 0},
+	}
+	if err := db.Create(&chatSessions).Error; err != nil {
+		t.Fatalf("创建聊天会话失败: %v", err)
 	}
 
 	notifs := []models.GlobalNotifModel{
@@ -135,6 +145,9 @@ func TestSitemsgUserViewCountsUnreadGlobalNotif(t *testing.T) {
 	}
 	if int(data["digg_favor_msg_count"].(float64)) != 1 {
 		t.Fatalf("点赞/收藏未读数异常, body=%s", w.Body.String())
+	}
+	if int(data["private_msg_count"].(float64)) != 3 {
+		t.Fatalf("私信未读数异常, body=%s", w.Body.String())
 	}
 	if int(data["system_msg_count"].(float64)) != 2 {
 		t.Fatalf("系统消息未读数应包含1条站内系统消息和1条全局通知, body=%s", w.Body.String())

@@ -32,7 +32,14 @@ func (SitemsgApi) SitemsgUserView(c *gin.Context) {
 		}
 	}
 
-	// TODO:计算未读的私信总数
+	// 计算未读的私信总数
+	if err := global.DB.Model(&models.ChatSessionModel{}).
+		Where("user_id = ? AND unread_count > 0", claims.UserID).
+		Select("COALESCE(SUM(unread_count), 0)").
+		Scan(&data.PrivateMsgCount).Error; err != nil {
+		res.FailWithError(err, c)
+		return
+	}
 
 	// 算未读的全局消息
 	state, err := global_notif_api.LoadUserGlobalNotifState(claims.UserID, nil)
