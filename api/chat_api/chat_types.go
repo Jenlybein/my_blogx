@@ -63,3 +63,11 @@ type ChatMsgResponse struct {
 	IsRead     bool                    `json:"is_read"`
 	DeletedAt  *time.Time              `json:"deleted_at,omitempty"`
 }
+
+type ChatMsgReadPush struct {
+	MsgType   chat_msg_enum.MsgType `json:"msg_type"`
+	SessionID string                `json:"session_id"`
+	ReaderID  uint                  `json:"reader_id"`
+	MsgIDList []uint                `json:"msg_id_list"`
+	ReadAt    time.Time             `json:"read_at"`
+}

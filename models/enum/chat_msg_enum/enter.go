@@ -2,7 +2,7 @@ package chat_msg_enum
 
 type MsgType int8
 
-// 1-文本 2-图片 3-语音 4-视频 5-文件 6-表情 7-Markdown
+// 1-文本 2-图片 3-语音 4-视频 5-文件 6-表情 7-Markdown 8-已读通知
 const (
 	MsgTypeText MsgType = iota + 1
 	MsgTypeImage
@@ -11,6 +11,7 @@ const (
 	MsgTypeFile
 	MsgTypeEmoji
 	MsgTypeMarkdown
+	MsgTypeRead
 )
 
 type MsgStatus int8

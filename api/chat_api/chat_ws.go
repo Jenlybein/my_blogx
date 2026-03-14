@@ -194,10 +194,10 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		}
 
 		// DEBUG：给自己也发一份
-		if err := res.SendConnOkWithData(item, conn, chatWSWriteWait); err != nil {
-			global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
-			return
-		}
+		// if err := res.SendConnOkWithData(item, conn, chatWSWriteWait); err != nil {
+		// 	global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+		// 	return
+		// }
 	}
 }
 

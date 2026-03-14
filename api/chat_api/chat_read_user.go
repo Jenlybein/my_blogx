@@ -7,6 +7,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum/chat_msg_enum"
+	"myblogx/service/chat_service"
 	"myblogx/utils/jwts"
 	"time"
 
@@ -26,7 +27,7 @@ func (ChatApi) ChatMsgReadUserView(c *gin.Context) {
 	}
 
 	var msgList []models.ChatMsgModel
-	if err := global.DB.Select("id", "session_id").
+	if err := global.DB.Select("id", "session_id", "sender_id", "receiver_id").
 		Find(&msgList, "id IN ? AND receiver_id = ? AND msg_status < ?", cr.MsgIDList, claims.UserID, chat_msg_enum.MsgStatusRead).Error; err != nil {
 		res.FailWithError(err, c)
 		return
@@ -37,8 +38,17 @@ func (ChatApi) ChatMsgReadUserView(c *gin.Context) {
 	}
 
 	now := time.Now()
-	msgIDList := extractChatMsgIDs(msgList)
-	sessionUnreadDelta := buildChatSessionUnreadDelta(msgList)
+
+	// 从消息列表中提取主键 id，供批量更新消息状态使用
+	msgIDList := make([]uint, 0, len(msgList))
+
+	// 统计本次每个会话实际减少的未读数量
+	sessionUnreadDelta := make(map[string]int, len(msgList))
+
+	for _, item := range msgList {
+		msgIDList = append(msgIDList, item.ID)
+		sessionUnreadDelta[item.SessionID]++
+	}
 
 	err := global.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&models.ChatMsgModel{}).
@@ -56,25 +66,47 @@ func (ChatApi) ChatMsgReadUserView(c *gin.Context) {
 		return
 	}
 
+	// WS 推送已读回执
+	pushMap := buildChatMsgReadPushMap(msgList, claims.UserID, now)
+	for senderID, pushList := range pushMap {
+		for _, push := range pushList {
+			successCount := res.SendWsMsg(push, chat_service.GetOnlineUserStore(), senderID)
+			if successCount == 0 {
+				global.Logger.Infof("聊天已读回执未推送到在线连接 sender_id=%d session_id=%s", senderID, push.SessionID)
+			}
+		}
+	}
+
 	res.OkWithMsg(fmt.Sprintf("批量标记已读%d条消息", len(msgList)), c)
 }
 
-// 从消息列表中提取主键 id，供批量更新消息状态使用。
-func extractChatMsgIDs(msgList []models.ChatMsgModel) []uint {
-	idList := make([]uint, 0, len(msgList))
+// buildChatMsgReadPushMap 按发送方和会话维度整理已读回执，避免一条消息触发一条 ws 推送。
+func buildChatMsgReadPushMap(msgList []models.ChatMsgModel, readerID uint, readAt time.Time) map[uint][]ChatMsgReadPush {
+	groupMap := make(map[uint]map[string][]uint)
 	for _, item := range msgList {
-		idList = append(idList, item.ID)
+		sessionMap, ok := groupMap[item.SenderID]
+		if !ok {
+			sessionMap = make(map[string][]uint)
+			groupMap[item.SenderID] = sessionMap
+		}
+		sessionMap[item.SessionID] = append(sessionMap[item.SessionID], item.ID)
 	}
-	return idList
-}
 
-// 统计本次每个会话实际减少的未读数量。
-func buildChatSessionUnreadDelta(msgList []models.ChatMsgModel) map[string]int {
-	deltaMap := make(map[string]int, len(msgList))
-	for _, item := range msgList {
-		deltaMap[item.SessionID]++
+	pushMap := make(map[uint][]ChatMsgReadPush, len(groupMap))
+	for senderID, sessionMap := range groupMap {
+		pushList := make([]ChatMsgReadPush, 0, len(sessionMap))
+		for sessionID, msgIDList := range sessionMap {
+			pushList = append(pushList, ChatMsgReadPush{
+				MsgType:   chat_msg_enum.MsgTypeRead,
+				SessionID: sessionID,
+				ReaderID:  readerID,
+				MsgIDList: msgIDList,
+				ReadAt:    readAt,
+			})
+		}
+		pushMap[senderID] = pushList
 	}
-	return deltaMap
+	return pushMap
 }
 
 // 按本次批量已读命中的消息数量递减会话未读数，保证未读数不会减成负数。

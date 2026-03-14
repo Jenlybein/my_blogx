@@ -12,10 +12,12 @@ import (
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/models/enum/chat_msg_enum"
+	"myblogx/service/chat_service"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 )
 
@@ -32,7 +34,7 @@ type chatListPayload struct {
 
 type chatMsgListPayload struct {
 	List  []ChatMsgResponse `json:"list"`
-	Count int                   `json:"count"`
+	Count int               `json:"count"`
 }
 
 func TestChatSessionDeleteUserView(t *testing.T) {
@@ -450,6 +452,91 @@ func TestChatMsgReadUserView(t *testing.T) {
 	}
 	if sessionB.UnreadCount != 0 {
 		t.Fatalf("会话B未读数应重算为 0, got=%d", sessionB.UnreadCount)
+	}
+}
+
+func TestChatMsgReadUserViewPushesReadReceiptToSender(t *testing.T) {
+	api := ChatApi{}
+	users := setupChatListEnv(t)
+
+	serverConn, clientConn := mustNewChatAPITestWebSocketPair(t)
+	defer clientConn.Close()
+
+	onlineConn := chat_service.NewChatConn(users.friendA.ID, serverConn)
+	store := chat_service.GetOnlineUserStore()
+	store.Register(onlineConn)
+	defer store.Unregister(onlineConn)
+	defer onlineConn.Close()
+
+	session := models.ChatSessionModel{
+		SessionID:      "chat:1:2",
+		UserID:         users.owner.ID,
+		ReceiverID:     users.friendA.ID,
+		UnreadCount:    1,
+		LastMsgTime:    timePtr(time.Now()),
+		LastMsgID:      1,
+		LastMsgContent: "m1",
+	}
+	if err := global.DB.Create(&session).Error; err != nil {
+		t.Fatalf("创建会话失败: %v", err)
+	}
+
+	msg := models.ChatMsgModel{
+		SessionID:  "chat:1:2",
+		SenderID:   users.friendA.ID,
+		ReceiverID: users.owner.ID,
+		Content:    "m1",
+		MsgStatus:  chat_msg_enum.MsgStatusSend,
+		SendTime:   time.Now(),
+	}
+	if err := global.DB.Create(&msg).Error; err != nil {
+		t.Fatalf("创建消息失败: %v", err)
+	}
+
+	c, w := newChatMsgReadCtx(t, users.owner, ChatMsgReadUserRequest{
+		MsgIDList: []uint{msg.ID},
+	})
+	api.ChatMsgReadUserView(c)
+
+	resp := readChatListResponse(t, w)
+	if resp.Code != 0 {
+		t.Fatalf("批量已读应成功, body=%s", w.Body.String())
+	}
+
+	if err := clientConn.SetReadDeadline(time.Now().Add(3 * time.Second)); err != nil {
+		t.Fatalf("设置读取超时失败: %v", err)
+	}
+	_, payload, err := clientConn.ReadMessage()
+	if err != nil {
+		t.Fatalf("发送方应收到已读回执: %v", err)
+	}
+
+	var wsResp chatListTestResponse
+	if err := json.Unmarshal(payload, &wsResp); err != nil {
+		t.Fatalf("解析 ws 响应失败: %v payload=%s", err, string(payload))
+	}
+	if wsResp.Code != 0 {
+		t.Fatalf("ws 回执 code 错误: %+v", wsResp)
+	}
+
+	var push ChatMsgReadPush
+	if err := json.Unmarshal(wsResp.Data, &push); err != nil {
+		t.Fatalf("解析已读回执失败: %v body=%s", err, string(payload))
+	}
+	if push.MsgType != chat_msg_enum.MsgTypeRead {
+		t.Fatalf("回执类型错误: %+v", push)
+	}
+	if push.ReaderID != users.owner.ID {
+		t.Fatalf("ReaderID 错误: %+v", push)
+	}
+	if push.SessionID != "chat:1:2" {
+		t.Fatalf("SessionID 错误: %+v", push)
+	}
+	if len(push.MsgIDList) != 1 || push.MsgIDList[0] != msg.ID {
+		t.Fatalf("MsgIDList 错误: %+v", push)
+	}
+	if push.ReadAt.IsZero() {
+		t.Fatalf("ReadAt 不应为空: %+v", push)
 	}
 }
 
@@ -946,5 +1033,40 @@ func readChatMsgListResponse(t *testing.T, w *httptest.ResponseRecorder) struct 
 		Code: resp.Code,
 		Data: payload,
 		Msg:  resp.Msg,
+	}
+}
+
+func mustNewChatAPITestWebSocketPair(t *testing.T) (*websocket.Conn, *websocket.Conn) {
+	t.Helper()
+
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
+	serverConnCh := make(chan *websocket.Conn, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			t.Errorf("升级 ws 失败: %v", err)
+			return
+		}
+		serverConnCh <- conn
+	}))
+	t.Cleanup(srv.Close)
+
+	wsURL := "ws" + srv.URL[len("http"):]
+	clientConn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("拨号 ws 失败: %v", err)
+	}
+
+	select {
+	case serverConn := <-serverConnCh:
+		t.Cleanup(func() {
+			_ = serverConn.Close()
+		})
+		return serverConn, clientConn
+	case <-time.After(3 * time.Second):
+		t.Fatal("等待服务端 ws 连接超时")
+		return nil, nil
 	}
 }
