@@ -50,7 +50,7 @@ func (r *ChatSendReservation) Rollback() error {
 // CheckAndReserveChatSend 统一处理聊天发送前的权限校验与 Redis 额度预占。
 func CheckAndReserveChatSend(senderID uint, receiver *models.UserModel) (*ChatSendReservation, error) {
 	// 关系权限校验
-	// 陌生人：如果用户设置接收陌生人消息才允许发送
+	// 陌生人：如果用户设置接收陌生人消息才允许发送，每周只允许发一条消息
 	// 好友：好友之间可以互发消息
 	// 粉丝：若关注者未回复，粉丝每周可以向关注者发送 3 条消息
 	// 关注者：若粉丝未回复，关注者每周可以向粉丝发送 3 条消息
@@ -97,12 +97,29 @@ func CheckAndReserveChatSend(senderID uint, receiver *models.UserModel) (*ChatSe
 		now:               now,
 	}
 
-	// 如果是好友关系直接返回，非好友的单向关系则进入下一层判断
-	if relation != relationship_enum.RelationFans && relation != relationship_enum.RelationFollowed {
+	// 给自己发消息和好友关系不走自然周配额限制。
+	if senderID == receiver.ID || relation == relationship_enum.RelationFriend {
 		return reservation, nil
 	}
 
-	weekReservation, allowed, err := redis_chat.ReserveChatWeekQuota(senderID, receiver.ID, now)
+	// 陌生人：对方开启陌生人私信后，每自然周只允许发 1 条消息。
+	if relation == relationship_enum.RelationStranger {
+		weekReservation, allowed, err := redis_chat.ReserveChatWeekQuota(senderID, receiver.ID, 1, now)
+		if err != nil {
+			_ = reservation.Rollback()
+			return nil, err
+		}
+		if !allowed {
+			_ = reservation.Rollback()
+			return nil, errors.New("本周只允许向陌生人发送 1 条消息")
+		}
+
+		reservation.weekReservation = weekReservation
+		return reservation, nil
+	}
+
+	// 单向关系(仅关注，仅粉丝，非好友)的每周聊天次数限制。
+	weekReservation, allowed, err := redis_chat.ReserveChatWeekQuota(senderID, receiver.ID, 3, now)
 	if err != nil {
 		_ = reservation.Rollback()
 		return nil, err

@@ -11,6 +11,8 @@ import (
 )
 
 const (
+	// chatStrangerWeekQuotaLimit 表示陌生人在自然周内最多允许发送 1 条消息。
+	chatStrangerWeekQuotaLimit = 1
 	// chatWeekQuotaLimit 表示单向关注关系在自然周内、未被对方回复前最多允许发送 3 条消息。
 	chatWeekQuotaLimit = 3
 )
@@ -60,12 +62,12 @@ func (r *WeekQuotaReservation) Release() error {
 	return err
 }
 
-// ReserveChatWeekQuota 尝试为单向关系消息预占自然周配额。
+// ReserveChatWeekQuota 尝试为一条消息预占自然周配额。
 // 返回值说明：
 // 1. reservation 非空且 allowed=true：预占成功；
 // 2. reservation 为空且 allowed=false：本周额度已满；
 // 3. err 非空：Redis 执行异常。
-func ReserveChatWeekQuota(senderID, receiverID uint, now time.Time) (*WeekQuotaReservation, bool, error) {
+func ReserveChatWeekQuota(senderID, receiverID uint, limit int, now time.Time) (*WeekQuotaReservation, bool, error) {
 	if global.Redis == nil {
 		return nil, false, fmt.Errorf("redis 未初始化")
 	}
@@ -79,7 +81,7 @@ func ReserveChatWeekQuota(senderID, receiverID uint, now time.Time) (*WeekQuotaR
 	// 执行脚本，对应 Key 的数字加 1，过期时间设置到本周结束
 	current, err := chatWeekQuotaReserveScript.Run(context.Background(), global.Redis,
 		[]string{key},
-		chatWeekQuotaLimit,
+		limit,
 		weekEnd.Unix(),
 	).Int64()
 	if err != nil {

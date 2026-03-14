@@ -50,6 +50,26 @@ func TestValidateChatSendPermissionStrangerDependsOnReceiverConfig(t *testing.T)
 	}
 }
 
+func TestValidateChatSendPermissionStrangerLimitedByWeeklyQuota(t *testing.T) {
+	users := setupChatWSPermissionEnv(t)
+
+	firstReservation, err := validateChatSendPermission(users.sender.ID, &users.receiver)
+	if err != nil {
+		t.Fatalf("陌生人首条消息应允许: %v", err)
+	}
+	if err := firstReservation.Commit(); err != nil {
+		t.Fatalf("提交陌生人首条预占失败: %v", err)
+	}
+
+	secondReservation, err := validateChatSendPermission(users.sender.ID, &users.receiver)
+	if err == nil || err.Error() != "本周只允许向陌生人发送 1 条消息" {
+		t.Fatalf("陌生人每周第二条应受限, got=%v", err)
+	}
+	if secondReservation != nil {
+		t.Fatal("陌生人周配额受限时不应返回预占对象")
+	}
+}
+
 func TestValidateChatSendPermissionLimitedByWeeklyQuotaUntilReply(t *testing.T) {
 	users := setupChatWSPermissionEnv(t)
 	createFollowRelation(t, users.sender.ID, users.receiver.ID)
@@ -65,7 +85,7 @@ func TestValidateChatSendPermissionLimitedByWeeklyQuotaUntilReply(t *testing.T) 
 	}
 
 	reservation, err := validateChatSendPermission(users.sender.ID, &users.receiver)
-	if err == nil || err.Error() != "本周可发送消息次数已达上限，请等待对方回复" {
+	if err == nil || err.Error() != "本周可发送消息次数已达上限，对方回复后才可以继续发送消息" {
 		t.Fatalf("单向关系超过自然周 3 条应受限, got=%v", err)
 	}
 	if reservation != nil {
@@ -110,6 +130,8 @@ func TestValidateChatSendPermissionFriendAlwaysAllowed(t *testing.T) {
 
 func TestValidateChatSendPermissionSessionMinuteLimit(t *testing.T) {
 	users := setupChatWSPermissionEnv(t)
+	createFollowRelation(t, users.sender.ID, users.receiver.ID)
+	createFollowRelation(t, users.receiver.ID, users.sender.ID)
 
 	for i := 0; i < 30; i++ {
 		reservation, err := validateChatSendPermission(users.sender.ID, &users.receiver)

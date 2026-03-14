@@ -71,7 +71,7 @@ func TestReserveChatWeekQuotaAndReset(t *testing.T) {
 	now := time.Date(2026, 3, 11, 10, 0, 0, 0, time.Local)
 
 	for i := 0; i < 3; i++ {
-		reservation, allowed, err := redis_chat.ReserveChatWeekQuota(1, 2, now)
+		reservation, allowed, err := redis_chat.ReserveChatWeekQuota(1, 2, 3, now)
 		if err != nil {
 			t.Fatalf("第 %d 次自然周配额预占失败: %v", i+1, err)
 		}
@@ -80,7 +80,7 @@ func TestReserveChatWeekQuotaAndReset(t *testing.T) {
 		}
 	}
 
-	reservation, allowed, err := redis_chat.ReserveChatWeekQuota(1, 2, now)
+	reservation, allowed, err := redis_chat.ReserveChatWeekQuota(1, 2, 3, now)
 	if err != nil {
 		t.Fatalf("第 4 次自然周配额检测失败: %v", err)
 	}
@@ -92,11 +92,33 @@ func TestReserveChatWeekQuotaAndReset(t *testing.T) {
 		t.Fatalf("重置自然周配额失败: %v", err)
 	}
 
-	reservation, allowed, err = redis_chat.ReserveChatWeekQuota(1, 2, now)
+	reservation, allowed, err = redis_chat.ReserveChatWeekQuota(1, 2, 3, now)
 	if err != nil {
 		t.Fatalf("重置后再次预占失败: %v", err)
 	}
 	if reservation == nil || !allowed {
 		t.Fatalf("重置后应重新允许发送, reservation=%v allowed=%v", reservation, allowed)
+	}
+}
+
+// TestReserveChatWeekQuotaWithStrangerLimit 验证陌生人自然周额度为 1 条。
+func TestReserveChatWeekQuotaWithStrangerLimit(t *testing.T) {
+	_ = testutil.SetupMiniRedis(t)
+	now := time.Date(2026, 3, 11, 10, 0, 0, 0, time.Local)
+
+	reservation, allowed, err := redis_chat.ReserveChatWeekQuota(1, 2, 1, now)
+	if err != nil {
+		t.Fatalf("陌生人首条自然周配额预占失败: %v", err)
+	}
+	if reservation == nil || !allowed {
+		t.Fatalf("陌生人首条消息应允许, reservation=%v allowed=%v", reservation, allowed)
+	}
+
+	reservation, allowed, err = redis_chat.ReserveChatWeekQuota(1, 2, 1, now)
+	if err != nil {
+		t.Fatalf("陌生人第二条自然周配额检测失败: %v", err)
+	}
+	if reservation != nil || allowed {
+		t.Fatalf("陌生人每周第二条应受限, reservation=%v allowed=%v", reservation, allowed)
 	}
 }
