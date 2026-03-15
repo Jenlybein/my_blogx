@@ -5,6 +5,7 @@ import (
 
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_tag"
 
 	"gorm.io/gorm"
@@ -58,6 +59,14 @@ func extractTagIDs(tags []models.TagModel) []uint {
 		ids = append(ids, tag.ID)
 	}
 	return ids
+}
+
+func extractTagTitles(tags []models.TagModel) ctype.List {
+	titles := make(ctype.List, 0, len(tags))
+	for _, tag := range tags {
+		titles = append(titles, tag.Title)
+	}
+	return titles
 }
 
 func loadArticleTagIDs(db *gorm.DB, articleID uint) ([]uint, error) {

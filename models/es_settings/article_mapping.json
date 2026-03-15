@@ -72,6 +72,9 @@
       "favor_count": {
         "type": "integer"
       },
+      "tag_list": {
+        "type": "keyword"
+      },
       "status": {
         "type": "integer"
       },

@@ -261,6 +261,9 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 	if err := db.Order("id desc").First(&created).Error; err != nil {
 		t.Fatalf("查询创建文章失败: %v", err)
 	}
+	if len(created.TagList) != 1 || created.TagList[0] != tag.Title {
+		t.Fatalf("创建文章后 tag_list 未正确回写: %+v", created.TagList)
+	}
 
 	var relationCount int64
 	if err := db.Model(&models.ArticleTagModel{}).
@@ -287,6 +290,12 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("更新文章失败, code=%d body=%s", code, w.Body.String())
 		}
+	}
+	if err := db.Take(&created, created.ID).Error; err != nil {
+		t.Fatalf("回查更新后的文章失败: %v", err)
+	}
+	if len(created.TagList) != 1 || created.TagList[0] != tag.Title {
+		t.Fatalf("更新文章后 tag_list 未正确回写: %+v", created.TagList)
 	}
 
 	{

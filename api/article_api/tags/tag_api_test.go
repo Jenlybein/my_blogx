@@ -147,3 +147,49 @@ func TestTagCRUDAndOptions(t *testing.T) {
 		}
 	}
 }
+
+func TestTagUpdateSyncsArticleTagList(t *testing.T) {
+	admin := setupTagEnv(t)
+	api := TagsApi{}
+	claims := &jwts.MyClaims{Claims: jwts.Claims{UserID: admin.ID, Role: enum.RoleAdmin, Username: admin.Username}}
+
+	tag := models.TagModel{Title: "Golang", IsEnabled: true}
+	if err := global.DB.Create(&tag).Error; err != nil {
+		t.Fatalf("创建标签失败: %v", err)
+	}
+
+	article := models.ArticleModel{
+		Title:    "article-with-tag",
+		Content:  "content",
+		AuthorID: admin.ID,
+		Status:   enum.ArticleStatusPublished,
+		TagList:  []string{"Golang"},
+	}
+	if err := global.DB.Create(&article).Error; err != nil {
+		t.Fatalf("创建文章失败: %v", err)
+	}
+	if err := global.DB.Create(&models.ArticleTagModel{ArticleID: article.ID, TagID: tag.ID}).Error; err != nil {
+		t.Fatalf("创建文章标签关系失败: %v", err)
+	}
+
+	{
+		c, w := newCtx()
+		c.Set("claims", claims)
+		c.Set("requestJson", TagRequest{
+			ID:    tag.ID,
+			Title: "Go",
+		})
+		api.TagCreateUpdateView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("更新标签失败, body=%s", w.Body.String())
+		}
+	}
+
+	var updated models.ArticleModel
+	if err := global.DB.Take(&updated, article.ID).Error; err != nil {
+		t.Fatalf("回查文章失败: %v", err)
+	}
+	if len(updated.TagList) != 1 || updated.TagList[0] != "Go" {
+		t.Fatalf("标签改名后文章 tag_list 未同步: %+v", updated.TagList)
+	}
+}

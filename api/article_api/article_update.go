@@ -13,8 +13,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
-
 func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 	id := middleware.GetBindUri[models.IDRequest](c)
 	cr := middleware.GetBindJson[ArticleUpdateRequest](c)
@@ -62,6 +60,7 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 		"category_id":     cr.CategoryID,
 		"cover":           cr.Cover,
 		"comments_toggle": cr.CommentsToggle,
+		"tag_list":        extractTagTitles(tagList),
 	}
 
 	if !global.Config.Site.Article.SkipExamining && article.Status == enum.ArticleStatusPublished {

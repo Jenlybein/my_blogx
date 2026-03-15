@@ -13,8 +13,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
-
 func (ArticleApi) ArticleCreateView(c *gin.Context) {
 	cr := middleware.GetBindJson[ArticleCreateRequest](c)
 	claims := jwts.MustGetClaimsByGin(c)
@@ -56,6 +54,7 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 		Cover:          cr.Cover,
 		CommentsToggle: cr.CommentsToggle,
 		Status:         cr.Status,
+		TagList:        extractTagTitles(tagList),
 	}
 
 	if global.Config.Site.Article.SkipExamining && cr.Status == enum.ArticleStatusExamining {

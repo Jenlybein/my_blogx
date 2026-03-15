@@ -6,10 +6,12 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/utils/jwts"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func (TagsApi) TagCreateUpdateView(c *gin.Context) {
@@ -52,6 +54,7 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 		res.FailWithMsg("标签不存在", c)
 		return
 	}
+	oldTitle := tag.Title
 	if cr.IsEnabled != nil {
 		isEnabled = *cr.IsEnabled
 	} else {
@@ -63,12 +66,20 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 		return
 	}
 
-	if err := global.DB.Model(&tag).Updates(map[string]any{
-		"title":       title,
-		"sort":        cr.Sort,
-		"description": cr.Description,
-		"is_enabled":  isEnabled,
-	}).Error; err != nil {
+	if err := global.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&tag).Updates(map[string]any{
+			"title":       title,
+			"sort":        cr.Sort,
+			"description": cr.Description,
+			"is_enabled":  isEnabled,
+		}).Error; err != nil {
+			return err
+		}
+		if oldTitle != title {
+			return syncArticleTagListByTagID(tx, tag.ID)
+		}
+		return nil
+	}); err != nil {
 		res.FailWithMsg(fmt.Sprintf("更新标签失败: %v", err), c)
 		return
 	}
@@ -84,6 +95,49 @@ func ensureTagUnique(currentID uint, title string) error {
 	}
 	if count > 0 {
 		return fmt.Errorf("标签名称重复")
+	}
+	return nil
+}
+
+func syncArticleTagListByTagID(tx *gorm.DB, tagID uint) error {
+	var relationList []models.ArticleTagModel
+	if err := tx.Select("article_id").Where("tag_id = ?", tagID).Find(&relationList).Error; err != nil {
+		return err
+	}
+	if len(relationList) == 0 {
+		return nil
+	}
+
+	articleIDs := make([]uint, 0, len(relationList))
+	seen := make(map[uint]struct{}, len(relationList))
+	for _, relation := range relationList {
+		if _, ok := seen[relation.ArticleID]; ok {
+			continue
+		}
+		seen[relation.ArticleID] = struct{}{}
+		articleIDs = append(articleIDs, relation.ArticleID)
+	}
+
+	var articleList []models.ArticleModel
+	if err := tx.Select("id").
+		Where("id IN ?", articleIDs).
+		Preload("Tags", func(db *gorm.DB) *gorm.DB {
+			return db.Order("sort desc, id asc")
+		}).
+		Find(&articleList).Error; err != nil {
+		return err
+	}
+
+	for _, article := range articleList {
+		tagList := make(ctype.List, 0, len(article.Tags))
+		for _, item := range article.Tags {
+			tagList = append(tagList, item.Title)
+		}
+		if err := tx.Model(&models.ArticleModel{}).
+			Where("id = ?", article.ID).
+			Update("tag_list", tagList).Error; err != nil {
+			return err
+		}
 	}
 	return nil
 }
