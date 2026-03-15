@@ -7,6 +7,31 @@ import (
 	"testing"
 )
 
+func TestBuildDefaultArticleSearchQueryOnlyPublished(t *testing.T) {
+	query := buildDefaultArticleSearchQuery("golang")
+	boolQuery, ok := query["bool"].(map[string]any)
+	if !ok {
+		t.Fatalf("bool 查询结构错误: %#v", query)
+	}
+
+	filters, ok := boolQuery["filter"].([]any)
+	if !ok || len(filters) != 1 {
+		t.Fatalf("过滤条件异常: %#v", boolQuery["filter"])
+	}
+
+	term, ok := filters[0].(map[string]any)
+	if !ok {
+		t.Fatalf("term 过滤结构错误: %#v", filters[0])
+	}
+	statusTerm, ok := term["term"].(map[string]any)
+	if !ok {
+		t.Fatalf("status term 结构错误: %#v", term)
+	}
+	if statusTerm["status"] != enum.ArticleStatusPublished {
+		t.Fatalf("搜索应只查询已发布文章，当前状态条件=%#v", statusTerm["status"])
+	}
+}
+
 func TestBuildLikeTagsQueryWithoutUserConf(t *testing.T) {
 	testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.TagModel{})
 
@@ -81,12 +106,14 @@ func TestExtractArticleSearchResults(t *testing.T) {
 			map[string]any{
 				"_source": map[string]any{
 					"id":       1,
-					"title":    "go search",
+					"title":    "go search article",
 					"abstract": "hello world",
+					"tag_list": []any{"Go", "ES"},
 				},
 				"highlight": map[string]any{
 					"title":        []any{"<em>go</em> search"},
-					"html_content": []any{"prefix <em>go</em> suffix"},
+					"abstract":     []any{"<em>hello</em> world", "another <em>piece</em>"},
+					"html_content": []any{"prefix <em>go</em> suffix", "second <em>segment</em>"},
 				},
 			},
 		},
@@ -96,13 +123,23 @@ func TestExtractArticleSearchResults(t *testing.T) {
 	if len(list) != 1 {
 		t.Fatalf("结果数量错误: %d", len(list))
 	}
-	if list[0].ID != 1 || list[0].Title != "go search" {
+	if list[0].ID != 1 || list[0].Title != "<em>go</em> search article" {
 		t.Fatalf("文章解析错误: %+v", list[0])
 	}
-	if len(list[0].Highlight["title"]) != 1 || list[0].Highlight["title"][0] != "<em>go</em> search" {
-		t.Fatalf("标题高亮解析错误: %+v", list[0].Highlight)
+	if list[0].Abstract != "<em>hello</em> world another <em>piece</em>" {
+		t.Fatalf("摘要高亮回填错误: %+v", list[0])
 	}
-	if len(list[0].Highlight["html_content"]) != 1 {
-		t.Fatalf("正文高亮解析错误: %+v", list[0].Highlight)
+	if list[0].HtmlContent != "prefix <em>go</em> suffix second <em>segment</em>" {
+		t.Fatalf("正文高亮回填错误: %+v", list[0])
+	}
+	if len(list[0].Tags) != 2 || list[0].Tags[0] != "Go" {
+		t.Fatalf("标签解析错误: %+v", list[0].Tags)
+	}
+}
+
+func TestMergeTitleHighlight(t *testing.T) {
+	title := mergeTitleHighlight("go search article", "<em>go</em> search")
+	if title != "<em>go</em> search article" {
+		t.Fatalf("标题高亮嵌入错误: %s", title)
 	}
 }

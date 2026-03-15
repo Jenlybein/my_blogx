@@ -11,9 +11,13 @@
       "analyzer": {
         "ik_html_analyzer": {
           "type": "custom",
-          "char_filter": ["my_html_strip"],
+          "char_filter": [
+            "my_html_strip"
+          ],
           "tokenizer": "ik_max_word",
-          "filter": ["lowercase"]
+          "filter": [
+            "lowercase"
+          ]
         }
       }
     }
@@ -40,8 +44,7 @@
         }
       },
       "abstract": {
-        "type": "text",
-        "index": false
+        "type": "text"
       },
       "html_content": {
         "type": "text",

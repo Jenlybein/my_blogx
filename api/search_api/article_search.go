@@ -65,6 +65,8 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 
 // buildDefaultArticleSearchQuery 构建默认文章搜索查询
 func buildDefaultArticleSearchQuery(key string) map[string]any {
+	// 只能查已发布的文章
+
 	key = strings.TrimSpace(key)
 
 	boolQuery := map[string]any{
@@ -141,6 +143,7 @@ func buildArticleSearchExtraBody(sortField string) map[string]any {
 				},
 			},
 		},
+		// 高亮，用<em>标签包裹
 		"highlight": map[string]any{
 			"pre_tags":  []string{"<em>"},
 			"post_tags": []string{"</em>"},
@@ -159,9 +162,9 @@ func buildArticleSearchExtraBody(sortField string) map[string]any {
 }
 
 // extractArticleSearchResults 提取文章搜索结果
-func extractArticleSearchResults(data map[string]any) (list []ArticleSearchResponse) {
+func extractArticleSearchResults(data map[string]any) (list []SearchListResponse) {
 	hits, _ := data["hits"].([]any)
-	list = make([]ArticleSearchResponse, 0, len(hits))
+	list = make([]SearchListResponse, 0, len(hits))
 
 	for _, hit := range hits {
 		item, ok := hit.(map[string]any)
@@ -175,33 +178,57 @@ func extractArticleSearchResults(data map[string]any) (list []ArticleSearchRespo
 			_ = json.Unmarshal(jsonBytes, &article)
 		}
 
+		// 处理高亮，获取第一个高亮字段
 		highlightMap, _ := item["highlight"].(map[string]any)
-		var highlightResult map[string][]string
+		title := article.Title
+		abstract := article.Abstract
+		htmlContent := article.HtmlContent
 		if len(highlightMap) > 0 {
-			highlightResult = make(map[string][]string, len(highlightMap))
-			for field, rawList := range highlightMap {
-				values, ok := rawList.([]any)
-				if !ok {
-					continue
-				}
-				for _, rawValue := range values {
-					value, ok := rawValue.(string)
-					if !ok {
-						continue
-					}
-					highlightResult[field] = append(highlightResult[field], value)
-				}
+			if values := extractHighlightValues(highlightMap, "title"); len(values) > 0 {
+				title = values[0]
 			}
-			if len(highlightResult) == 0 {
-				highlightResult = nil
+			if values := extractHighlightValues(highlightMap, "abstract"); len(values) > 0 {
+				abstract = values[0]
+			}
+			if values := extractHighlightValues(highlightMap, "html_content"); len(values) > 0 {
+				htmlContent = values[0]
 			}
 		}
 
-		list = append(list, ArticleSearchResponse{
-			ArticleModel: article,
-			Highlight:    highlightResult,
+		list = append(list, SearchListResponse{
+			ID:             article.ID,
+			CreatedAt:      article.CreatedAt,
+			UpdatedAt:      article.UpdatedAt,
+			Title:          title,
+			Abstract:       abstract,
+			HtmlContent:    htmlContent,
+			Cover:          article.Cover,
+			ViewCount:      article.ViewCount,
+			DiggCount:      article.DiggCount,
+			CommentCount:   article.CommentCount,
+			FavorCount:     article.FavorCount,
+			CommentsToggle: article.CommentsToggle,
+			Status:         article.Status,
+			Tags:           []string(article.TagList),
 		})
 	}
 
 	return
+}
+
+func extractHighlightValues(highlightMap map[string]any, field string) []string {
+	rawList, ok := highlightMap[field].([]any)
+	if !ok {
+		return nil
+	}
+
+	result := make([]string, 0, len(rawList))
+	for _, rawValue := range rawList {
+		value, ok := rawValue.(string)
+		if !ok {
+			continue
+		}
+		result = append(result, value)
+	}
+	return result
 }
