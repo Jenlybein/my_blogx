@@ -42,7 +42,15 @@ func Run(op *FlagOptions, db *gorm.DB) {
 	}
 
 	if op.ES {
-		FlagESIndex()
+		switch op.Sub {
+		case "init":
+			FlagESIndex()
+			os.Exit(0)
+		case "article-sync":
+			FlagESArticleSync()
+			os.Exit(0)
+		}
+		fmt.Println("未知子操作类型")
 		os.Exit(0)
 	}
 
@@ -58,4 +66,5 @@ func Run(op *FlagOptions, db *gorm.DB) {
 			os.Exit(1)
 		}
 	}
+
 }

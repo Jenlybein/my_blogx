@@ -81,13 +81,13 @@ type ArticleListResponse struct {
 }
 
 type ArticleUpdateRequest struct {
-	Title          string `json:"title" binding:"required"`
-	Abstract       string `json:"abstract"`
-	Content        string `json:"content" binding:"required"`
-	CategoryID     *uint  `json:"category_id"`
-	TagIDs         []uint `json:"tag_ids"`
-	Cover          string `json:"cover"`
-	CommentsToggle bool   `json:"comments_toggle"`
+	Title          *string `json:"title"`
+	Abstract       *string `json:"abstract"`
+	Content        *string `json:"content"`
+	CategoryID     *uint   `json:"category_id"`
+	TagIDs         *[]uint `json:"tag_ids"`
+	Cover          *string `json:"cover"`
+	CommentsToggle *bool   `json:"comments_toggle"`
 }
 
 type ArticleViewCountRequest struct {

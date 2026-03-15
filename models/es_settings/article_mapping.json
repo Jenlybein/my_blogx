@@ -43,9 +43,6 @@
         "type": "text",
         "index": false
       },
-      "content": {
-        "type": "text"
-      },
       "html_content": {
         "type": "text",
         "analyzer": "ik_html_analyzer",

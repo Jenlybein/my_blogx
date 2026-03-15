@@ -7,7 +7,6 @@ import (
 	"myblogx/api/article_api/favorite"
 	"myblogx/api/article_api/tags"
 	"myblogx/api/article_api/view_history"
-	"myblogx/middleware"
 	mw "myblogx/middleware"
 	"myblogx/models"
 
@@ -26,7 +25,8 @@ func ArticleRouter(r *gin.RouterGroup) {
 	group.GET(":id", mw.BindUri[models.IDRequest], app.ArticleDetailView)
 	authGroup.POST("", mw.BindJson[article_api.ArticleCreateRequest], app.ArticleCreateView)
 	authGroup.PUT(":id", mw.BindUri[models.IDRequest], mw.BindJson[article_api.ArticleUpdateRequest], app.ArticleUpdateView)
-	authGroup.DELETE(":id", middleware.BindUri[models.IDRequest], app.ArticleRemoveUserView)
+	authGroup.DELETE(":id", mw.BindUri[models.IDRequest], app.ArticleRemoveUserView)
+	adminGroup.DELETE("", mw.BindJson[models.IDListRequest], app.ArticleRemoveView)
 
 	group.POST("view", mw.BindJson[article_api.ArticleViewCountRequest], app.ArticleVisitView)
 	authGroup.PUT(":id/digg", mw.BindUri[models.IDRequest], app.ArticleDiggView)
@@ -51,9 +51,8 @@ func ArticleRouter(r *gin.RouterGroup) {
 	authGroup.GET("category/options", app.CategoryOptionsView)
 
 	// 标签
+	group.GET("tags", mw.BindQuery[tags.TagListRequest], app.TagListView)
 	authGroup.GET("tags/options", app.ArticleTagOptionsView)
-	adminGroup.DELETE("", mw.BindJson[models.IDListRequest], app.ArticleRemoveView)
-	adminGroup.GET("tags", mw.BindQuery[tags.TagListRequest], app.TagListView)
 	adminGroup.PUT("tags", mw.BindJson[tags.TagRequest], app.TagCreateUpdateView)
 	adminGroup.DELETE("tags", mw.BindJson[models.IDListRequest], app.TagDeleteView)
 }

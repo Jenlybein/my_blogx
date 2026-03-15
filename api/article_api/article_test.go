@@ -45,6 +45,10 @@ func readBody(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
 	return body
 }
 
+func ptrOf[T any](v T) *T {
+	return &v
+}
+
 func setupArticleEnv(t *testing.T) *models.UserModel {
 	t.Helper()
 	_ = testutil.SetupMiniRedis(t)
@@ -280,11 +284,11 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 		c.Set("claims", claims)
 		c.Set("requestUri", models.IDRequest{ID: created.ID})
 		c.Set("requestJson", ArticleUpdateRequest{
-			Title:          "t1-updated",
-			Content:        "new content",
+			Title:          ptrOf("t1-updated"),
+			Content:        ptrOf("new content"),
 			CategoryID:     &cat.ID,
-			TagIDs:         []uint{tag.ID},
-			CommentsToggle: false,
+			TagIDs:         &[]uint{tag.ID},
+			CommentsToggle: ptrOf(false),
 		})
 		api.ArticleUpdateView(c)
 		if code := readCode(t, w); code != 0 {
@@ -329,6 +333,138 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("删除文章失败, code=%d body=%s", code, w.Body.String())
 		}
+	}
+}
+
+func TestArticleUpdateViewOnlyUpdatesProvidedFields(t *testing.T) {
+	user := setupArticleEnv(t)
+	db := global.DB
+
+	cat := models.CategoryModel{Title: "go", UserID: user.ID}
+	if err := db.Create(&cat).Error; err != nil {
+		t.Fatalf("创建分类失败: %v", err)
+	}
+	tag := models.TagModel{Title: "Golang", IsEnabled: true}
+	if err := db.Create(&tag).Error; err != nil {
+		t.Fatalf("创建标签失败: %v", err)
+	}
+
+	article := models.ArticleModel{
+		Title:          "old title",
+		Abstract:       "manual abstract",
+		Content:        "old content",
+		HtmlContent:    "<p>old content</p>",
+		CategoryID:     &cat.ID,
+		Cover:          "old-cover",
+		AuthorID:       user.ID,
+		CommentsToggle: true,
+		Status:         enum.ArticleStatusExamining,
+		TagList:        []string{tag.Title},
+	}
+	if err := db.Create(&article).Error; err != nil {
+		t.Fatalf("创建文章失败: %v", err)
+	}
+	if err := db.Create(&models.ArticleTagModel{ArticleID: article.ID, TagID: tag.ID}).Error; err != nil {
+		t.Fatalf("创建文章标签关系失败: %v", err)
+	}
+
+	api := ArticleApi{}
+	claims := &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Role: enum.RoleUser, Username: user.Username}}
+
+	{
+		c, w := newCtx()
+		c.Set("claims", claims)
+		c.Set("requestUri", models.IDRequest{ID: article.ID})
+		c.Set("requestJson", ArticleUpdateRequest{
+			Content: ptrOf("new content"),
+		})
+		api.ArticleUpdateView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("部分更新文章失败, code=%d body=%s", code, w.Body.String())
+		}
+	}
+
+	if err := db.Take(&article, article.ID).Error; err != nil {
+		t.Fatalf("回查更新后的文章失败: %v", err)
+	}
+	if article.Title != "old title" {
+		t.Fatalf("未传 title 不应更新, got=%s", article.Title)
+	}
+	if article.Abstract != "manual abstract" {
+		t.Fatalf("未传 abstract 不应更新, got=%s", article.Abstract)
+	}
+	if article.Content != "new content" {
+		t.Fatalf("已传 content 应更新, got=%s", article.Content)
+	}
+	if article.Cover != "old-cover" {
+		t.Fatalf("未传 cover 不应更新, got=%s", article.Cover)
+	}
+	if !article.CommentsToggle {
+		t.Fatal("未传 comments_toggle 不应更新")
+	}
+	if article.CategoryID == nil || *article.CategoryID != cat.ID {
+		t.Fatalf("未传 category_id 不应更新, got=%v", article.CategoryID)
+	}
+	if len(article.TagList) != 1 || article.TagList[0] != tag.Title {
+		t.Fatalf("未传 tag_ids 不应更新标签列表, got=%+v", article.TagList)
+	}
+	if article.HtmlContent == "" {
+		t.Fatal("已传 content 时 html_content 应同步更新")
+	}
+
+	var relationCount int64
+	if err := db.Model(&models.ArticleTagModel{}).
+		Where("article_id = ? AND tag_id = ?", article.ID, tag.ID).
+		Count(&relationCount).Error; err != nil {
+		t.Fatalf("查询文章标签关系失败: %v", err)
+	}
+	if relationCount != 1 {
+		t.Fatalf("未传 tag_ids 不应更新标签关系, count=%d", relationCount)
+	}
+}
+
+func TestArticleUpdateViewCategoryIDZeroClearsCategory(t *testing.T) {
+	user := setupArticleEnv(t)
+	db := global.DB
+
+	cat := models.CategoryModel{Title: "go", UserID: user.ID}
+	if err := db.Create(&cat).Error; err != nil {
+		t.Fatalf("创建分类失败: %v", err)
+	}
+
+	article := models.ArticleModel{
+		Title:      "old title",
+		Content:    "old content",
+		CategoryID: &cat.ID,
+		AuthorID:   user.ID,
+		Status:     enum.ArticleStatusExamining,
+	}
+	if err := db.Create(&article).Error; err != nil {
+		t.Fatalf("创建文章失败: %v", err)
+	}
+
+	api := ArticleApi{}
+	claims := &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Role: enum.RoleUser, Username: user.Username}}
+	clearID := uint(0)
+
+	{
+		c, w := newCtx()
+		c.Set("claims", claims)
+		c.Set("requestUri", models.IDRequest{ID: article.ID})
+		c.Set("requestJson", ArticleUpdateRequest{
+			CategoryID: &clearID,
+		})
+		api.ArticleUpdateView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("清空文章分类失败, code=%d body=%s", code, w.Body.String())
+		}
+	}
+
+	if err := db.Take(&article, article.ID).Error; err != nil {
+		t.Fatalf("回查清空分类后的文章失败: %v", err)
+	}
+	if article.CategoryID != nil {
+		t.Fatalf("传 category_id=0 应清空分类, got=%v", *article.CategoryID)
 	}
 }
 

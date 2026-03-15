@@ -29,55 +29,92 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 		return
 	}
 
-	oldTagIDs, err := loadArticleTagIDs(global.DB, article.ID)
-	if err != nil {
-		res.FailWithMsg("查询文章标签失败", c)
+	updateMap := map[string]any{}
+
+	if cr.Title != nil {
+		updateMap["title"] = *cr.Title
+	}
+	if cr.Content != nil {
+		updateMap["content"] = *cr.Content
+		updateMap["html_content"] = markdown.MdToHTMLSafe(*cr.Content)
+	}
+	if cr.Abstract != nil {
+		abstract := *cr.Abstract
+		if abstract == "" {
+			content := article.Content
+			if cr.Content != nil {
+				content = *cr.Content
+			}
+			textContent := markdown.MdToText(content)
+			abstract = markdown.ExtractText(textContent, 200)
+		}
+		updateMap["abstract"] = abstract
+	}
+
+	if cr.CategoryID != nil {
+		if *cr.CategoryID == 0 {
+			updateMap["category_id"] = nil
+		} else {
+			if err := validateArticleCategory(global.DB, claims.UserID, cr.CategoryID); err != nil {
+				res.FailWithMsg("分类不存在", c)
+				return
+			}
+			updateMap["category_id"] = cr.CategoryID
+		}
+	}
+	if cr.Cover != nil {
+		updateMap["cover"] = *cr.Cover
+	}
+	if cr.CommentsToggle != nil {
+		updateMap["comments_toggle"] = *cr.CommentsToggle
+	}
+
+	var (
+		tagList   []models.TagModel
+		oldTagIDs []uint
+		newTagIDs []uint
+		err       error
+	)
+	if cr.TagIDs != nil {
+		oldTagIDs, err = loadArticleTagIDs(global.DB, article.ID)
+		if err != nil {
+			res.FailWithMsg("查询文章标签失败", c)
+			return
+		}
+
+		tagList, err = loadEnabledTagsByIDs(global.DB, *cr.TagIDs)
+		if err != nil {
+			res.FailWithMsg(err.Error(), c)
+			return
+		}
+		updateMap["tag_list"] = extractTagTitles(tagList)
+		newTagIDs = extractTagIDs(tagList)
+	}
+
+	if len(updateMap) == 0 {
+		res.OkWithMsg("更新文章成功", c)
 		return
-	}
-
-	if err := validateArticleCategory(global.DB, claims.UserID, cr.CategoryID); err != nil {
-		res.FailWithMsg("分类不存在", c)
-		return
-	}
-
-	tagList, err := loadEnabledTagsByIDs(global.DB, cr.TagIDs)
-	if err != nil {
-		res.FailWithMsg(err.Error(), c)
-		return
-	}
-
-	htmlContent := markdown.MdToHTMLSafe(cr.Content)
-	if cr.Abstract == "" {
-		textContent := markdown.MdToText(cr.Content)
-		cr.Abstract = markdown.ExtractText(textContent, 200)
-	}
-
-	updateMap := map[string]any{
-		"title":           cr.Title,
-		"abstract":        cr.Abstract,
-		"content":         cr.Content,
-		"html_content":    htmlContent,
-		"category_id":     cr.CategoryID,
-		"cover":           cr.Cover,
-		"comments_toggle": cr.CommentsToggle,
-		"tag_list":        extractTagTitles(tagList),
 	}
 
 	if !global.Config.Site.Article.SkipExamining && article.Status == enum.ArticleStatusPublished {
 		updateMap["status"] = enum.ArticleStatusExamining
 	}
 
-	newTagIDs := extractTagIDs(tagList)
 	if err := global.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&article).Updates(updateMap).Error; err != nil {
 			return err
 		}
-		return tx.Model(&article).Association("Tags").Replace(tagList)
+		if cr.TagIDs != nil {
+			return tx.Model(&article).Association("Tags").Replace(tagList)
+		}
+		return nil
 	}); err != nil {
 		res.FailWithMsg("更新文章失败", c)
 		return
 	}
 
-	applyTagArticleCountDelta(buildTagArticleCountDelta(oldTagIDs, newTagIDs))
+	if cr.TagIDs != nil {
+		applyTagArticleCountDelta(buildTagArticleCountDelta(oldTagIDs, newTagIDs))
+	}
 	res.OkWithMsg("更新文章成功", c)
 }
