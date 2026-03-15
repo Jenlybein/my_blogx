@@ -161,9 +161,14 @@ func CreateDocument(index string, data any) ESResponse {
 }
 
 // Search 分页查询封装
-func Search[T any](index string, page, limit int, query map[string]any) ESResponse {
+func Search[T any](index string, page, limit int, query map[string]any, extraBody ...map[string]any) ESResponse {
 	from := (page - 1) * limit
 	searchBody := map[string]any{"from": from, "size": limit, "query": query}
+	if len(extraBody) > 0 {
+		for key, value := range extraBody[0] {
+			searchBody[key] = value
+		}
+	}
 	body, _ := json.Marshal(searchBody)
 
 	req := esapi.SearchRequest{

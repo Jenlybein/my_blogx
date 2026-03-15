@@ -1,6 +1,7 @@
 package profile_api
 
 import (
+	"encoding/json"
 	"fmt"
 	"myblogx/common/res"
 	"myblogx/global"
@@ -15,15 +16,15 @@ import (
 )
 
 type UserInfoUpdateRequest struct {
-	Username            *string   `json:"username"`
-	Nickname            *string   `json:"nickname"`
-	Avatar              *string   `json:"avatar"`
-	Abstract            *string   `json:"abstract"`
-	LikeTags            *[]string `json:"like_tags"`
-	FavoritesVisibility *bool     `json:"favorites_visibility"`
-	FollowVisibility    *bool     `json:"followers_visibility"`
-	FansVisibility      *bool     `json:"fans_visibility"`
-	HomeStyleID         *uint     `json:"home_style_id"`
+	Username            *string `json:"username"`
+	Nickname            *string `json:"nickname"`
+	Avatar              *string `json:"avatar"`
+	Abstract            *string `json:"abstract"`
+	LikeTags            *[]uint `json:"like_tags"`
+	FavoritesVisibility *bool   `json:"favorites_visibility"`
+	FollowVisibility    *bool   `json:"followers_visibility"`
+	FansVisibility      *bool   `json:"fans_visibility"`
+	HomeStyleID         *uint   `json:"home_style_id"`
 }
 
 func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
@@ -38,6 +39,20 @@ func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
 	if err != nil {
 		res.FailWithError(err, c)
 		return
+	}
+
+	if cr.LikeTags != nil {
+		tagIDs, err := validateLikeTagIDs(*cr.LikeTags)
+		if err != nil {
+			res.FailWithMsg(err.Error(), c)
+			return
+		}
+		likeTagsJSON, err := json.Marshal(tagIDs)
+		if err != nil {
+			res.FailWithMsg("偏好标签格式错误", c)
+			return
+		}
+		confMap["like_tags"] = string(likeTagsJSON)
 	}
 
 	claims := jwts.MustGetClaimsByGin(c)
@@ -103,4 +118,38 @@ func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
 	}
 
 	res.OkWithMsg("用户信息更新成功", c)
+}
+
+func validateLikeTagIDs(tagIDs []uint) ([]uint, error) {
+	normalized := normalizeUintIDs(tagIDs)
+	if len(normalized) == 0 {
+		return []uint{}, nil
+	}
+
+	var count int64
+	if err := global.DB.Model(&models.TagModel{}).
+		Where("id IN ? AND is_enabled = ?", normalized, true).
+		Count(&count).Error; err != nil {
+		return nil, err
+	}
+	if count != int64(len(normalized)) {
+		return nil, fmt.Errorf("偏好标签不存在或已停用")
+	}
+	return normalized, nil
+}
+
+func normalizeUintIDs(ids []uint) []uint {
+	result := make([]uint, 0, len(ids))
+	seen := make(map[uint]struct{}, len(ids))
+	for _, id := range ids {
+		if id == 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		result = append(result, id)
+	}
+	return result
 }

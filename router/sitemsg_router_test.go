@@ -37,6 +37,7 @@ func setupSitemsgRouterEnv(t *testing.T) (*models.UserModel, string) {
 		t,
 		&models.UserModel{},
 		&models.UserConfModel{},
+		&models.ChatSessionModel{},
 		&models.ArticleMessageModel{},
 		&models.GlobalNotifModel{},
 		&models.UserGlobalNotifModel{},
