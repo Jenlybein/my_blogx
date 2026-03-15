@@ -17,7 +17,6 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	// TODO:检测是不是真的用得上 es_service.ExtractArticles ？
 
 	resp := es_service.Search[map[string]any](
 		models.ArticleModel{}.Index(),

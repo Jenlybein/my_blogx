@@ -1,6 +1,7 @@
 package flags_test
 
 import (
+	"flag"
 	"myblogx/conf"
 	"myblogx/flags"
 	"myblogx/global"
@@ -27,6 +28,46 @@ func withStdin(t *testing.T, input string, fn func()) {
 		_ = r.Close()
 	})
 	fn()
+}
+
+func TestParse(t *testing.T) {
+	oldCommandLine := flag.CommandLine
+	oldArgs := os.Args
+	defer func() {
+		flag.CommandLine = oldCommandLine
+		os.Args = oldArgs
+	}()
+
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	os.Args = []string{"cmd", "-f", "custom.yaml", "-db"}
+
+	op := flags.Parse()
+	if op.File != "custom.yaml" {
+		t.Fatalf("File 解析错误: %s", op.File)
+	}
+	if !op.DB {
+		t.Fatal("DB 标志解析错误")
+	}
+}
+
+func TestRunNoOp(t *testing.T) {
+	testutil.InitGlobals()
+	flags.Run(&flags.FlagOptions{}, nil)
+}
+
+func TestFlagDB(t *testing.T) {
+	db := testutil.SetupSQLite(t)
+	flags.FlagDB(db)
+
+	if !db.Migrator().HasTable(&models.UserModel{}) {
+		t.Fatal("UserModel 表未迁移")
+	}
+	if !db.Migrator().HasTable(&models.ArticleModel{}) {
+		t.Fatal("ArticleModel 表未迁移")
+	}
+	if !db.Migrator().HasTable(&models.LogModel{}) {
+		t.Fatal("LogModel 表未迁移")
+	}
 }
 
 func TestFlagESIndexNoOp(t *testing.T) {
