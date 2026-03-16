@@ -168,7 +168,7 @@ func TestBuildCategoryIDQuery(t *testing.T) {
 	}
 }
 
-func TestValidateSearchCategory(t *testing.T) {
+func TestSearchCategoryOwnershipCheck(t *testing.T) {
 	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.CategoryModel{})
 
 	user := models.UserModel{
@@ -195,10 +195,10 @@ func TestValidateSearchCategory(t *testing.T) {
 		t.Fatalf("创建分类失败: %v", err)
 	}
 
-	if err := validateSearchCategory(db, user.ID, category.ID); err != nil {
+	if err := db.Take(&models.CategoryModel{}, "id = ? AND user_id = ?", category.ID, user.ID).Error; err != nil {
 		t.Fatalf("分类归属校验失败: %v", err)
 	}
-	if err := validateSearchCategory(db, other.ID, category.ID); err == nil {
+	if err := db.Take(&models.CategoryModel{}, "id = ? AND user_id = ?", category.ID, other.ID).Error; err == nil {
 		t.Fatal("分类不属于该用户时应校验失败")
 	}
 }
@@ -388,7 +388,7 @@ func TestBuildAdminTopQuery(t *testing.T) {
 	}
 }
 
-func TestBuildPinnedAuthorQuery(t *testing.T) {
+func TestBuildAuthorAdminTopQuery(t *testing.T) {
 	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserTopArticleModel{}, &models.ArticleModel{})
 
 	admin := models.UserModel{

@@ -56,6 +56,7 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 	if len(cr.TagList) > 0 {
 		query = buildTagListQuery(query, cr.TagList)
 	}
+
 	if cr.CategoryID != 0 {
 		if cr.Type != 3 && cr.Type != 4 {
 			res.FailWithMsg("只有作者文章和自己文章支持按分类搜索", c)
@@ -65,7 +66,7 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 			res.FailWithMsg("按分类搜索必须传 user_id", c)
 			return
 		}
-		if err := validateSearchCategory(global.DB, cr.UserID, cr.CategoryID); err != nil {
+		if err := global.DB.Take(models.CategoryModel{}, "id = ? AND user_id = ?", cr.CategoryID, cr.UserID).Error; err != nil {
 			res.FailWithMsg("分类不存在或不属于该用户", c)
 			return
 		}
