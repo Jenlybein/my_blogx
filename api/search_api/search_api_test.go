@@ -143,6 +143,66 @@ func TestBuildTagListQueryWithTags(t *testing.T) {
 	}
 }
 
+func TestBuildAdminTopQuery(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserTopArticleModel{})
+
+	admin := models.UserModel{
+		Username: "admin1",
+		Password: "x",
+		Nickname: "admin",
+		Role:     enum.RoleAdmin,
+	}
+	user := models.UserModel{
+		Username: "user1",
+		Password: "x",
+		Nickname: "user",
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(&admin).Error; err != nil {
+		t.Fatalf("创建管理员失败: %v", err)
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("创建普通用户失败: %v", err)
+	}
+
+	adminTop := models.UserTopArticleModel{UserID: admin.ID, ArticleID: 101}
+	userTop := models.UserTopArticleModel{UserID: user.ID, ArticleID: 202}
+	if err := db.Create(&adminTop).Error; err != nil {
+		t.Fatalf("创建管理员置顶失败: %v", err)
+	}
+	if err := db.Create(&userTop).Error; err != nil {
+		t.Fatalf("创建普通用户置顶失败: %v", err)
+	}
+
+	query := buildDefaultArticleSearchQuery("")
+	query = buildAdminTopQuery(query)
+
+	boolQuery, ok := extractSearchBoolQuery(query)
+	if !ok {
+		t.Fatalf("bool 查询结构错误: %#v", query)
+	}
+	should, ok := boolQuery["should"].([]any)
+	if !ok || len(should) != 1 {
+		t.Fatalf("管理员置顶加权条件异常: %#v", boolQuery["should"])
+	}
+
+	terms, ok := should[0].(map[string]any)
+	if !ok {
+		t.Fatalf("管理员置顶 terms 结构错误: %#v", should[0])
+	}
+	idTerms, ok := terms["terms"].(map[string]any)
+	if !ok {
+		t.Fatalf("管理员置顶条件异常: %#v", terms)
+	}
+	values, ok := idTerms["id"].([]uint)
+	if !ok || len(values) != 1 || values[0] != 101 {
+		t.Fatalf("管理员置顶文章 ID 异常: %#v", idTerms["id"])
+	}
+	if idTerms["boost"] != 100 {
+		t.Fatalf("管理员置顶 boost 异常: %#v", idTerms["boost"])
+	}
+}
+
 func TestBuildArticleSearchExtraBody(t *testing.T) {
 	extraBody := buildArticleSearchExtraBody("view_count")
 	sortList, ok := extraBody["sort"].([]any)

@@ -120,14 +120,43 @@ func buildLikeTagsQuery(query map[string]any, userID uint) map[string]any {
 	if !ok {
 		return query
 	}
-	boolQuery["should"] = []any{
-		map[string]any{
-			"terms": map[string]any{
-				"tag_list": likeTagTitles,
-				"boost":    2,
-			},
+
+	should, _ := boolQuery["should"].([]any)
+	should = append(should, map[string]any{
+		"terms": map[string]any{
+			"tag_list": likeTagTitles,
+			"boost":    2,
 		},
+	})
+	boolQuery["should"] = should
+
+	return query
+}
+
+func buildAdminTopQuery(query map[string]any) map[string]any {
+	var articleIDs []uint
+	if err := global.DB.Model(&models.UserTopArticleModel{}).
+		Distinct("user_top_article_models.article_id").
+		Joins("JOIN user_models ON user_models.id = user_top_article_models.user_id").
+		Where("user_models.role = ?", enum.RoleAdmin).
+		Order("user_top_article_models.created_at desc").
+		Pluck("user_top_article_models.article_id", &articleIDs).Error; err != nil || len(articleIDs) == 0 {
+		return query
 	}
+
+	boolQuery, ok := extractSearchBoolQuery(query)
+	if !ok {
+		return query
+	}
+
+	should, _ := boolQuery["should"].([]any)
+	should = append(should, map[string]any{
+		"terms": map[string]any{
+			"id":    articleIDs,
+			"boost": 100,
+		},
+	})
+	boolQuery["should"] = should
 
 	return query
 }
@@ -272,6 +301,7 @@ func extractHighlightValues(highlightMap map[string]any, field string) []string 
 	return result
 }
 
+// extractSearchBoolQuery 提取搜索 bool 查询
 func extractSearchBoolQuery(query map[string]any) (map[string]any, bool) {
 	functionScore, ok := query["function_score"].(map[string]any)
 	if !ok {

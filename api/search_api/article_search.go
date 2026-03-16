@@ -41,6 +41,10 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 		query = buildTagListQuery(query, cr.TagList)
 	}
 
+	if cr.Key == "" {
+		query = buildAdminTopQuery(query)
+	}
+
 	resp := es_service.Search[map[string]any](
 		models.ArticleModel{}.Index(),
 		page,
