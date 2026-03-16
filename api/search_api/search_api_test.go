@@ -167,6 +167,66 @@ func TestBuildUserIDQuery(t *testing.T) {
 	}
 }
 
+func TestBuildSelfArticleSearchQueryDefaultStatus(t *testing.T) {
+	query := buildSelfArticleSearchQuery("golang", 99, 0)
+
+	boolQuery, ok := extractSearchBoolQuery(query)
+	if !ok {
+		t.Fatalf("bool 查询结构错误: %#v", query)
+	}
+
+	filters, ok := boolQuery["filter"].([]any)
+	if !ok || len(filters) != 1 {
+		t.Fatalf("我的文章过滤条件异常: %#v", boolQuery["filter"])
+	}
+	term, ok := filters[0].(map[string]any)
+	if !ok {
+		t.Fatalf("作者 term 结构错误: %#v", filters[0])
+	}
+	authorTerm, ok := term["term"].(map[string]any)
+	if !ok || authorTerm["author_id"] != uint(99) {
+		t.Fatalf("我的文章作者过滤错误: %#v", term)
+	}
+
+	mustNot, ok := boolQuery["must_not"].([]any)
+	if !ok || len(mustNot) != 1 {
+		t.Fatalf("我的文章默认应排除已删除状态: %#v", boolQuery["must_not"])
+	}
+	statusTerm, ok := mustNot[0].(map[string]any)
+	if !ok {
+		t.Fatalf("must_not 结构错误: %#v", mustNot[0])
+	}
+	statusValue, ok := statusTerm["term"].(map[string]any)
+	if !ok || statusValue["status"] != enum.ArticleStatusDeleted {
+		t.Fatalf("我的文章默认状态过滤错误: %#v", statusTerm)
+	}
+}
+
+func TestBuildSelfArticleSearchQueryWithStatus(t *testing.T) {
+	query := buildSelfArticleSearchQuery("", 99, enum.ArticleStatusDraft)
+
+	boolQuery, ok := extractSearchBoolQuery(query)
+	if !ok {
+		t.Fatalf("bool 查询结构错误: %#v", query)
+	}
+
+	filters, ok := boolQuery["filter"].([]any)
+	if !ok || len(filters) != 2 {
+		t.Fatalf("我的文章指定状态过滤条件异常: %#v", boolQuery["filter"])
+	}
+	statusFilter, ok := filters[1].(map[string]any)
+	if !ok {
+		t.Fatalf("状态过滤结构错误: %#v", filters[1])
+	}
+	statusTerm, ok := statusFilter["term"].(map[string]any)
+	if !ok || statusTerm["status"] != enum.ArticleStatusDraft {
+		t.Fatalf("我的文章指定状态过滤错误: %#v", statusFilter)
+	}
+	if _, ok = boolQuery["must_not"]; ok {
+		t.Fatalf("指定状态后不应再保留默认排除条件: %#v", boolQuery["must_not"])
+	}
+}
+
 func TestBuildAdminTopQuery(t *testing.T) {
 	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserTopArticleModel{})
 
@@ -327,6 +387,12 @@ func TestBuildPinnedAuthorQuery(t *testing.T) {
 }
 
 func TestBuildArticleSearchExtraBody(t *testing.T) {
+	defaultExtraBody := buildArticleSearchExtraBody("")
+	defaultSortList, ok := defaultExtraBody["sort"].([]any)
+	if !ok || len(defaultSortList) != 1 {
+		t.Fatalf("默认排序条件异常: %#v", defaultExtraBody["sort"])
+	}
+
 	extraBody := buildArticleSearchExtraBody("view_count")
 	sortList, ok := extraBody["sort"].([]any)
 	if !ok || len(sortList) != 2 {

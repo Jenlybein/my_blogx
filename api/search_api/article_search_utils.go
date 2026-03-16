@@ -11,9 +11,7 @@ import (
 
 // buildDefaultArticleSearchQuery 构建默认文章搜索查询
 func buildDefaultArticleSearchQuery(key string) map[string]any {
-	key = strings.TrimSpace(key)
-
-	boolQuery := map[string]any{
+	return buildArticleSearchQuery(key, map[string]any{
 		"filter": []any{
 			map[string]any{
 				"term": map[string]any{
@@ -21,7 +19,46 @@ func buildDefaultArticleSearchQuery(key string) map[string]any {
 				},
 			},
 		},
+	})
+}
+
+// buildSelfArticleSearchQuery 构建“我的文章”搜索查询。
+// 默认查询当前用户除已删除外的全部文章；如果显式传入状态，则按指定状态精确筛选。
+func buildSelfArticleSearchQuery(key string, userID uint, status enum.ArticleStatus) map[string]any {
+	boolQuery := map[string]any{
+		"filter": []any{
+			map[string]any{
+				"term": map[string]any{
+					"author_id": userID,
+				},
+			},
+		},
 	}
+
+	if status != 0 {
+		filters, _ := boolQuery["filter"].([]any)
+		boolQuery["filter"] = append(filters, map[string]any{
+			"term": map[string]any{
+				"status": status,
+			},
+		})
+	} else {
+		boolQuery["must_not"] = []any{
+			map[string]any{
+				"term": map[string]any{
+					"status": enum.ArticleStatusDeleted,
+				},
+			},
+		}
+	}
+
+	return buildArticleSearchQuery(key, boolQuery)
+}
+
+// buildArticleSearchQuery 构建文章搜索查询。
+// boolQuery 负责业务筛选条件，关键词匹配和综合评分在这里统一追加。
+func buildArticleSearchQuery(key string, boolQuery map[string]any) map[string]any {
+	key = strings.TrimSpace(key)
 
 	if key != "" {
 		boolQuery["must"] = []any{
@@ -189,19 +226,23 @@ func buildTagListQuery(query map[string]any, tagList []string) map[string]any {
 
 // buildArticleSearchExtraBody 构建文章搜索额外参数
 func buildArticleSearchExtraBody(sortField string) map[string]any {
-	return map[string]any{
-		"sort": []any{
-			map[string]any{
-				"_score": map[string]any{
-					"order": "desc",
-				},
-			},
-			map[string]any{
-				sortField: map[string]any{
-					"order": "desc",
-				},
+	sortList := []any{
+		map[string]any{
+			"_score": map[string]any{
+				"order": "desc",
 			},
 		},
+	}
+	if sortField != "" {
+		sortList = append(sortList, map[string]any{
+			sortField: map[string]any{
+				"order": "desc",
+			},
+		})
+	}
+
+	return map[string]any{
+		"sort": sortList,
 		// 高亮，用<em>标签包裹
 		"highlight": map[string]any{
 			"pre_tags":  []string{"<em>"},

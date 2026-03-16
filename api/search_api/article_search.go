@@ -4,6 +4,7 @@ import (
 	"myblogx/common/res"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/enum"
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
 
@@ -18,18 +19,37 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 	}
 
 	query := buildDefaultArticleSearchQuery(cr.Key)
-	extraBody := buildArticleSearchExtraBody("created_at")
-	topMap := map[uint]int{}
+	topAuthorID := cr.UserID
 
 	switch cr.Type {
-	case 0:
-		extraBody = buildArticleSearchExtraBody("created_at")
 	case 1:
 		claims, err := jwts.ParseTokenByGin(c)
 		if err != nil || claims == nil {
 			break
 		}
 		query = buildLikeTagsQuery(query, claims.UserID)
+	case 2:
+		query = buildTagListQuery(query, cr.TagList)
+	case 3:
+		query = buildUserIDQuery(query, cr.UserID)
+	case 4:
+		claims, err := jwts.ParseTokenByGin(c)
+		if err != nil || claims == nil {
+			res.FailWithMsg("未登录", c)
+			return
+		}
+		if cr.Status == enum.ArticleStatusDeleted {
+			res.FailWithMsg("不能搜索已删除的文章", c)
+			return
+		}
+		topAuthorID = claims.UserID
+		query = buildSelfArticleSearchQuery(cr.Key, claims.UserID, cr.Status)
+	}
+
+	var extraBody map[string]any
+	switch cr.Sort {
+	case 1:
+		extraBody = buildArticleSearchExtraBody("")
 	case 2:
 		extraBody = buildArticleSearchExtraBody("created_at")
 	case 3:
@@ -40,14 +60,11 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 		extraBody = buildArticleSearchExtraBody("favor_count")
 	case 6:
 		extraBody = buildArticleSearchExtraBody("view_count")
-	case 7:
-		query = buildTagListQuery(query, cr.TagList)
-	case 8:
-		query = buildUserIDQuery(query, cr.UserID)
 	}
 
-	if cr.TopSearch && cr.Type == 8 {
-		query, topMap = buildAuthorAdminTopQuery(query, cr.UserID)
+	topMap := map[uint]int{}
+	if cr.TopSearch && (cr.Type == 3 || cr.Type == 4) {
+		query, topMap = buildAuthorAdminTopQuery(query, topAuthorID)
 	} else if cr.TopSearch {
 		query, topMap = buildAdminTopQuery(query)
 	}

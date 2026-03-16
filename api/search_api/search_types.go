@@ -7,14 +7,18 @@ import (
 )
 
 type ArticleSearchRequest struct {
-	// 0 默认搜索 1 猜你喜欢 2 最新发布 3 最多回复
-	// 4 最多点赞 5 最多收藏 6 最多浏览 7 标签匹配
-	// 8 作者文章
-	Type int8 `form:"type" binding:"required,oneof=0 1 2 3 4 5 6 7 8"`
+	// Type
+	// 1 猜你喜欢 2 标签匹配 3 作者文章 4 自己文章
+	// Sort
+	// 1 默认搜索 2 最新发布 3 最多回复
+	// 4 最多点赞 5 最多收藏 6 最多浏览
 	common.PageInfo
-	TagList   []string `form:"tag_list"`
-	UserID    uint     `form:"user_id"`
-	TopSearch bool     `form:"top_search"` // 是否启用置顶优先搜索
+	Type      int8               `form:"type" binding:"required,oneof=0 1 2 3 4"`
+	Sort      int8               `form:"sort" binding:"required,oneof=1 2 3 4 5 6"`
+	TagList   []string           `form:"tag_list"`
+	UserID    uint               `form:"user_id"`
+	TopSearch bool               `form:"top_search"` // 是否启用置顶优先搜索
+	Status    enum.ArticleStatus `form:"status"`
 }
 
 type SearchListResponse struct {
