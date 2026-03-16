@@ -51,6 +51,9 @@
         "analyzer": "ik_html_analyzer",
         "search_analyzer": "ik_smart"
       },
+      "content_head": {
+        "type": "text"
+      },
       "category_id": {
         "type": "integer"
       },

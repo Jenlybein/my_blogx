@@ -28,7 +28,7 @@ type SearchListResponse struct {
 	UpdatedAt      time.Time          `json:"updated_at"`
 	Title          string             `json:"title"`
 	Abstract       string             `json:"abstract"`
-	HtmlContent    string             `json:"html_content"`
+	Content        string             `json:"content"`
 	Cover          string             `json:"cover"`
 	ViewCount      int                `json:"view_count"`
 	DiggCount      int                `json:"digg_count"`

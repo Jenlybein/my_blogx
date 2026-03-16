@@ -331,9 +331,11 @@ func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list
 		// 处理高亮，获取第一个高亮字段
 		highlightMap, _ := item["highlight"].(map[string]any)
 		title := article.Title
-		// TODO: 数据库增加一个字段用于展示文章前200个字，减少返回字数
 		abstract := markdown.ExtractText(article.Abstract, 120)
-		htmlContent := article.HtmlContent
+		contentHead := article.ContentHead
+		if contentHead == "" {
+			contentHead = markdown.ExtractText(article.HtmlContent, 150)
+		}
 		if len(highlightMap) > 0 {
 			if values := extractHighlightValues(highlightMap, "title"); len(values) > 0 {
 				title = values[0]
@@ -342,7 +344,7 @@ func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list
 				abstract = values[0]
 			}
 			if values := extractHighlightValues(highlightMap, "html_content"); len(values) > 0 {
-				htmlContent = values[0]
+				contentHead = values[0]
 			}
 		}
 
@@ -352,7 +354,7 @@ func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list
 			UpdatedAt:      article.UpdatedAt,
 			Title:          title,
 			Abstract:       abstract,
-			HtmlContent:    htmlContent,
+			Content:        contentHead,
 			Cover:          article.Cover,
 			ViewCount:      article.ViewCount,
 			DiggCount:      article.DiggCount,

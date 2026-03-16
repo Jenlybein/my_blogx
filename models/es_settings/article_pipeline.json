@@ -32,6 +32,14 @@
         "field": "html_content",
         "ignore_missing": true
       }
+    },
+    {
+      "script": {
+        "description": "从纯文本正文中提取前150字摘要到 content_head",
+        "lang": "painless",
+        "ignore_failure": true,
+        "source": "if (ctx.containsKey('html_content') && ctx.html_content != null) { String text = ctx.html_content; ctx.content_head = text.length() <= 150 ? text : text.substring(0, 150); }"
+      }
     }
   ]
 }

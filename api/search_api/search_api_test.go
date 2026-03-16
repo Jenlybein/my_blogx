@@ -520,6 +520,7 @@ func TestExtractArticleSearchResults(t *testing.T) {
 					"title":         "go search article",
 					"abstract":      "hello world",
 					"html_content":  "origin html content",
+					"content_head":  "origin content head",
 					"view_count":    10,
 					"digg_count":    20,
 					"favor_count":   30,
@@ -547,8 +548,8 @@ func TestExtractArticleSearchResults(t *testing.T) {
 	if list[0].Abstract != "<em>hello</em> world" {
 		t.Fatalf("摘要高亮回填错误: %+v", list[0])
 	}
-	if list[0].HtmlContent != "prefix <em>go</em> suffix" {
-		t.Fatalf("正文高亮回填错误: %+v", list[0])
+	if list[0].Content != "prefix <em>go</em> suffix" {
+		t.Fatalf("正文摘要回填错误: %+v", list[0])
 	}
 	if len(list[0].Tags) != 2 || list[0].Tags[0] != "Go" {
 		t.Fatalf("标签解析错误: %+v", list[0].Tags)
