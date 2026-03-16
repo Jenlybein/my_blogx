@@ -2,7 +2,6 @@ package search_api
 
 import (
 	"myblogx/common/res"
-	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
@@ -64,10 +63,6 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 		}
 		if cr.UserID == 0 {
 			res.FailWithMsg("按分类搜索必须传 user_id", c)
-			return
-		}
-		if err := global.DB.Take(models.CategoryModel{}, "id = ? AND user_id = ?", cr.CategoryID, cr.UserID).Error; err != nil {
-			res.FailWithMsg("分类不存在或不属于该用户", c)
 			return
 		}
 		query = buildCategoryIDQuery(query, cr.CategoryID)

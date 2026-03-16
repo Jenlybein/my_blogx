@@ -10,6 +10,15 @@ import (
 
 type ArticleCacheType string
 
+// BatchCounters 汇总文章在 Redis 中的实时计数增量。
+// 这些值会叠加到数据库或 ES 中的基础值上，用于列表实时展示。
+type BatchCounters struct {
+	ViewMap    map[uint]int
+	DiggMap    map[uint]int
+	FavorMap   map[uint]int
+	CommentMap map[uint]int
+}
+
 // 文章缓存的Key
 const (
 	ArticleCacheView     ArticleCacheType = "article_view"
@@ -80,31 +89,15 @@ func GetAll(t ArticleCacheType) map[uint]int {
 
 func getBatch(t ArticleCacheType, articleIDs []uint) map[uint]int {
 	result := make(map[uint]int, len(articleIDs))
-	if len(articleIDs) == 0 {
+	if global.Redis == nil || len(articleIDs) == 0 {
 		return result
 	}
 
-	fields := make([]string, 0, len(articleIDs))
-	for _, articleID := range articleIDs {
-		fields = append(fields, strconv.Itoa(int(articleID)))
-	}
-
-	values, err := global.Redis.HMGet(context.Background(), string(t), fields...).Result()
+	values, err := global.Redis.HMGet(context.Background(), string(t), buildBatchFields(articleIDs)...).Result()
 	if err != nil {
 		return result
 	}
-
-	for i, raw := range values {
-		if raw == nil {
-			continue
-		}
-		num, err := strconv.Atoi(fmt.Sprint(raw))
-		if err != nil {
-			continue
-		}
-		result[articleIDs[i]] = num
-	}
-	return result
+	return decodeBatchValues(articleIDs, values)
 }
 
 func GetBatchCacheView(articleIDs []uint) map[uint]int {
@@ -118,6 +111,72 @@ func GetBatchCacheFavorite(articleIDs []uint) map[uint]int {
 }
 func GetBatchCacheComment(articleIDs []uint) map[uint]int {
 	return getBatch(ArticleCacheComment, articleIDs)
+}
+
+// GetBatchCounters 通过一次 Redis Pipeline 批量读取文章的四类计数增量，
+// 减少搜索列表阶段的 Redis 往返次数。
+func GetBatchCounters(articleIDs []uint) BatchCounters {
+	counters := BatchCounters{
+		ViewMap:    make(map[uint]int),
+		DiggMap:    make(map[uint]int),
+		FavorMap:   make(map[uint]int),
+		CommentMap: make(map[uint]int),
+	}
+	if global.Redis == nil || len(articleIDs) == 0 {
+		return counters
+	}
+
+	ctx := context.Background()
+	fields := buildBatchFields(articleIDs)
+	pipe := global.Redis.Pipeline()
+	defer pipe.Close()
+
+	viewCmd := pipe.HMGet(ctx, string(ArticleCacheView), fields...)
+	diggCmd := pipe.HMGet(ctx, string(ArticleCacheDigg), fields...)
+	favorCmd := pipe.HMGet(ctx, string(ArticleCacheFavorite), fields...)
+	commentCmd := pipe.HMGet(ctx, string(ArticleCacheComment), fields...)
+
+	if _, err := pipe.Exec(ctx); err != nil {
+		return counters
+	}
+
+	if values, err := viewCmd.Result(); err == nil {
+		counters.ViewMap = decodeBatchValues(articleIDs, values)
+	}
+	if values, err := diggCmd.Result(); err == nil {
+		counters.DiggMap = decodeBatchValues(articleIDs, values)
+	}
+	if values, err := favorCmd.Result(); err == nil {
+		counters.FavorMap = decodeBatchValues(articleIDs, values)
+	}
+	if values, err := commentCmd.Result(); err == nil {
+		counters.CommentMap = decodeBatchValues(articleIDs, values)
+	}
+
+	return counters
+}
+
+func buildBatchFields(articleIDs []uint) []string {
+	fields := make([]string, 0, len(articleIDs))
+	for _, articleID := range articleIDs {
+		fields = append(fields, strconv.Itoa(int(articleID)))
+	}
+	return fields
+}
+
+func decodeBatchValues(articleIDs []uint, values []any) map[uint]int {
+	result := make(map[uint]int, len(articleIDs))
+	for i, raw := range values {
+		if raw == nil || i >= len(articleIDs) {
+			continue
+		}
+		num, err := strconv.Atoi(fmt.Sprint(raw))
+		if err != nil {
+			continue
+		}
+		result[articleIDs[i]] = num
+	}
+	return result
 }
 
 func GetAllCacheView() map[uint]int {

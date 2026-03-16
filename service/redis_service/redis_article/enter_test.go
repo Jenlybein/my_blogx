@@ -50,6 +50,40 @@ func TestArticleCacheCounters(t *testing.T) {
 	}
 }
 
+func TestGetBatchCounters(t *testing.T) {
+	_ = testutil.SetupMiniRedis(t)
+
+	if err := redis_article.SetCacheView(1, 3); err != nil {
+		t.Fatalf("SetCacheView 失败: %v", err)
+	}
+	if err := redis_article.SetCacheView(2, 5); err != nil {
+		t.Fatalf("SetCacheView 失败: %v", err)
+	}
+	if err := redis_article.SetCacheDigg(1, 2); err != nil {
+		t.Fatalf("SetCacheDigg 失败: %v", err)
+	}
+	if err := redis_article.SetCacheFavorite(2, 4); err != nil {
+		t.Fatalf("SetCacheFavorite 失败: %v", err)
+	}
+	if err := redis_article.SetCacheComment(3, 6); err != nil {
+		t.Fatalf("SetCacheComment 失败: %v", err)
+	}
+
+	counters := redis_article.GetBatchCounters([]uint{1, 2, 3})
+	if counters.ViewMap[1] != 3 || counters.ViewMap[2] != 5 {
+		t.Fatalf("view 批量计数异常: %+v", counters.ViewMap)
+	}
+	if counters.DiggMap[1] != 2 {
+		t.Fatalf("digg 批量计数异常: %+v", counters.DiggMap)
+	}
+	if counters.FavorMap[2] != 4 {
+		t.Fatalf("favorite 批量计数异常: %+v", counters.FavorMap)
+	}
+	if counters.CommentMap[3] != 6 {
+		t.Fatalf("comment 批量计数异常: %+v", counters.CommentMap)
+	}
+}
+
 func TestArticleHistoryCache(t *testing.T) {
 	_ = testutil.SetupMiniRedis(t)
 

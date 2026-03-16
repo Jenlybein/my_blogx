@@ -164,38 +164,37 @@ func TestBuildCategoryIDQuery(t *testing.T) {
 	}
 }
 
-func TestSearchCategoryOwnershipCheck(t *testing.T) {
-	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.CategoryModel{})
+func TestBuildUserAndCategoryFilters(t *testing.T) {
+	query := buildDefaultArticleSearchQuery("golang")
+	query = buildUserIDQuery(query, 88)
+	query = buildCategoryIDQuery(query, 12)
 
-	user := models.UserModel{
-		Username: "cat_user",
-		Password: "x",
-		Nickname: "cat_user",
-		Role:     enum.RoleUser,
-	}
-	other := models.UserModel{
-		Username: "cat_other",
-		Password: "x",
-		Nickname: "cat_other",
-		Role:     enum.RoleUser,
-	}
-	if err := db.Create(&user).Error; err != nil {
-		t.Fatalf("创建用户失败: %v", err)
-	}
-	if err := db.Create(&other).Error; err != nil {
-		t.Fatalf("创建其他用户失败: %v", err)
+	boolQuery, ok := extractSearchBoolQuery(query)
+	if !ok {
+		t.Fatalf("bool 查询结构错误: %#v", query)
 	}
 
-	category := models.CategoryModel{Title: "go", UserID: user.ID}
-	if err := db.Create(&category).Error; err != nil {
-		t.Fatalf("创建分类失败: %v", err)
+	filters, ok := boolQuery["filter"].([]any)
+	if !ok || len(filters) != 3 {
+		t.Fatalf("作者和分类联合过滤条件异常: %#v", boolQuery["filter"])
 	}
 
-	if err := db.Take(&models.CategoryModel{}, "id = ? AND user_id = ?", category.ID, user.ID).Error; err != nil {
-		t.Fatalf("分类归属校验失败: %v", err)
+	authorFilter, ok := filters[1].(map[string]any)
+	if !ok {
+		t.Fatalf("作者过滤结构错误: %#v", filters[1])
 	}
-	if err := db.Take(&models.CategoryModel{}, "id = ? AND user_id = ?", category.ID, other.ID).Error; err == nil {
-		t.Fatal("分类不属于该用户时应校验失败")
+	authorTerm, ok := authorFilter["term"].(map[string]any)
+	if !ok || authorTerm["author_id"] != uint(88) {
+		t.Fatalf("作者过滤条件错误: %#v", authorFilter)
+	}
+
+	categoryFilter, ok := filters[2].(map[string]any)
+	if !ok {
+		t.Fatalf("分类过滤结构错误: %#v", filters[2])
+	}
+	categoryTerm, ok := categoryFilter["term"].(map[string]any)
+	if !ok || categoryTerm["category_id"] != uint(12) {
+		t.Fatalf("分类过滤条件错误: %#v", categoryFilter)
 	}
 }
 

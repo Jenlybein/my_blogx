@@ -49,10 +49,11 @@ func loadSearchArticleCounterMaps(articleIDs []uint) (favorMap, diggMap, viewMap
 		return favorMap, diggMap, viewMap, commentMap
 	}
 
-	favorMap = redis_article.GetBatchCacheFavorite(articleIDs)
-	diggMap = redis_article.GetBatchCacheDigg(articleIDs)
-	viewMap = redis_article.GetBatchCacheView(articleIDs)
-	commentMap = redis_article.GetBatchCacheComment(articleIDs)
+	counters := redis_article.GetBatchCounters(articleIDs)
+	favorMap = counters.FavorMap
+	diggMap = counters.DiggMap
+	viewMap = counters.ViewMap
+	commentMap = counters.CommentMap
 	return favorMap, diggMap, viewMap, commentMap
 }
 
