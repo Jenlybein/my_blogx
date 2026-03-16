@@ -151,6 +151,28 @@ func sourceStringSliceValue(sourceMap map[string]any, key string) []string {
 	}
 }
 
+// sourceTagTitlesValue 从 ES _source 中提取 tags 里的标签标题列表。
+func sourceTagTitlesValue(sourceMap map[string]any, key string) []string {
+	rawList, ok := sourceMap[key].([]any)
+	if !ok {
+		return nil
+	}
+
+	result := make([]string, 0, len(rawList))
+	for _, rawItem := range rawList {
+		itemMap, ok := rawItem.(map[string]any)
+		if !ok {
+			continue
+		}
+		title, _ := itemMap["title"].(string)
+		if title == "" {
+			continue
+		}
+		result = append(result, title)
+	}
+	return result
+}
+
 // sourceArticleStatusValue 从 ES _source 中提取文章状态字段。
 func sourceArticleStatusValue(sourceMap map[string]any, key string) enum.ArticleStatus {
 	return enum.ArticleStatus(sourceIntValue(sourceMap, key))

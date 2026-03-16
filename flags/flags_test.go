@@ -8,6 +8,7 @@ import (
 	"myblogx/conf"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/enum"
 	"myblogx/test/testutil"
 	"net/http"
 	"net/http/httptest"
@@ -173,10 +174,13 @@ func TestBuildArticleESDocument(t *testing.T) {
 		FavorCount:     14,
 		CommentsToggle: true,
 		Status:         3,
-		TagList:        []string{"Go", "Redis"},
+		Tags: []models.TagModel{
+			{Model: models.Model{ID: 1}, Title: "Go"},
+			{Model: models.Model{ID: 2}, Title: "Redis"},
+		},
 	}
 
-	doc := buildArticleESDocument(article)
+	doc := buildArticleESDocument(article, true, false)
 
 	if _, ok := doc["content"]; ok {
 		t.Fatal("content 不应被同步到 ES 文档")
@@ -184,22 +188,51 @@ func TestBuildArticleESDocument(t *testing.T) {
 	if got, ok := doc["comments_toggle"].(int); !ok || got != 1 {
 		t.Fatalf("comments_toggle 应按 integer mapping 转成 1, got=%#v", doc["comments_toggle"])
 	}
-	tagList, ok := doc["tag_list"].([]string)
-	if !ok || len(tagList) != 2 || tagList[0] != "Go" || tagList[1] != "Redis" {
-		t.Fatalf("tag_list 同步结果不正确: %#v", doc["tag_list"])
+	tags, ok := doc["tags"].([]models.ESTag)
+	if !ok || len(tags) != 2 || tags[0].Title != "Go" || tags[1].Title != "Redis" {
+		t.Fatalf("tags 同步结果不正确: %#v", doc["tags"])
 	}
-	const expectedFieldCount = 16
+	if doc["admin_top"] != true || doc["author_top"] != false {
+		t.Fatalf("置顶字段同步结果不正确: admin=%#v author=%#v", doc["admin_top"], doc["author_top"])
+	}
+	const expectedFieldCount = 18
 	if len(doc) != expectedFieldCount {
 		t.Fatalf("ES 文档字段数不正确, got=%d want=%d", len(doc), expectedFieldCount)
 	}
 }
 
 func TestSyncArticleDocuments(t *testing.T) {
-	db := testutil.SetupSQLite(t, &models.ArticleModel{})
+	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.ArticleModel{}, &models.TagModel{}, &models.ArticleTagModel{}, &models.UserTopArticleModel{})
 	testutil.InitGlobals()
 	global.Config = &conf.Config{
 		ES:    conf.ES{Index: "article_index"},
 		River: conf.River{BulkSize: 2},
+	}
+
+	admin := models.UserModel{Username: "admin", Password: "x", Role: enum.RoleAdmin}
+	author1 := models.UserModel{Username: "author1", Password: "x", Role: enum.RoleUser}
+	author2 := models.UserModel{Username: "author2", Password: "x", Role: enum.RoleUser}
+	if err := db.Create(&admin).Error; err != nil {
+		t.Fatalf("创建管理员失败: %v", err)
+	}
+	if err := db.Create(&author1).Error; err != nil {
+		t.Fatalf("创建作者1失败: %v", err)
+	}
+	if err := db.Create(&author2).Error; err != nil {
+		t.Fatalf("创建作者2失败: %v", err)
+	}
+
+	tagGo := models.TagModel{Title: "Go", IsEnabled: true}
+	tagBackend := models.TagModel{Title: "后端", IsEnabled: true}
+	tagRedis := models.TagModel{Title: "Redis", IsEnabled: true}
+	if err := db.Create(&tagGo).Error; err != nil {
+		t.Fatalf("创建标签 Go 失败: %v", err)
+	}
+	if err := db.Create(&tagBackend).Error; err != nil {
+		t.Fatalf("创建标签 后端 失败: %v", err)
+	}
+	if err := db.Create(&tagRedis).Error; err != nil {
+		t.Fatalf("创建标签 Redis 失败: %v", err)
 	}
 
 	articles := []models.ArticleModel{
@@ -207,31 +240,44 @@ func TestSyncArticleDocuments(t *testing.T) {
 			Title:          "第一篇",
 			Abstract:       "摘要1",
 			HtmlContent:    "<p>a</p>",
-			AuthorID:       1,
+			AuthorID:       author1.ID,
 			ViewCount:      10,
 			DiggCount:      2,
 			CommentCount:   3,
 			FavorCount:     4,
 			CommentsToggle: true,
 			Status:         3,
-			TagList:        []string{"Go", "后端"},
 		},
 		{
 			Title:          "第二篇",
 			Abstract:       "摘要2",
 			HtmlContent:    "<p>b</p>",
-			AuthorID:       2,
+			AuthorID:       author2.ID,
 			ViewCount:      20,
 			DiggCount:      5,
 			CommentCount:   6,
 			FavorCount:     7,
 			CommentsToggle: false,
 			Status:         2,
-			TagList:        []string{"Redis"},
 		},
 	}
 	if err := db.Create(&articles).Error; err != nil {
 		t.Fatalf("创建测试文章失败: %v", err)
+	}
+	if err := db.Create(&models.ArticleTagModel{ArticleID: articles[0].ID, TagID: tagGo.ID}).Error; err != nil {
+		t.Fatalf("创建文章1-Go 标签关系失败: %v", err)
+	}
+	if err := db.Create(&models.ArticleTagModel{ArticleID: articles[0].ID, TagID: tagBackend.ID}).Error; err != nil {
+		t.Fatalf("创建文章1-后端 标签关系失败: %v", err)
+	}
+	if err := db.Create(&models.ArticleTagModel{ArticleID: articles[1].ID, TagID: tagRedis.ID}).Error; err != nil {
+		t.Fatalf("创建文章2-Redis 标签关系失败: %v", err)
+	}
+	if err := db.Create(&models.UserTopArticleModel{UserID: admin.ID, ArticleID: articles[0].ID}).Error; err != nil {
+		t.Fatalf("创建管理员置顶失败: %v", err)
+	}
+	if err := db.Create(&models.UserTopArticleModel{UserID: author1.ID, ArticleID: articles[0].ID}).Error; err != nil {
+		t.Fatalf("创建作者置顶失败: %v", err)
 	}
 
 	var bulkDocs []map[string]any
@@ -287,8 +333,11 @@ func TestSyncArticleDocuments(t *testing.T) {
 	if got, ok := first["comments_toggle"].(float64); !ok || got != 1 {
 		t.Fatalf("comments_toggle 应写成 1, got=%#v", first["comments_toggle"])
 	}
-	tagList, ok := first["tag_list"].([]any)
-	if !ok || len(tagList) != 2 {
-		t.Fatalf("tag_list 应以数组写入 ES, got=%#v", first["tag_list"])
+	tags, ok := first["tags"].([]any)
+	if !ok || len(tags) != 2 {
+		t.Fatalf("tags 应以数组写入 ES, got=%#v", first["tags"])
+	}
+	if first["admin_top"] != true || first["author_top"] != true {
+		t.Fatalf("置顶字段应正确写入 ES, got admin=%#v author=%#v", first["admin_top"], first["author_top"])
 	}
 }

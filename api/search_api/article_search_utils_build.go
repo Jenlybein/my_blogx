@@ -157,16 +157,6 @@ func buildLikeTagsQuery(query map[string]any, userID uint) map[string]any {
 		return query
 	}
 
-	var likeTagTitles []string
-	if err := global.DB.Model(&models.TagModel{}).
-		Where("id IN ? AND is_enabled = ?", userConf.LikeTags, true).
-		Pluck("title", &likeTagTitles).Error; err != nil {
-		return query
-	}
-	if len(likeTagTitles) == 0 {
-		return query
-	}
-
 	boolQuery, ok := extractSearchBoolQuery(query)
 	if !ok {
 		return query
@@ -175,8 +165,8 @@ func buildLikeTagsQuery(query map[string]any, userID uint) map[string]any {
 	should, _ := boolQuery["should"].([]any)
 	should = append(should, map[string]any{
 		"terms": map[string]any{
-			"tag_list": likeTagTitles,
-			"boost":    2,
+			"tags.id": userConf.LikeTags,
+			"boost":   2,
 		},
 	})
 	boolQuery["should"] = should
@@ -231,7 +221,7 @@ func buildTagListQuery(query map[string]any, tagList []string) map[string]any {
 	filters, _ := boolQuery["filter"].([]any)
 	boolQuery["filter"] = append(filters, map[string]any{
 		"terms": map[string]any{
-			"tag_list": normalized,
+			"tags.title": normalized,
 		},
 	})
 
@@ -290,9 +280,11 @@ func buildArticleSearchExtraBody(sortField string) map[string]any {
 			"favor_count",
 			"comments_toggle",
 			"status",
-			"tag_list",
+			"tags",
 			"author_id",
 			"category_id",
+			"admin_top",
+			"author_top",
 		},
 		"sort": sortList,
 		// 高亮，用<em>标签包裹

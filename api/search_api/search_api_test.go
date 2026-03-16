@@ -85,17 +85,12 @@ func TestBuildLikeTagsQueryWithLikeTags(t *testing.T) {
 		t.Fatalf("创建用户失败: %v", err)
 	}
 
-	tag := models.TagModel{Title: "Go", IsEnabled: true}
-	if err := db.Create(&tag).Error; err != nil {
-		t.Fatalf("创建标签失败: %v", err)
-	}
-
 	var userConf models.UserConfModel
 	if err := db.Take(&userConf, "user_id = ?", user.ID).Error; err != nil {
 		t.Fatalf("查询用户配置失败: %v", err)
 	}
 	if err := db.Model(&userConf).Updates(models.UserConfModel{
-		LikeTags: []uint{tag.ID},
+		LikeTags: []uint{3, 8},
 	}).Error; err != nil {
 		t.Fatalf("更新偏好标签失败: %v", err)
 	}
@@ -139,9 +134,9 @@ func TestBuildTagListQueryWithTags(t *testing.T) {
 	if !ok {
 		t.Fatalf("标签匹配结构错误: %#v", terms)
 	}
-	values, ok := tagTerms["tag_list"].([]string)
+	values, ok := tagTerms["tags.title"].([]string)
 	if !ok || len(values) != 2 || values[0] != "Go" || values[1] != "ES" {
-		t.Fatalf("标签名归一化异常: %#v", tagTerms["tag_list"])
+		t.Fatalf("标签名归一化异常: %#v", tagTerms["tags.title"])
 	}
 }
 
@@ -326,39 +321,8 @@ func TestBuildAdminArticleSearchQueryWithStatus(t *testing.T) {
 }
 
 func TestBuildAdminTopQuery(t *testing.T) {
-	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserTopArticleModel{})
-
-	admin := models.UserModel{
-		Username: "admin1",
-		Password: "x",
-		Nickname: "admin",
-		Role:     enum.RoleAdmin,
-	}
-	user := models.UserModel{
-		Username: "user1",
-		Password: "x",
-		Nickname: "user",
-		Role:     enum.RoleUser,
-	}
-	if err := db.Create(&admin).Error; err != nil {
-		t.Fatalf("创建管理员失败: %v", err)
-	}
-	if err := db.Create(&user).Error; err != nil {
-		t.Fatalf("创建普通用户失败: %v", err)
-	}
-
-	adminTop := models.UserTopArticleModel{UserID: admin.ID, ArticleID: 101}
-	userTop := models.UserTopArticleModel{UserID: user.ID, ArticleID: 202}
-	if err := db.Create(&adminTop).Error; err != nil {
-		t.Fatalf("创建管理员置顶失败: %v", err)
-	}
-	if err := db.Create(&userTop).Error; err != nil {
-		t.Fatalf("创建普通用户置顶失败: %v", err)
-	}
-
 	query := buildDefaultArticleSearchQuery("")
-	var topMap map[uint]int
-	query, topMap = buildAdminTopQuery(query)
+	query = buildAdminTopQuery(query)
 
 	boolQuery, ok := extractSearchBoolQuery(query)
 	if !ok {
@@ -369,118 +333,35 @@ func TestBuildAdminTopQuery(t *testing.T) {
 		t.Fatalf("管理员置顶加权条件异常: %#v", boolQuery["should"])
 	}
 
-	terms, ok := should[0].(map[string]any)
+	term, ok := should[0].(map[string]any)
 	if !ok {
-		t.Fatalf("管理员置顶 terms 结构错误: %#v", should[0])
+		t.Fatalf("管理员置顶 term 结构错误: %#v", should[0])
 	}
-	idTerms, ok := terms["terms"].(map[string]any)
+	adminTopTerm, ok := term["term"].(map[string]any)
 	if !ok {
-		t.Fatalf("管理员置顶条件异常: %#v", terms)
+		t.Fatalf("管理员置顶条件异常: %#v", term)
 	}
-	values, ok := idTerms["id"].([]uint)
-	if !ok || len(values) != 1 || values[0] != 101 {
-		t.Fatalf("管理员置顶文章 ID 异常: %#v", idTerms["id"])
+	adminTopValue, ok := adminTopTerm["admin_top"].(map[string]any)
+	if !ok || adminTopValue["value"] != true {
+		t.Fatalf("管理员置顶字段异常: %#v", adminTopTerm["admin_top"])
 	}
-	if idTerms["boost"] != 100 {
-		t.Fatalf("管理员置顶 boost 异常: %#v", idTerms["boost"])
-	}
-	if topMap[101] != searchTopFlagAdmin {
-		t.Fatalf("管理员置顶标记异常: %#v", topMap)
+	if adminTopValue["boost"] != 100 {
+		t.Fatalf("管理员置顶 boost 异常: %#v", adminTopValue["boost"])
 	}
 }
 
 func TestBuildAuthorAdminTopQuery(t *testing.T) {
-	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserTopArticleModel{}, &models.ArticleModel{})
-
-	admin := models.UserModel{
-		Username: "admin2",
-		Password: "x",
-		Nickname: "admin",
-		Role:     enum.RoleAdmin,
-	}
-	author := models.UserModel{
-		Username: "author1",
-		Password: "x",
-		Nickname: "author",
-		Role:     enum.RoleUser,
-	}
-	other := models.UserModel{
-		Username: "other1",
-		Password: "x",
-		Nickname: "other",
-		Role:     enum.RoleUser,
-	}
-	if err := db.Create(&admin).Error; err != nil {
-		t.Fatalf("创建管理员失败: %v", err)
-	}
-	if err := db.Create(&author).Error; err != nil {
-		t.Fatalf("创建作者失败: %v", err)
-	}
-	if err := db.Create(&other).Error; err != nil {
-		t.Fatalf("创建其他用户失败: %v", err)
-	}
-
-	article1 := models.ArticleModel{Title: "a1", AuthorID: author.ID, Status: enum.ArticleStatusPublished}
-	article2 := models.ArticleModel{Title: "a2", AuthorID: author.ID, Status: enum.ArticleStatusPublished}
-	article3 := models.ArticleModel{Title: "a3", AuthorID: other.ID, Status: enum.ArticleStatusPublished}
-	if err := db.Create(&article1).Error; err != nil {
-		t.Fatalf("创建文章1失败: %v", err)
-	}
-	if err := db.Create(&article2).Error; err != nil {
-		t.Fatalf("创建文章2失败: %v", err)
-	}
-	if err := db.Create(&article3).Error; err != nil {
-		t.Fatalf("创建文章3失败: %v", err)
-	}
-
-	if err := db.Create(&models.UserTopArticleModel{UserID: admin.ID, ArticleID: article1.ID}).Error; err != nil {
-		t.Fatalf("创建管理员置顶失败: %v", err)
-	}
-	if err := db.Create(&models.UserTopArticleModel{UserID: author.ID, ArticleID: article2.ID}).Error; err != nil {
-		t.Fatalf("创建作者自置顶失败: %v", err)
-	}
-	if err := db.Create(&models.UserTopArticleModel{UserID: admin.ID, ArticleID: article3.ID}).Error; err != nil {
-		t.Fatalf("创建其他作者文章置顶失败: %v", err)
-	}
-
-	if err := db.Create(&models.UserTopArticleModel{UserID: admin.ID, ArticleID: article2.ID}).Error; err != nil {
-		t.Fatalf("创建同文章管理员置顶失败: %v", err)
-	}
-
 	query := buildDefaultArticleSearchQuery("")
-	query = buildUserIDQuery(query, author.ID)
-	var topMap map[uint]int
-	query, topMap = buildAuthorAdminTopQuery(query, author.ID)
+	query = buildUserIDQuery(query, 12)
+	query = buildAuthorAdminTopQuery(query)
 
 	boolQuery, ok := extractSearchBoolQuery(query)
 	if !ok {
 		t.Fatalf("bool 查询结构错误: %#v", query)
 	}
 	should, ok := boolQuery["should"].([]any)
-	if !ok || len(should) != 1 {
+	if !ok || len(should) != 2 {
 		t.Fatalf("作者置顶加权条件异常: %#v", boolQuery["should"])
-	}
-
-	terms, ok := should[0].(map[string]any)
-	if !ok {
-		t.Fatalf("作者置顶 terms 结构错误: %#v", should[0])
-	}
-	idTerms, ok := terms["terms"].(map[string]any)
-	if !ok {
-		t.Fatalf("作者置顶条件异常: %#v", terms)
-	}
-	values, ok := idTerms["id"].([]uint)
-	if !ok || len(values) != 2 {
-		t.Fatalf("作者置顶文章 ID 异常: %#v", idTerms["id"])
-	}
-	if !((values[0] == article1.ID && values[1] == article2.ID) || (values[0] == article2.ID && values[1] == article1.ID)) {
-		t.Fatalf("作者置顶文章集合异常: %#v", values)
-	}
-	if topMap[article1.ID] != searchTopFlagAdmin {
-		t.Fatalf("管理员置顶标记异常: %#v", topMap)
-	}
-	if topMap[article2.ID] != searchTopFlagUser|searchTopFlagAdmin {
-		t.Fatalf("作者/管理员组合置顶标记异常: %#v", topMap)
 	}
 }
 
@@ -574,7 +455,12 @@ func TestExtractArticleSearchResults(t *testing.T) {
 					"comment_count":   40,
 					"comments_toggle": true,
 					"status":          int(enum.ArticleStatusPublished),
-					"tag_list":        []any{"Go", "ES"},
+					"tags": []any{
+						map[string]any{"id": 1, "title": "Go"},
+						map[string]any{"id": 2, "title": "ES"},
+					},
+					"author_top": true,
+					"admin_top":  true,
 				},
 				"highlight": map[string]any{
 					"title":        []any{"<em>go</em> search"},
@@ -585,9 +471,7 @@ func TestExtractArticleSearchResults(t *testing.T) {
 		},
 	}
 
-	list := extractArticleSearchResults(data, map[uint]int{
-		1: searchTopFlagUser | searchTopFlagAdmin,
-	})
+	list := extractArticleSearchResults(data)
 	if len(list) != 1 {
 		t.Fatalf("结果数量错误: %d", len(list))
 	}

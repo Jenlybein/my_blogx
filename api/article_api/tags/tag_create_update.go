@@ -6,7 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
-	"myblogx/models/ctype"
+	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
 	"strings"
 
@@ -66,6 +66,7 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 		return
 	}
 
+	var affectedArticleIDs []uint
 	if err := global.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&tag).Updates(map[string]any{
 			"title":       title,
@@ -76,12 +77,19 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 			return err
 		}
 		if oldTitle != title {
-			return syncArticleTagListByTagID(tx, tag.ID)
+			var err error
+			affectedArticleIDs, err = loadArticleIDsByTagID(tx, tag.ID)
+			return err
 		}
 		return nil
 	}); err != nil {
 		res.FailWithMsg(fmt.Sprintf("更新标签失败: %v", err), c)
 		return
+	}
+	if len(affectedArticleIDs) > 0 {
+		if err := es_service.UpdateESDocsTags(affectedArticleIDs); err != nil {
+			global.Logger.Errorf("标签改名后刷新 ES 标签失败 tag_id=%d err=%v", tag.ID, err)
+		}
 	}
 	res.OkWithMsg("更新标签成功", c)
 }
@@ -99,13 +107,13 @@ func ensureTagUnique(currentID uint, title string) error {
 	return nil
 }
 
-func syncArticleTagListByTagID(tx *gorm.DB, tagID uint) error {
+func loadArticleIDsByTagID(tx *gorm.DB, tagID uint) ([]uint, error) {
 	var relationList []models.ArticleTagModel
 	if err := tx.Select("article_id").Where("tag_id = ?", tagID).Find(&relationList).Error; err != nil {
-		return err
+		return nil, err
 	}
 	if len(relationList) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	articleIDs := make([]uint, 0, len(relationList))
@@ -117,27 +125,5 @@ func syncArticleTagListByTagID(tx *gorm.DB, tagID uint) error {
 		seen[relation.ArticleID] = struct{}{}
 		articleIDs = append(articleIDs, relation.ArticleID)
 	}
-
-	var articleList []models.ArticleModel
-	if err := tx.Select("id").
-		Where("id IN ?", articleIDs).
-		Preload("Tags", func(db *gorm.DB) *gorm.DB {
-			return db.Order("sort desc, id asc")
-		}).
-		Find(&articleList).Error; err != nil {
-		return err
-	}
-
-	for _, article := range articleList {
-		tagList := make(ctype.List, 0, len(article.Tags))
-		for _, item := range article.Tags {
-			tagList = append(tagList, item.Title)
-		}
-		if err := tx.Model(&models.ArticleModel{}).
-			Where("id = ?", article.ID).
-			Update("tag_list", tagList).Error; err != nil {
-			return err
-		}
-	}
-	return nil
+	return articleIDs, nil
 }

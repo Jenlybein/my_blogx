@@ -89,11 +89,10 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 		extraBody = buildArticleSearchExtraBody("view_count")
 	}
 
-	topMap := map[uint]int{}
 	if cr.TopSearch && (cr.Type == 3 || cr.Type == 4) {
-		query, topMap = buildAuthorAdminTopQuery(query, cr.UserID)
+		query = buildAuthorAdminTopQuery(query)
 	} else if cr.TopSearch {
-		query, topMap = buildAdminTopQuery(query)
+		query = buildAdminTopQuery(query)
 	}
 
 	resp := es_service.Search[map[string]any](
@@ -115,5 +114,5 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 	}
 
 	total, _ := data["total"].(float64)
-	res.OkWithList(extractArticleSearchResults(data, topMap), int(total), c)
+	res.OkWithList(extractArticleSearchResults(data), int(total), c)
 }

@@ -6,6 +6,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
 	"myblogx/utils/markdown"
 
@@ -54,7 +55,6 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 		Cover:          cr.Cover,
 		CommentsToggle: cr.CommentsToggle,
 		Status:         cr.Status,
-		TagList:        extractTagTitles(tagList),
 	}
 
 	if global.Config.Site.Article.SkipExamining && cr.Status == enum.ArticleStatusExamining {
@@ -73,5 +73,10 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 	}
 
 	applyTagArticleCountDelta(buildTagArticleCountDelta(nil, tagIDs))
+	if len(tagIDs) > 0 {
+		if err := es_service.UpdateESDocsTags([]uint{article.ID}); err != nil {
+			global.Logger.Errorf("创建文章后刷新 ES 标签失败 article_id=%d err=%v", article.ID, err)
+		}
+	}
 	res.OkWithMsg("创建文章成功", c)
 }

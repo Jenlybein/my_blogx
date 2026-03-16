@@ -262,11 +262,11 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 	}
 
 	var created models.ArticleModel
-	if err := db.Order("id desc").First(&created).Error; err != nil {
+	if err := db.Order("id desc").Preload("Tags").First(&created).Error; err != nil {
 		t.Fatalf("查询创建文章失败: %v", err)
 	}
-	if len(created.TagList) != 1 || created.TagList[0] != tag.Title {
-		t.Fatalf("创建文章后 tag_list 未正确回写: %+v", created.TagList)
+	if len(created.Tags) != 1 || created.Tags[0].Title != tag.Title {
+		t.Fatalf("创建文章后标签关系未正确写入: %+v", created.Tags)
 	}
 
 	var relationCount int64
@@ -295,11 +295,11 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 			t.Fatalf("更新文章失败, code=%d body=%s", code, w.Body.String())
 		}
 	}
-	if err := db.Take(&created, created.ID).Error; err != nil {
+	if err := db.Preload("Tags").Take(&created, created.ID).Error; err != nil {
 		t.Fatalf("回查更新后的文章失败: %v", err)
 	}
-	if len(created.TagList) != 1 || created.TagList[0] != tag.Title {
-		t.Fatalf("更新文章后 tag_list 未正确回写: %+v", created.TagList)
+	if len(created.Tags) != 1 || created.Tags[0].Title != tag.Title {
+		t.Fatalf("更新文章后标签关系未正确写入: %+v", created.Tags)
 	}
 
 	{
@@ -359,7 +359,6 @@ func TestArticleUpdateViewOnlyUpdatesProvidedFields(t *testing.T) {
 		AuthorID:       user.ID,
 		CommentsToggle: true,
 		Status:         enum.ArticleStatusExamining,
-		TagList:        []string{tag.Title},
 	}
 	if err := db.Create(&article).Error; err != nil {
 		t.Fatalf("创建文章失败: %v", err)
@@ -384,7 +383,7 @@ func TestArticleUpdateViewOnlyUpdatesProvidedFields(t *testing.T) {
 		}
 	}
 
-	if err := db.Take(&article, article.ID).Error; err != nil {
+	if err := db.Preload("Tags").Take(&article, article.ID).Error; err != nil {
 		t.Fatalf("回查更新后的文章失败: %v", err)
 	}
 	if article.Title != "old title" {
@@ -405,8 +404,8 @@ func TestArticleUpdateViewOnlyUpdatesProvidedFields(t *testing.T) {
 	if article.CategoryID == nil || *article.CategoryID != cat.ID {
 		t.Fatalf("未传 category_id 不应更新, got=%v", article.CategoryID)
 	}
-	if len(article.TagList) != 1 || article.TagList[0] != tag.Title {
-		t.Fatalf("未传 tag_ids 不应更新标签列表, got=%+v", article.TagList)
+	if len(article.Tags) != 1 || article.Tags[0].Title != tag.Title {
+		t.Fatalf("未传 tag_ids 不应更新标签关系, got=%+v", article.Tags)
 	}
 	if article.HtmlContent == "" {
 		t.Fatal("已传 content 时 html_content 应同步更新")

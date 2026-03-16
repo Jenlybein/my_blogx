@@ -3,12 +3,18 @@ package models
 import (
 	_ "embed"
 	"myblogx/global"
-	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_tag"
 
 	"gorm.io/gorm"
 )
+
+// ESTag 是文章写入 ES 时使用的标签结构。
+// 这里保留标签 id 和 title，方便 ES 侧按单字段过滤，也方便列表展示。
+type ESTag struct {
+	ID    uint   `json:"id"`
+	Title string `json:"title"`
+}
 
 // ArticleModel 文章表
 type ArticleModel struct {
@@ -27,7 +33,6 @@ type ArticleModel struct {
 	FavorCount     int                `gorm:"default:0" json:"favor_count"`
 	CommentsToggle bool               `gorm:"default:true" json:"comments_toggle"`
 	Status         enum.ArticleStatus `gorm:"default:0" json:"status"`
-	TagList        ctype.List         `gorm:"type:text" json:"tag_list"` // ES 冗余字段，保存文章标签名称列表
 	UserModel      UserModel          `gorm:"foreignKey:AuthorID;references:ID" json:"-"`
 	CategoryModel  *CategoryModel     `gorm:"foreignKey:CategoryID;references:ID" json:"-"`
 	Tags           []TagModel         `gorm:"many2many:article_tag_models;joinForeignKey:ArticleID;joinReferences:TagID" json:"tags"`

@@ -97,7 +97,7 @@ func loadSearchArticleDisplayMetaMap(articleIDs []uint) map[uint]SearchListRespo
 }
 
 // extractArticleSearchResults 提取文章搜索结果
-func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list []SearchListResponse) {
+func extractArticleSearchResults(data map[string]any) (list []SearchListResponse) {
 	hits, _ := data["hits"].([]any)
 	list = make([]SearchListResponse, 0, len(hits))
 
@@ -144,9 +144,9 @@ func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list
 			FavorCount:     sourceIntValue(sourceMap, "favor_count"),
 			CommentsToggle: sourceBoolValue(sourceMap, "comments_toggle"),
 			Status:         sourceArticleStatusValue(sourceMap, "status"),
-			Tags:           sourceStringSliceValue(sourceMap, "tag_list"),
-			UserTop:        isUserTop(topMap, articleID),
-			AdminTop:       isAdminTop(topMap, articleID),
+			Tags:           sourceTagTitlesValue(sourceMap, "tags"),
+			UserTop:        sourceBoolValue(sourceMap, "author_top"),
+			AdminTop:       sourceBoolValue(sourceMap, "admin_top"),
 		})
 	}
 

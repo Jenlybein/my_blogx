@@ -5,7 +5,6 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/service/es_service"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -116,41 +115,20 @@ func syncArticleDocuments(db *gorm.DB, index string, batchSize int) (int, error)
 	total := 0
 
 	result := db.Model(&models.ArticleModel{}).
-		Select("id",
-			"created_at",
-			"updated_at",
-			"title",
-			"abstract",
-			"html_content",
-			"category_id",
-			"cover",
-			"author_id",
-			"view_count",
-			"digg_count",
-			"comment_count",
-			"favor_count",
-			"tag_list",
-			"status",
-			"comments_toggle").
+		Select("id").
 		Order("id asc").
 		FindInBatches(&articles, batchSize, func(tx *gorm.DB, batch int) error {
-			reqs := make([]*es_service.BulkRequest, 0, len(articles))
+			articleIDs := make([]uint, 0, len(articles))
 			for _, article := range articles {
-				doc := buildArticleESDocument(article)
-				reqs = append(reqs, &es_service.BulkRequest{
-					Action: es_service.ActionIndex,
-					ID:     strconv.FormatUint(uint64(article.ID), 10),
-					Data:   doc,
-				})
+				articleIDs = append(articleIDs, article.ID)
 			}
 
-			if len(reqs) == 0 {
+			if len(articleIDs) == 0 {
 				return nil
 			}
 
-			resp := es_service.IndexBulk(index, reqs)
-			if !resp.Success {
-				return fmt.Errorf("第 %d 批文章同步到 ES 失败: %s", batch, resp.Msg)
+			if err := es_service.SyncESDocs(articleIDs); err != nil {
+				return fmt.Errorf("第 %d 批文章同步到 ES 失败: %w", batch, err)
 			}
 
 			total += len(articles)
@@ -163,29 +141,6 @@ func syncArticleDocuments(db *gorm.DB, index string, batchSize int) (int, error)
 	return total, nil
 }
 
-// buildArticleESDocument 按固定字段构造文章 ES 文档。
-func buildArticleESDocument(article models.ArticleModel) map[string]any {
-	commentsToggle := 0
-	if article.CommentsToggle {
-		commentsToggle = 1
-	}
-
-	return map[string]any{
-		"id":              article.ID,
-		"created_at":      article.CreatedAt,
-		"updated_at":      article.UpdatedAt,
-		"title":           article.Title,
-		"abstract":        article.Abstract,
-		"html_content":    article.HtmlContent,
-		"category_id":     article.CategoryID,
-		"cover":           article.Cover,
-		"author_id":       article.AuthorID,
-		"view_count":      article.ViewCount,
-		"digg_count":      article.DiggCount,
-		"comment_count":   article.CommentCount,
-		"favor_count":     article.FavorCount,
-		"tag_list":        []string(article.TagList),
-		"status":          article.Status,
-		"comments_toggle": commentsToggle,
-	}
+func buildArticleESDocument(article models.ArticleModel, adminTop, authorTop bool) map[string]any {
+	return es_service.BuildArticleESDocument(article, adminTop, authorTop)
 }

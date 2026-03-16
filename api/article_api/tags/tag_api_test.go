@@ -148,7 +148,7 @@ func TestTagCRUDAndOptions(t *testing.T) {
 	}
 }
 
-func TestTagUpdateSyncsArticleTagList(t *testing.T) {
+func TestTagUpdateKeepsArticleTagRelation(t *testing.T) {
 	admin := setupTagEnv(t)
 	api := TagsApi{}
 	claims := &jwts.MyClaims{Claims: jwts.Claims{UserID: admin.ID, Role: enum.RoleAdmin, Username: admin.Username}}
@@ -163,7 +163,6 @@ func TestTagUpdateSyncsArticleTagList(t *testing.T) {
 		Content:  "content",
 		AuthorID: admin.ID,
 		Status:   enum.ArticleStatusPublished,
-		TagList:  []string{"Golang"},
 	}
 	if err := global.DB.Create(&article).Error; err != nil {
 		t.Fatalf("创建文章失败: %v", err)
@@ -186,10 +185,10 @@ func TestTagUpdateSyncsArticleTagList(t *testing.T) {
 	}
 
 	var updated models.ArticleModel
-	if err := global.DB.Take(&updated, article.ID).Error; err != nil {
+	if err := global.DB.Preload("Tags").Take(&updated, article.ID).Error; err != nil {
 		t.Fatalf("回查文章失败: %v", err)
 	}
-	if len(updated.TagList) != 1 || updated.TagList[0] != "Go" {
-		t.Fatalf("标签改名后文章 tag_list 未同步: %+v", updated.TagList)
+	if len(updated.Tags) != 1 || updated.Tags[0].ID != tag.ID || updated.Tags[0].Title != "Go" {
+		t.Fatalf("标签改名后文章标签关系异常: %+v", updated.Tags)
 	}
 }
