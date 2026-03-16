@@ -12,8 +12,9 @@ type ArticleSearchRequest struct {
 	// 8 作者文章
 	Type int8 `form:"type" binding:"required,oneof=0 1 2 3 4 5 6 7 8"`
 	common.PageInfo
-	TagList []string `form:"tag_list"`
-	UserID  uint     `form:"user_id"`
+	TagList   []string `form:"tag_list"`
+	UserID    uint     `form:"user_id"`
+	TopSearch bool     `form:"top_search"` // 是否启用置顶优先搜索
 }
 
 type SearchListResponse struct {

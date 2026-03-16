@@ -46,9 +46,9 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 		query = buildUserIDQuery(query, cr.UserID)
 	}
 
-	if cr.Key == "" && cr.Type == 8 {
+	if cr.TopSearch && cr.Type == 8 {
 		query, topMap = buildAuthorAdminTopQuery(query, cr.UserID)
-	} else if cr.Key == "" {
+	} else if cr.TopSearch {
 		query, topMap = buildAdminTopQuery(query)
 	}
 
