@@ -133,14 +133,9 @@ func buildLikeTagsQuery(query map[string]any, userID uint) map[string]any {
 	return query
 }
 
-func buildAdminTopQuery(query map[string]any) map[string]any {
-	var articleIDs []uint
-	if err := global.DB.Model(&models.UserTopArticleModel{}).
-		Distinct("user_top_article_models.article_id").
-		Joins("JOIN user_models ON user_models.id = user_top_article_models.user_id").
-		Where("user_models.role = ?", enum.RoleAdmin).
-		Order("user_top_article_models.created_at desc").
-		Pluck("user_top_article_models.article_id", &articleIDs).Error; err != nil || len(articleIDs) == 0 {
+// buildUserIDQuery 构建用户 ID 查询
+func buildUserIDQuery(query map[string]any, userID uint) map[string]any {
+	if userID == 0 {
 		return query
 	}
 
@@ -149,15 +144,12 @@ func buildAdminTopQuery(query map[string]any) map[string]any {
 		return query
 	}
 
-	should, _ := boolQuery["should"].([]any)
-	should = append(should, map[string]any{
-		"terms": map[string]any{
-			"id":    articleIDs,
-			"boost": 100,
+	filters, _ := boolQuery["filter"].([]any)
+	boolQuery["filter"] = append(filters, map[string]any{
+		"term": map[string]any{
+			"author_id": userID,
 		},
 	})
-	boolQuery["should"] = should
-
 	return query
 }
 
@@ -229,7 +221,7 @@ func buildArticleSearchExtraBody(sortField string) map[string]any {
 }
 
 // extractArticleSearchResults 提取文章搜索结果
-func extractArticleSearchResults(data map[string]any) (list []SearchListResponse) {
+func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list []SearchListResponse) {
 	hits, _ := data["hits"].([]any)
 	list = make([]SearchListResponse, 0, len(hits))
 
@@ -278,12 +270,15 @@ func extractArticleSearchResults(data map[string]any) (list []SearchListResponse
 			CommentsToggle: article.CommentsToggle,
 			Status:         article.Status,
 			Tags:           []string(article.TagList),
+			UserTop:        isUserTop(topMap, article.ID),
+			AdminTop:       isAdminTop(topMap, article.ID),
 		})
 	}
 
 	return
 }
 
+// extractHighlightValues 提取高亮值
 func extractHighlightValues(highlightMap map[string]any, field string) []string {
 	rawList, ok := highlightMap[field].([]any)
 	if !ok {

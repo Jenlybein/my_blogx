@@ -19,6 +19,7 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 
 	query := buildDefaultArticleSearchQuery(cr.Key)
 	extraBody := buildArticleSearchExtraBody("created_at")
+	topMap := map[uint]int{}
 
 	switch cr.Type {
 	case 0:
@@ -39,10 +40,14 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 		extraBody = buildArticleSearchExtraBody("view_count")
 	case 6:
 		query = buildTagListQuery(query, cr.TagList)
+	case 7:
+		query = buildUserIDQuery(query, cr.UserID)
 	}
 
-	if cr.Key == "" {
-		query = buildAdminTopQuery(query)
+	if cr.Key == "" && cr.Type == 7 {
+		query, topMap = buildAuthorAdminTopQuery(query, cr.UserID)
+	} else if cr.Key == "" {
+		query, topMap = buildAdminTopQuery(query)
 	}
 
 	resp := es_service.Search[map[string]any](
@@ -64,5 +69,5 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 	}
 
 	total, _ := data["total"].(float64)
-	res.OkWithList(extractArticleSearchResults(data), int(total), c)
+	res.OkWithList(extractArticleSearchResults(data, topMap), int(total), c)
 }

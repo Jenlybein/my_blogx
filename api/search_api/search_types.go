@@ -7,10 +7,12 @@ import (
 )
 
 type ArticleSearchRequest struct {
+	// 0 猜你喜欢 1 最新发布 2 最多回复 3 最多点赞
+	// 4 最多收藏 5 最多浏览 6 标签匹配 7 搜指定用户文章
+	Type int8 `form:"type" binding:"required,oneof=0 1 2 3 4 5 6 7"`
 	common.PageInfo
-	// 0 猜你喜欢 1 最新发布 2 最多回复 3 最多点赞 4 最多收藏 5 最多浏览 6 标签匹配
-	Type    int8     `form:"type" binding:"required,oneof=0 1 2 3 4 5 6"`
 	TagList []string `form:"tag_list"`
+	UserID  uint     `form:"user_id"`
 }
 
 type SearchListResponse struct {
@@ -28,8 +30,8 @@ type SearchListResponse struct {
 	CommentsToggle bool               `json:"comments_toggle"`
 	Status         enum.ArticleStatus `json:"status"`
 	Tags           []string           `json:"tags"`
-	UserTop        bool               `json:"user_top"`  // 是否置顶
-	AdminTop       bool               `json:"admin_top"` // 是否管理员置顶
+	UserTop        bool               `json:"user_top,omitempty"`  // 是否置顶
+	AdminTop       bool               `json:"admin_top,omitempty"` // 是否管理员置顶
 	CategoryTitle  string             `json:"category_title"`
 	UserNickname   string             `json:"user_nickname"`
 	UserAvatar     string             `json:"user_avatar"`
