@@ -224,6 +224,26 @@ func buildTagListQuery(query map[string]any, tagList []string) map[string]any {
 	return query
 }
 
+// buildCategoryIDQuery 构建分类查询
+func buildCategoryIDQuery(query map[string]any, categoryID uint) map[string]any {
+	if categoryID == 0 {
+		return query
+	}
+
+	boolQuery, ok := extractSearchBoolQuery(query)
+	if !ok {
+		return query
+	}
+
+	filters, _ := boolQuery["filter"].([]any)
+	boolQuery["filter"] = append(filters, map[string]any{
+		"term": map[string]any{
+			"category_id": categoryID,
+		},
+	})
+	return query
+}
+
 // buildArticleSearchExtraBody 构建文章搜索额外参数
 func buildArticleSearchExtraBody(sortField string) map[string]any {
 	sortList := []any{

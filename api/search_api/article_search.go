@@ -23,13 +23,13 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 
 	switch cr.Type {
 	case 1:
+		// 普通搜索使用默认全局搜索即可，这里不追加额外查询条件。
+	case 2:
 		claims, err := jwts.ParseTokenByGin(c)
 		if err != nil || claims == nil {
 			break
 		}
 		query = buildLikeTagsQuery(query, claims.UserID)
-	case 2:
-		query = buildTagListQuery(query, cr.TagList)
 	case 3:
 		query = buildUserIDQuery(query, cr.UserID)
 	case 4:
@@ -44,6 +44,13 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 		}
 		topAuthorID = claims.UserID
 		query = buildSelfArticleSearchQuery(cr.Key, claims.UserID, cr.Status)
+	}
+
+	if len(cr.TagList) > 0 {
+		query = buildTagListQuery(query, cr.TagList)
+	}
+	if cr.CategoryID != 0 {
+		query = buildCategoryIDQuery(query, cr.CategoryID)
 	}
 
 	var extraBody map[string]any

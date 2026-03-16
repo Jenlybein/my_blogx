@@ -143,6 +143,30 @@ func TestBuildTagListQueryWithTags(t *testing.T) {
 	}
 }
 
+func TestBuildCategoryIDQuery(t *testing.T) {
+	query := buildDefaultArticleSearchQuery("golang")
+	query = buildCategoryIDQuery(query, 12)
+
+	boolQuery, ok := extractSearchBoolQuery(query)
+	if !ok {
+		t.Fatalf("bool 查询结构错误: %#v", query)
+	}
+
+	filters, ok := boolQuery["filter"].([]any)
+	if !ok || len(filters) != 2 {
+		t.Fatalf("分类过滤条件异常: %#v", boolQuery["filter"])
+	}
+
+	term, ok := filters[1].(map[string]any)
+	if !ok {
+		t.Fatalf("分类 term 结构错误: %#v", filters[1])
+	}
+	categoryTerm, ok := term["term"].(map[string]any)
+	if !ok || categoryTerm["category_id"] != uint(12) {
+		t.Fatalf("分类过滤条件错误: %#v", term)
+	}
+}
+
 func TestBuildUserIDQuery(t *testing.T) {
 	query := buildDefaultArticleSearchQuery("golang")
 	query = buildUserIDQuery(query, 88)
