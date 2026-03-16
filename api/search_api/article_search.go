@@ -44,6 +44,13 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 		}
 		topAuthorID = claims.UserID
 		query = buildSelfArticleSearchQuery(cr.Key, claims.UserID, cr.Status)
+	case 5:
+		claims, err := jwts.ParseTokenByGin(c)
+		if err != nil || claims == nil || !claims.IsAdmin() {
+			res.FailWithMsg("权限错误", c)
+			return
+		}
+		query = buildAdminArticleSearchQuery(cr.Key, cr.Status)
 	}
 
 	if len(cr.TagList) > 0 {

@@ -251,6 +251,43 @@ func TestBuildSelfArticleSearchQueryWithStatus(t *testing.T) {
 	}
 }
 
+func TestBuildAdminArticleSearchQueryDefaultStatus(t *testing.T) {
+	query := buildAdminArticleSearchQuery("golang", 0)
+
+	boolQuery, ok := extractSearchBoolQuery(query)
+	if !ok {
+		t.Fatalf("bool 查询结构错误: %#v", query)
+	}
+	if _, ok = boolQuery["filter"]; ok {
+		t.Fatalf("管理员默认搜索不应限制文章状态: %#v", boolQuery["filter"])
+	}
+	if _, ok = boolQuery["must_not"]; ok {
+		t.Fatalf("管理员默认搜索不应排除文章状态: %#v", boolQuery["must_not"])
+	}
+}
+
+func TestBuildAdminArticleSearchQueryWithStatus(t *testing.T) {
+	query := buildAdminArticleSearchQuery("", enum.ArticleStatusRejected)
+
+	boolQuery, ok := extractSearchBoolQuery(query)
+	if !ok {
+		t.Fatalf("bool 查询结构错误: %#v", query)
+	}
+
+	filters, ok := boolQuery["filter"].([]any)
+	if !ok || len(filters) != 1 {
+		t.Fatalf("管理员指定状态过滤条件异常: %#v", boolQuery["filter"])
+	}
+	statusFilter, ok := filters[0].(map[string]any)
+	if !ok {
+		t.Fatalf("管理员状态过滤结构错误: %#v", filters[0])
+	}
+	statusTerm, ok := statusFilter["term"].(map[string]any)
+	if !ok || statusTerm["status"] != enum.ArticleStatusRejected {
+		t.Fatalf("管理员指定状态过滤错误: %#v", statusFilter)
+	}
+}
+
 func TestBuildAdminTopQuery(t *testing.T) {
 	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserTopArticleModel{})
 

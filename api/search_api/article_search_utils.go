@@ -55,6 +55,22 @@ func buildSelfArticleSearchQuery(key string, userID uint, status enum.ArticleSta
 	return buildArticleSearchQuery(key, boolQuery)
 }
 
+// buildAdminArticleSearchQuery 构建管理员文章搜索查询。
+// 管理员默认可以搜索任意状态的文章；如果显式传入状态，则按指定状态精确筛选。
+func buildAdminArticleSearchQuery(key string, status enum.ArticleStatus) map[string]any {
+	boolQuery := map[string]any{}
+	if status != 0 {
+		boolQuery["filter"] = []any{
+			map[string]any{
+				"term": map[string]any{
+					"status": status,
+				},
+			},
+		}
+	}
+	return buildArticleSearchQuery(key, boolQuery)
+}
+
 // buildArticleSearchQuery 构建文章搜索查询。
 // boolQuery 负责业务筛选条件，关键词匹配和综合评分在这里统一追加。
 func buildArticleSearchQuery(key string, boolQuery map[string]any) map[string]any {

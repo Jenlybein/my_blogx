@@ -8,12 +8,12 @@ import (
 
 type ArticleSearchRequest struct {
 	// Type
-	// 1 普通搜索 2 猜你喜欢 3 作者文章 4 自己文章
+	// 1 普通搜索 2 猜你喜欢 3 作者文章 4 自己文章 5 管理员搜
 	// Sort
 	// 1 默认搜索 2 最新发布 3 最多回复
 	// 4 最多点赞 5 最多收藏 6 最多浏览
 	common.PageInfo
-	Type       int8               `form:"type" binding:"required,oneof=1 2 3 4"`
+	Type       int8               `form:"type" binding:"required,oneof=1 2 3 4 5"`
 	Sort       int8               `form:"sort" binding:"required,oneof=1 2 3 4 5 6"`
 	TagList    []string           `form:"tag_list"`
 	CategoryID uint               `form:"category_id"`
