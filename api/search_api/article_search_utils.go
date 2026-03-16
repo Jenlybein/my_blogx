@@ -11,8 +11,6 @@ import (
 
 // buildDefaultArticleSearchQuery 构建默认文章搜索查询
 func buildDefaultArticleSearchQuery(key string) map[string]any {
-	// 只能查已发布的文章
-
 	key = strings.TrimSpace(key)
 
 	boolQuery := map[string]any{
@@ -34,10 +32,67 @@ func buildDefaultArticleSearchQuery(key string) map[string]any {
 				},
 			},
 		}
+	} else {
+		boolQuery["must"] = []any{
+			map[string]any{
+				"match_all": map[string]any{},
+			},
+		}
 	}
 
 	return map[string]any{
-		"bool": boolQuery,
+		"function_score": map[string]any{
+			"query": map[string]any{
+				"bool": boolQuery,
+			},
+			"functions": []any{
+				map[string]any{
+					"gauss": map[string]any{
+						"created_at": map[string]any{
+							"origin": "now",
+							"scale":  "30d",
+							"offset": "7d",
+							"decay":  0.5,
+						},
+					},
+					"weight": 0.22,
+				},
+				map[string]any{
+					"field_value_factor": map[string]any{
+						"field":    "digg_count",
+						"modifier": "log1p",
+						"missing":  0,
+					},
+					"weight": 0.21,
+				},
+				map[string]any{
+					"field_value_factor": map[string]any{
+						"field":    "comment_count",
+						"modifier": "log1p",
+						"missing":  0,
+					},
+					"weight": 0.20,
+				},
+				map[string]any{
+					"field_value_factor": map[string]any{
+						"field":    "favor_count",
+						"modifier": "log1p",
+						"missing":  0,
+					},
+					"weight": 0.18,
+				},
+				map[string]any{
+					"field_value_factor": map[string]any{
+						"field":    "view_count",
+						"modifier": "log1p",
+						"missing":  0,
+					},
+					"weight": 0.12,
+				},
+			},
+			"score_mode": "sum",
+			"boost_mode": "sum",
+		},
 	}
 }
 
@@ -61,7 +116,10 @@ func buildLikeTagsQuery(query map[string]any, userID uint) map[string]any {
 		return query
 	}
 
-	boolQuery := query["bool"].(map[string]any)
+	boolQuery, ok := extractSearchBoolQuery(query)
+	if !ok {
+		return query
+	}
 	boolQuery["should"] = []any{
 		map[string]any{
 			"terms": map[string]any{
@@ -93,7 +151,7 @@ func buildTagListQuery(query map[string]any, tagList []string) map[string]any {
 		return query
 	}
 
-	boolQuery, ok := query["bool"].(map[string]any)
+	boolQuery, ok := extractSearchBoolQuery(query)
 	if !ok {
 		return query
 	}
@@ -212,4 +270,17 @@ func extractHighlightValues(highlightMap map[string]any, field string) []string 
 		result = append(result, value)
 	}
 	return result
+}
+
+func extractSearchBoolQuery(query map[string]any) (map[string]any, bool) {
+	functionScore, ok := query["function_score"].(map[string]any)
+	if !ok {
+		return nil, false
+	}
+	queryBody, ok := functionScore["query"].(map[string]any)
+	if !ok {
+		return nil, false
+	}
+	boolQuery, ok := queryBody["bool"].(map[string]any)
+	return boolQuery, ok
 }

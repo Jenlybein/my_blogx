@@ -9,7 +9,15 @@ import (
 
 func TestBuildDefaultArticleSearchQueryOnlyPublished(t *testing.T) {
 	query := buildDefaultArticleSearchQuery("golang")
-	boolQuery, ok := query["bool"].(map[string]any)
+	functionScore, ok := query["function_score"].(map[string]any)
+	if !ok {
+		t.Fatalf("function_score 查询结构错误: %#v", query)
+	}
+	queryBody, ok := functionScore["query"].(map[string]any)
+	if !ok {
+		t.Fatalf("function_score.query 结构错误: %#v", functionScore)
+	}
+	boolQuery, ok := queryBody["bool"].(map[string]any)
 	if !ok {
 		t.Fatalf("bool 查询结构错误: %#v", query)
 	}
@@ -30,6 +38,21 @@ func TestBuildDefaultArticleSearchQueryOnlyPublished(t *testing.T) {
 	if statusTerm["status"] != enum.ArticleStatusPublished {
 		t.Fatalf("搜索应只查询已发布文章，当前状态条件=%#v", statusTerm["status"])
 	}
+
+	functions, ok := functionScore["functions"].([]any)
+	if !ok || len(functions) != 5 {
+		t.Fatalf("综合评分函数异常: %#v", functionScore["functions"])
+	}
+	weights := []float64{0.22, 0.21, 0.20, 0.18, 0.12}
+	for index, raw := range functions {
+		item, ok := raw.(map[string]any)
+		if !ok {
+			t.Fatalf("评分函数结构错误: %#v", raw)
+		}
+		if item["weight"] != weights[index] {
+			t.Fatalf("评分权重错误 index=%d weight=%#v", index, item["weight"])
+		}
+	}
 }
 
 func TestBuildLikeTagsQueryWithoutUserConf(t *testing.T) {
@@ -38,7 +61,7 @@ func TestBuildLikeTagsQueryWithoutUserConf(t *testing.T) {
 	query := buildDefaultArticleSearchQuery("")
 	query = buildLikeTagsQuery(query, 0)
 
-	boolQuery, ok := query["bool"].(map[string]any)
+	boolQuery, ok := extractSearchBoolQuery(query)
 	if !ok {
 		t.Fatalf("bool 查询结构错误: %#v", query)
 	}
@@ -78,7 +101,7 @@ func TestBuildLikeTagsQueryWithLikeTags(t *testing.T) {
 	query := buildDefaultArticleSearchQuery("golang")
 	query = buildLikeTagsQuery(query, user.ID)
 
-	boolQuery, ok := query["bool"].(map[string]any)
+	boolQuery, ok := extractSearchBoolQuery(query)
 	if !ok {
 		t.Fatalf("bool 查询结构错误: %#v", query)
 	}
@@ -96,7 +119,7 @@ func TestBuildTagListQueryWithTags(t *testing.T) {
 	query := buildDefaultArticleSearchQuery("golang")
 	query = buildTagListQuery(query, []string{" Go ", "ES", "Go", ""})
 
-	boolQuery, ok := query["bool"].(map[string]any)
+	boolQuery, ok := extractSearchBoolQuery(query)
 	if !ok {
 		t.Fatalf("bool 查询结构错误: %#v", query)
 	}
