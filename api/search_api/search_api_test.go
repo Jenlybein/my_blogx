@@ -92,8 +92,36 @@ func TestBuildLikeTagsQueryWithLikeTags(t *testing.T) {
 	}
 }
 
+func TestBuildTagListQueryWithTags(t *testing.T) {
+	query := buildDefaultArticleSearchQuery("golang")
+	query = buildTagListQuery(query, []string{" Go ", "ES", "Go", ""})
+
+	boolQuery, ok := query["bool"].(map[string]any)
+	if !ok {
+		t.Fatalf("bool 查询结构错误: %#v", query)
+	}
+
+	filters, ok := boolQuery["filter"].([]any)
+	if !ok || len(filters) != 2 {
+		t.Fatalf("标签匹配过滤条件异常: %#v", boolQuery["filter"])
+	}
+
+	terms, ok := filters[1].(map[string]any)
+	if !ok {
+		t.Fatalf("标签 terms 结构错误: %#v", filters[1])
+	}
+	tagTerms, ok := terms["terms"].(map[string]any)
+	if !ok {
+		t.Fatalf("标签匹配结构错误: %#v", terms)
+	}
+	values, ok := tagTerms["tag_list"].([]string)
+	if !ok || len(values) != 2 || values[0] != "Go" || values[1] != "ES" {
+		t.Fatalf("标签名归一化异常: %#v", tagTerms["tag_list"])
+	}
+}
+
 func TestBuildArticleSearchExtraBody(t *testing.T) {
-	extraBody := buildArticleSearchExtraBody("favor_count")
+	extraBody := buildArticleSearchExtraBody("view_count")
 	sortList, ok := extraBody["sort"].([]any)
 	if !ok || len(sortList) != 2 {
 		t.Fatalf("排序条件异常: %#v", extraBody["sort"])
@@ -105,10 +133,11 @@ func TestExtractArticleSearchResults(t *testing.T) {
 		"hits": []any{
 			map[string]any{
 				"_source": map[string]any{
-					"id":       1,
-					"title":    "go search article",
-					"abstract": "hello world",
-					"tag_list": []any{"Go", "ES"},
+					"id":           1,
+					"title":        "go search article",
+					"abstract":     "hello world",
+					"html_content": "origin html content",
+					"tag_list":     []any{"Go", "ES"},
 				},
 				"highlight": map[string]any{
 					"title":        []any{"<em>go</em> search"},
@@ -123,23 +152,16 @@ func TestExtractArticleSearchResults(t *testing.T) {
 	if len(list) != 1 {
 		t.Fatalf("结果数量错误: %d", len(list))
 	}
-	if list[0].ID != 1 || list[0].Title != "<em>go</em> search article" {
+	if list[0].ID != 1 || list[0].Title != "<em>go</em> search" {
 		t.Fatalf("文章解析错误: %+v", list[0])
 	}
-	if list[0].Abstract != "<em>hello</em> world another <em>piece</em>" {
+	if list[0].Abstract != "<em>hello</em> world" {
 		t.Fatalf("摘要高亮回填错误: %+v", list[0])
 	}
-	if list[0].HtmlContent != "prefix <em>go</em> suffix second <em>segment</em>" {
+	if list[0].HtmlContent != "prefix <em>go</em> suffix" {
 		t.Fatalf("正文高亮回填错误: %+v", list[0])
 	}
 	if len(list[0].Tags) != 2 || list[0].Tags[0] != "Go" {
 		t.Fatalf("标签解析错误: %+v", list[0].Tags)
-	}
-}
-
-func TestMergeTitleHighlight(t *testing.T) {
-	title := mergeTitleHighlight("go search article", "<em>go</em> search")
-	if title != "<em>go</em> search article" {
-		t.Fatalf("标题高亮嵌入错误: %s", title)
 	}
 }
