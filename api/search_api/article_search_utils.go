@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/markdown"
 	"strings"
 
@@ -365,7 +366,37 @@ func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list
 		})
 	}
 
+	articleIDs := make([]uint, 0, len(list))
+	for _, item := range list {
+		articleIDs = append(articleIDs, item.ID)
+	}
+	favorMap, diggMap, viewMap, commentMap := loadSearchArticleCounterMaps(articleIDs)
+	for index := range list {
+		list[index].FavorCount += favorMap[list[index].ID]
+		list[index].DiggCount += diggMap[list[index].ID]
+		list[index].ViewCount += viewMap[list[index].ID]
+		list[index].CommentCount += commentMap[list[index].ID]
+	}
+
 	return
+}
+
+// loadSearchArticleCounterMaps 批量读取 Redis 中的文章计数增量。
+// 搜索结果里的计数字段以 ES 文档为基础值，再叠加 Redis 中尚未落库的实时增量。
+func loadSearchArticleCounterMaps(articleIDs []uint) (favorMap, diggMap, viewMap, commentMap map[uint]int) {
+	favorMap = make(map[uint]int)
+	diggMap = make(map[uint]int)
+	viewMap = make(map[uint]int)
+	commentMap = make(map[uint]int)
+	if global.Redis == nil || len(articleIDs) == 0 {
+		return favorMap, diggMap, viewMap, commentMap
+	}
+
+	favorMap = redis_article.GetBatchCacheFavorite(articleIDs)
+	diggMap = redis_article.GetBatchCacheDigg(articleIDs)
+	viewMap = redis_article.GetBatchCacheView(articleIDs)
+	commentMap = redis_article.GetBatchCacheComment(articleIDs)
+	return favorMap, diggMap, viewMap, commentMap
 }
 
 // extractHighlightValues 提取高亮值

@@ -3,6 +3,7 @@ package search_api
 import (
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/redis_service/redis_article"
 	"myblogx/test/testutil"
 	"testing"
 )
@@ -497,15 +498,33 @@ func TestBuildArticleSearchExtraBody(t *testing.T) {
 }
 
 func TestExtractArticleSearchResults(t *testing.T) {
+	_ = testutil.SetupMiniRedis(t)
+	if err := redis_article.SetCacheView(1, 3); err != nil {
+		t.Fatalf("设置浏览增量失败: %v", err)
+	}
+	if err := redis_article.SetCacheDigg(1, 2); err != nil {
+		t.Fatalf("设置点赞增量失败: %v", err)
+	}
+	if err := redis_article.SetCacheFavorite(1, 4); err != nil {
+		t.Fatalf("设置收藏增量失败: %v", err)
+	}
+	if err := redis_article.SetCacheComment(1, 5); err != nil {
+		t.Fatalf("设置评论增量失败: %v", err)
+	}
+
 	data := map[string]any{
 		"hits": []any{
 			map[string]any{
 				"_source": map[string]any{
-					"id":           1,
-					"title":        "go search article",
-					"abstract":     "hello world",
-					"html_content": "origin html content",
-					"tag_list":     []any{"Go", "ES"},
+					"id":            1,
+					"title":         "go search article",
+					"abstract":      "hello world",
+					"html_content":  "origin html content",
+					"view_count":    10,
+					"digg_count":    20,
+					"favor_count":   30,
+					"comment_count": 40,
+					"tag_list":      []any{"Go", "ES"},
 				},
 				"highlight": map[string]any{
 					"title":        []any{"<em>go</em> search"},
@@ -533,6 +552,9 @@ func TestExtractArticleSearchResults(t *testing.T) {
 	}
 	if len(list[0].Tags) != 2 || list[0].Tags[0] != "Go" {
 		t.Fatalf("标签解析错误: %+v", list[0].Tags)
+	}
+	if list[0].ViewCount != 13 || list[0].DiggCount != 22 || list[0].FavorCount != 34 || list[0].CommentCount != 45 {
+		t.Fatalf("Redis 增量叠加错误: %+v", list[0])
 	}
 	if !list[0].UserTop || !list[0].AdminTop {
 		t.Fatalf("置顶标记解析错误: %+v", list[0])
