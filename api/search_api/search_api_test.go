@@ -367,7 +367,7 @@ func TestBuildAuthorAdminTopQuery(t *testing.T) {
 }
 
 func TestBuildArticleSearchExtraBody(t *testing.T) {
-	defaultExtraBody := buildArticleSearchExtraBody("")
+	defaultExtraBody := buildArticleSearchExtraBody("", "go")
 	sourceFields, ok := defaultExtraBody["_source"].([]string)
 	if !ok || len(sourceFields) == 0 {
 		t.Fatalf("_source 白名单异常: %#v", defaultExtraBody["_source"])
@@ -382,12 +382,48 @@ func TestBuildArticleSearchExtraBody(t *testing.T) {
 	if !hasContentParts {
 		t.Fatalf("_source 白名单缺少 content_parts: %#v", sourceFields)
 	}
+	highlightMap, ok := defaultExtraBody["highlight"].(map[string]any)
+	if !ok {
+		t.Fatalf("highlight 结构错误: %#v", defaultExtraBody["highlight"])
+	}
+	highlightFields, ok := highlightMap["fields"].(map[string]any)
+	if !ok {
+		t.Fatalf("highlight.fields 结构错误: %#v", highlightMap["fields"])
+	}
+	if _, ok = highlightFields["content_parts.content"]; !ok {
+		t.Fatalf("有关键词时应高亮 content_parts.content: %#v", highlightFields)
+	}
 	defaultSortList, ok := defaultExtraBody["sort"].([]any)
 	if !ok || len(defaultSortList) != 1 {
 		t.Fatalf("默认排序条件异常: %#v", defaultExtraBody["sort"])
 	}
 
-	extraBody := buildArticleSearchExtraBody("view_count")
+	noKeyExtraBody := buildArticleSearchExtraBody("", "")
+	noKeySourceFields, ok := noKeyExtraBody["_source"].([]string)
+	if !ok {
+		t.Fatalf("空关键词 _source 结构错误: %#v", noKeyExtraBody["_source"])
+	}
+	for _, field := range noKeySourceFields {
+		if field == "content_head" || field == "content_parts" {
+			t.Fatalf("空关键词时不应请求正文相关字段: %#v", noKeySourceFields)
+		}
+	}
+	noKeyHighlightMap, ok := noKeyExtraBody["highlight"].(map[string]any)
+	if !ok {
+		t.Fatalf("空关键词 highlight 结构错误: %#v", noKeyExtraBody["highlight"])
+	}
+	noKeyHighlightFields, ok := noKeyHighlightMap["fields"].(map[string]any)
+	if !ok {
+		t.Fatalf("空关键词 highlight.fields 结构错误: %#v", noKeyHighlightMap["fields"])
+	}
+	if _, ok = noKeyHighlightFields["content_head"]; ok {
+		t.Fatalf("空关键词时不应高亮 content_head: %#v", noKeyHighlightFields)
+	}
+	if _, ok = noKeyHighlightFields["content_parts.content"]; ok {
+		t.Fatalf("空关键词时不应高亮 content_parts.content: %#v", noKeyHighlightFields)
+	}
+
+	extraBody := buildArticleSearchExtraBody("view_count", "go")
 	sortList, ok := extraBody["sort"].([]any)
 	if !ok || len(sortList) != 2 {
 		t.Fatalf("排序条件异常: %#v", extraBody["sort"])

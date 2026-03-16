@@ -71,17 +71,17 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 	var extraBody map[string]any
 	switch cr.Sort {
 	case 1:
-		extraBody = buildArticleSearchExtraBody("")
+		extraBody = buildArticleSearchExtraBody("", cr.Key)
 	case 2:
-		extraBody = buildArticleSearchExtraBody("created_at")
+		extraBody = buildArticleSearchExtraBody("created_at", cr.Key)
 	case 3:
-		extraBody = buildArticleSearchExtraBody("comment_count")
+		extraBody = buildArticleSearchExtraBody("comment_count", cr.Key)
 	case 4:
-		extraBody = buildArticleSearchExtraBody("digg_count")
+		extraBody = buildArticleSearchExtraBody("digg_count", cr.Key)
 	case 5:
-		extraBody = buildArticleSearchExtraBody("favor_count")
+		extraBody = buildArticleSearchExtraBody("favor_count", cr.Key)
 	case 6:
-		extraBody = buildArticleSearchExtraBody("view_count")
+		extraBody = buildArticleSearchExtraBody("view_count", cr.Key)
 	}
 
 	if cr.TopSearch && (cr.Type == 3 || cr.Type == 4) {

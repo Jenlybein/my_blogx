@@ -28,9 +28,9 @@ type SearchListResponse struct {
 	CreatedAt      time.Time              `json:"created_at"`
 	UpdatedAt      time.Time              `json:"updated_at"`
 	Title          string                 `json:"title"`
-	Abstract       string                 `json:"abstract"`
-	Content        string                 `json:"content"`
-	Part           []markdown.ContentPart `json:"part"`
+	Abstract       string                 `json:"abstract,omitempty"`
+	Content        string                 `json:"content,omitempty"`
+	Part           []markdown.ContentPart `json:"part,omitempty"`
 	Cover          string                 `json:"cover"`
 	ViewCount      int                    `json:"view_count"`
 	DiggCount      int                    `json:"digg_count"`

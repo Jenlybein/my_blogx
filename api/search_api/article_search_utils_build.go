@@ -248,8 +248,9 @@ func buildCategoryIDQuery(query map[string]any, categoryID uint) map[string]any 
 	return query
 }
 
-// buildArticleSearchExtraBody 构建文章搜索额外参数
-func buildArticleSearchExtraBody(sortField string) map[string]any {
+// buildArticleSearchExtraBody 构建文章搜索额外参数。
+// 只有在存在关键词时，才额外请求正文摘要和正文分段，避免空关键词列表返回冗余大字段。
+func buildArticleSearchExtraBody(sortField, key string) map[string]any {
 	sortList := []any{
 		map[string]any{
 			"_score": map[string]any{
@@ -265,47 +266,51 @@ func buildArticleSearchExtraBody(sortField string) map[string]any {
 		})
 	}
 
-	return map[string]any{
-		"_source": []string{
-			"id",
-			"created_at",
-			"updated_at",
-			"title",
-			"abstract",
-			"content_head",
-			"content_parts",
-			"cover",
-			"view_count",
-			"digg_count",
-			"comment_count",
-			"favor_count",
-			"comments_toggle",
-			"status",
-			"tags",
-			"author_id",
-			"category_id",
-			"admin_top",
-			"author_top",
+	sourceFields := []string{
+		"id",
+		"created_at",
+		"updated_at",
+		"title",
+		"abstract",
+		"cover",
+		"view_count",
+		"digg_count",
+		"comment_count",
+		"favor_count",
+		"comments_toggle",
+		"status",
+		"tags",
+		"author_id",
+		"category_id",
+		"admin_top",
+		"author_top",
+	}
+	highlightFields := map[string]any{
+		"title": map[string]any{},
+		"abstract": map[string]any{
+			"number_of_fragments": 1,
 		},
-		"sort": sortList,
+	}
+	if strings.TrimSpace(key) != "" {
+		sourceFields = append(sourceFields, "content_head", "content_parts")
+		highlightFields["content_head"] = map[string]any{
+			"fragment_size":       120,
+			"number_of_fragments": 1,
+		}
+		highlightFields["content_parts.content"] = map[string]any{
+			"fragment_size":       120,
+			"number_of_fragments": 1,
+		}
+	}
+
+	return map[string]any{
+		"_source": sourceFields,
+		"sort":    sortList,
 		// 高亮，用<em>标签包裹
 		"highlight": map[string]any{
 			"pre_tags":  []string{"<em>"},
 			"post_tags": []string{"</em>"},
-			"fields": map[string]any{
-				"title": map[string]any{},
-				"abstract": map[string]any{
-					"number_of_fragments": 1,
-				},
-				"content_head": map[string]any{
-					"fragment_size":       120,
-					"number_of_fragments": 1,
-				},
-				"content_parts.content": map[string]any{
-					"fragment_size":       120,
-					"number_of_fragments": 1,
-				},
-			},
+			"fields":    highlightFields,
 		},
 	}
 }
