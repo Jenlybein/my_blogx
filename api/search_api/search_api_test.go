@@ -6,6 +6,7 @@ import (
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/test/testutil"
 	"testing"
+	"time"
 )
 
 func TestBuildDefaultArticleSearchQueryOnlyPublished(t *testing.T) {
@@ -504,6 +505,8 @@ func TestBuildArticleSearchExtraBody(t *testing.T) {
 func TestExtractArticleSearchResults(t *testing.T) {
 	_ = testutil.SetupMiniRedis(t)
 	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.CategoryModel{}, &models.ArticleModel{})
+	createdAt := time.Date(2026, 3, 16, 10, 0, 0, 0, time.UTC)
+	updatedAt := time.Date(2026, 3, 16, 12, 0, 0, 0, time.UTC)
 	if err := redis_article.SetCacheView(1, 3); err != nil {
 		t.Fatalf("设置浏览增量失败: %v", err)
 	}
@@ -558,15 +561,20 @@ func TestExtractArticleSearchResults(t *testing.T) {
 		"hits": []any{
 			map[string]any{
 				"_source": map[string]any{
-					"id":            1,
-					"title":         "go search article",
-					"abstract":      "hello world",
-					"content_head":  "origin content head",
-					"view_count":    10,
-					"digg_count":    20,
-					"favor_count":   30,
-					"comment_count": 40,
-					"tag_list":      []any{"Go", "ES"},
+					"id":              1,
+					"created_at":      createdAt.Format(time.RFC3339Nano),
+					"updated_at":      updatedAt.Format(time.RFC3339Nano),
+					"title":           "go search article",
+					"abstract":        "hello world",
+					"content_head":    "origin content head",
+					"cover":           "/cover.png",
+					"view_count":      10,
+					"digg_count":      20,
+					"favor_count":     30,
+					"comment_count":   40,
+					"comments_toggle": true,
+					"status":          int(enum.ArticleStatusPublished),
+					"tag_list":        []any{"Go", "ES"},
 				},
 				"highlight": map[string]any{
 					"title":        []any{"<em>go</em> search"},
@@ -586,11 +594,17 @@ func TestExtractArticleSearchResults(t *testing.T) {
 	if list[0].ID != 1 || list[0].Title != "<em>go</em> search" {
 		t.Fatalf("文章解析错误: %+v", list[0])
 	}
+	if !list[0].CreatedAt.Equal(createdAt) || !list[0].UpdatedAt.Equal(updatedAt) {
+		t.Fatalf("时间字段解析错误: %+v", list[0])
+	}
 	if list[0].Abstract != "<em>hello</em> world" {
 		t.Fatalf("摘要高亮回填错误: %+v", list[0])
 	}
 	if list[0].Content != "prefix <em>go</em> suffix" {
 		t.Fatalf("正文摘要回填错误: %+v", list[0])
+	}
+	if list[0].Cover != "/cover.png" || !list[0].CommentsToggle || list[0].Status != enum.ArticleStatusPublished {
+		t.Fatalf("基础字段解析错误: %+v", list[0])
 	}
 	if len(list[0].Tags) != 2 || list[0].Tags[0] != "Go" {
 		t.Fatalf("标签解析错误: %+v", list[0].Tags)

@@ -1,7 +1,6 @@
 package search_api
 
 import (
-	"encoding/json"
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/service/redis_service/redis_article"
@@ -108,17 +107,17 @@ func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list
 			continue
 		}
 
-		var article models.ArticleModel
-		if sourceMap, ok := item["_source"].(map[string]any); ok {
-			jsonBytes, _ := json.Marshal(sourceMap)
-			_ = json.Unmarshal(jsonBytes, &article)
+		sourceMap, ok := item["_source"].(map[string]any)
+		if !ok {
+			continue
 		}
 
 		// 处理高亮，获取第一个高亮字段
 		highlightMap, _ := item["highlight"].(map[string]any)
-		title := article.Title
-		abstract := article.Abstract
-		contentHead := article.ContentHead
+		articleID := sourceUintValue(sourceMap, "id")
+		title := sourceStringValue(sourceMap, "title")
+		abstract := sourceStringValue(sourceMap, "abstract")
+		contentHead := sourceStringValue(sourceMap, "content_head")
 		if len(highlightMap) > 0 {
 			if values := extractHighlightValues(highlightMap, "title"); len(values) > 0 {
 				title = values[0]
@@ -132,22 +131,22 @@ func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list
 		}
 
 		list = append(list, SearchListResponse{
-			ID:             article.ID,
-			CreatedAt:      article.CreatedAt,
-			UpdatedAt:      article.UpdatedAt,
+			ID:             articleID,
+			CreatedAt:      sourceTimeValue(sourceMap, "created_at"),
+			UpdatedAt:      sourceTimeValue(sourceMap, "updated_at"),
 			Title:          title,
 			Abstract:       abstract,
 			Content:        contentHead,
-			Cover:          article.Cover,
-			ViewCount:      article.ViewCount,
-			DiggCount:      article.DiggCount,
-			CommentCount:   article.CommentCount,
-			FavorCount:     article.FavorCount,
-			CommentsToggle: article.CommentsToggle,
-			Status:         article.Status,
-			Tags:           []string(article.TagList),
-			UserTop:        isUserTop(topMap, article.ID),
-			AdminTop:       isAdminTop(topMap, article.ID),
+			Cover:          sourceStringValue(sourceMap, "cover"),
+			ViewCount:      sourceIntValue(sourceMap, "view_count"),
+			DiggCount:      sourceIntValue(sourceMap, "digg_count"),
+			CommentCount:   sourceIntValue(sourceMap, "comment_count"),
+			FavorCount:     sourceIntValue(sourceMap, "favor_count"),
+			CommentsToggle: sourceBoolValue(sourceMap, "comments_toggle"),
+			Status:         sourceArticleStatusValue(sourceMap, "status"),
+			Tags:           sourceStringSliceValue(sourceMap, "tag_list"),
+			UserTop:        isUserTop(topMap, articleID),
+			AdminTop:       isAdminTop(topMap, articleID),
 		})
 	}
 

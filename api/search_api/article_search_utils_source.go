@@ -1,0 +1,157 @@
+package search_api
+
+import (
+	"encoding/json"
+	"myblogx/models/enum"
+	"time"
+)
+
+// sourceUintValue 从 ES _source 中提取 uint 字段。
+func sourceUintValue(sourceMap map[string]any, key string) uint {
+	switch value := sourceMap[key].(type) {
+	case uint:
+		return value
+	case uint8:
+		return uint(value)
+	case uint16:
+		return uint(value)
+	case uint32:
+		return uint(value)
+	case uint64:
+		return uint(value)
+	case int:
+		if value < 0 {
+			return 0
+		}
+		return uint(value)
+	case int8:
+		if value < 0 {
+			return 0
+		}
+		return uint(value)
+	case int16:
+		if value < 0 {
+			return 0
+		}
+		return uint(value)
+	case int32:
+		if value < 0 {
+			return 0
+		}
+		return uint(value)
+	case int64:
+		if value < 0 {
+			return 0
+		}
+		return uint(value)
+	case float32:
+		if value < 0 {
+			return 0
+		}
+		return uint(value)
+	case float64:
+		if value < 0 {
+			return 0
+		}
+		return uint(value)
+	case json.Number:
+		intValue, err := value.Int64()
+		if err != nil || intValue < 0 {
+			return 0
+		}
+		return uint(intValue)
+	default:
+		return 0
+	}
+}
+
+// sourceIntValue 从 ES _source 中提取 int 字段。
+func sourceIntValue(sourceMap map[string]any, key string) int {
+	switch value := sourceMap[key].(type) {
+	case int:
+		return value
+	case int8:
+		return int(value)
+	case int16:
+		return int(value)
+	case int32:
+		return int(value)
+	case int64:
+		return int(value)
+	case uint:
+		return int(value)
+	case uint8:
+		return int(value)
+	case uint16:
+		return int(value)
+	case uint32:
+		return int(value)
+	case uint64:
+		return int(value)
+	case float32:
+		return int(value)
+	case float64:
+		return int(value)
+	case json.Number:
+		intValue, err := value.Int64()
+		if err != nil {
+			return 0
+		}
+		return int(intValue)
+	default:
+		return 0
+	}
+}
+
+// sourceStringValue 从 ES _source 中提取 string 字段。
+func sourceStringValue(sourceMap map[string]any, key string) string {
+	value, _ := sourceMap[key].(string)
+	return value
+}
+
+// sourceBoolValue 从 ES _source 中提取 bool 字段。
+func sourceBoolValue(sourceMap map[string]any, key string) bool {
+	value, _ := sourceMap[key].(bool)
+	return value
+}
+
+// sourceTimeValue 从 ES _source 中提取时间字段。
+func sourceTimeValue(sourceMap map[string]any, key string) time.Time {
+	switch value := sourceMap[key].(type) {
+	case time.Time:
+		return value
+	case string:
+		if parsed, err := time.Parse(time.RFC3339Nano, value); err == nil {
+			return parsed
+		}
+		if parsed, err := time.Parse(time.RFC3339, value); err == nil {
+			return parsed
+		}
+	}
+	return time.Time{}
+}
+
+// sourceStringSliceValue 从 ES _source 中提取字符串切片字段。
+func sourceStringSliceValue(sourceMap map[string]any, key string) []string {
+	switch value := sourceMap[key].(type) {
+	case []string:
+		return append([]string(nil), value...)
+	case []any:
+		result := make([]string, 0, len(value))
+		for _, item := range value {
+			text, ok := item.(string)
+			if !ok {
+				continue
+			}
+			result = append(result, text)
+		}
+		return result
+	default:
+		return nil
+	}
+}
+
+// sourceArticleStatusValue 从 ES _source 中提取文章状态字段。
+func sourceArticleStatusValue(sourceMap map[string]any, key string) enum.ArticleStatus {
+	return enum.ArticleStatus(sourceIntValue(sourceMap, key))
+}
