@@ -23,28 +23,30 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 
 	switch cr.Type {
 	case 0:
+		extraBody = buildArticleSearchExtraBody("created_at")
+	case 1:
 		claims, err := jwts.ParseTokenByGin(c)
 		if err != nil || claims == nil {
 			break
 		}
 		query = buildLikeTagsQuery(query, claims.UserID)
-	case 1:
-		extraBody = buildArticleSearchExtraBody("created_at")
 	case 2:
-		extraBody = buildArticleSearchExtraBody("comment_count")
+		extraBody = buildArticleSearchExtraBody("created_at")
 	case 3:
-		extraBody = buildArticleSearchExtraBody("digg_count")
+		extraBody = buildArticleSearchExtraBody("comment_count")
 	case 4:
-		extraBody = buildArticleSearchExtraBody("favor_count")
+		extraBody = buildArticleSearchExtraBody("digg_count")
 	case 5:
-		extraBody = buildArticleSearchExtraBody("view_count")
+		extraBody = buildArticleSearchExtraBody("favor_count")
 	case 6:
-		query = buildTagListQuery(query, cr.TagList)
+		extraBody = buildArticleSearchExtraBody("view_count")
 	case 7:
+		query = buildTagListQuery(query, cr.TagList)
+	case 8:
 		query = buildUserIDQuery(query, cr.UserID)
 	}
 
-	if cr.Key == "" && cr.Type == 7 {
+	if cr.Key == "" && cr.Type == 8 {
 		query, topMap = buildAuthorAdminTopQuery(query, cr.UserID)
 	} else if cr.Key == "" {
 		query, topMap = buildAdminTopQuery(query)
