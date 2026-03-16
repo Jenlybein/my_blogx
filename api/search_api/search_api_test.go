@@ -499,6 +499,7 @@ func TestBuildArticleSearchExtraBody(t *testing.T) {
 
 func TestExtractArticleSearchResults(t *testing.T) {
 	_ = testutil.SetupMiniRedis(t)
+	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.CategoryModel{}, &models.ArticleModel{})
 	if err := redis_article.SetCacheView(1, 3); err != nil {
 		t.Fatalf("设置浏览增量失败: %v", err)
 	}
@@ -510,6 +511,43 @@ func TestExtractArticleSearchResults(t *testing.T) {
 	}
 	if err := redis_article.SetCacheComment(1, 5); err != nil {
 		t.Fatalf("设置评论增量失败: %v", err)
+	}
+
+	user := models.UserModel{
+		Username: "search_author",
+		Password: "x",
+		Nickname: "作者昵称",
+		Avatar:   "/avatar.png",
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("创建作者失败: %v", err)
+	}
+
+	category := models.CategoryModel{
+		Title:  "Go 分类",
+		UserID: user.ID,
+	}
+	if err := db.Create(&category).Error; err != nil {
+		t.Fatalf("创建分类失败: %v", err)
+	}
+
+	article := models.ArticleModel{
+		Model:        models.Model{ID: 1},
+		Title:        "db article",
+		CategoryID:   &category.ID,
+		AuthorID:     user.ID,
+		Status:       enum.ArticleStatusPublished,
+		Abstract:     "db abstract",
+		HtmlContent:  "db html content",
+		ContentHead:  "db content head",
+		ViewCount:    10,
+		DiggCount:    20,
+		FavorCount:   30,
+		CommentCount: 40,
+	}
+	if err := db.Create(&article).Error; err != nil {
+		t.Fatalf("创建文章失败: %v", err)
 	}
 
 	data := map[string]any{
@@ -559,5 +597,11 @@ func TestExtractArticleSearchResults(t *testing.T) {
 	}
 	if !list[0].UserTop || !list[0].AdminTop {
 		t.Fatalf("置顶标记解析错误: %+v", list[0])
+	}
+	if list[0].CategoryTitle != "Go 分类" {
+		t.Fatalf("分类标题回填错误: %+v", list[0])
+	}
+	if list[0].UserNickname != "作者昵称" || list[0].UserAvatar != "/avatar.png" {
+		t.Fatalf("作者信息回填错误: %+v", list[0])
 	}
 }

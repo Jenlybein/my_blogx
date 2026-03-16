@@ -58,6 +58,46 @@ func loadSearchArticleCounterMaps(articleIDs []uint) (favorMap, diggMap, viewMap
 	return favorMap, diggMap, viewMap, commentMap
 }
 
+// loadSearchArticleDisplayMetaMap 批量读取搜索列表需要的展示信息。
+// 这里只补齐列表页展示字段，避免逐条查询分类和作者信息。
+func loadSearchArticleDisplayMetaMap(articleIDs []uint) map[uint]SearchListResponse {
+	metaMap := make(map[uint]SearchListResponse)
+	if global.DB == nil || len(articleIDs) == 0 {
+		return metaMap
+	}
+
+	type articleDisplayMeta struct {
+		ID            uint
+		CategoryTitle string
+		UserNickname  string
+		UserAvatar    string
+	}
+
+	var rows []articleDisplayMeta
+	if err := global.DB.Model(&models.ArticleModel{}).
+		Select(
+			"article_models.id",
+			"category_models.title AS category_title",
+			"user_models.nickname AS user_nickname",
+			"user_models.avatar AS user_avatar",
+		).
+		Joins("LEFT JOIN category_models ON category_models.id = article_models.category_id").
+		Joins("LEFT JOIN user_models ON user_models.id = article_models.author_id").
+		Where("article_models.id IN ?", articleIDs).
+		Find(&rows).Error; err != nil {
+		return metaMap
+	}
+
+	for _, row := range rows {
+		metaMap[row.ID] = SearchListResponse{
+			CategoryTitle: row.CategoryTitle,
+			UserNickname:  row.UserNickname,
+			UserAvatar:    row.UserAvatar,
+		}
+	}
+	return metaMap
+}
+
 // extractArticleSearchResults 提取文章搜索结果
 func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list []SearchListResponse) {
 	hits, _ := data["hits"].([]any)
@@ -119,12 +159,16 @@ func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list
 	for _, item := range list {
 		articleIDs = append(articleIDs, item.ID)
 	}
+	displayMetaMap := loadSearchArticleDisplayMetaMap(articleIDs)
 	favorMap, diggMap, viewMap, commentMap := loadSearchArticleCounterMaps(articleIDs)
 	for index := range list {
 		list[index].FavorCount += favorMap[list[index].ID]
 		list[index].DiggCount += diggMap[list[index].ID]
 		list[index].ViewCount += viewMap[list[index].ID]
 		list[index].CommentCount += commentMap[list[index].ID]
+		list[index].CategoryTitle = displayMetaMap[list[index].ID].CategoryTitle
+		list[index].UserNickname = displayMetaMap[list[index].ID].UserNickname
+		list[index].UserAvatar = displayMetaMap[list[index].ID].UserAvatar
 	}
 
 	return
