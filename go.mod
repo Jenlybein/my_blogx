@@ -5,6 +5,7 @@ go 1.25.1
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/alicebob/miniredis/v2 v2.37.0
+	github.com/blackstork-io/goldmark-markdown v0.1.3
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/gabriel-vasile/mimetype v1.4.12
 	github.com/gin-gonic/gin v1.11.0
@@ -16,11 +17,11 @@ require (
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/gomarkdown/markdown v0.0.0-20250810172220-2e2c11897d1a
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20251023062652-029a5578aa01
+	github.com/litao91/goldmark-mathjax v0.0.0-20210217064022-a43cf739a50f
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/mojocn/base64Captcha v1.3.8
 	github.com/pingcap/errors v0.11.5-0.20250318082626-8f80e5cb09ec
@@ -28,6 +29,7 @@ require (
 	github.com/qiniu/go-sdk/v7 v7.25.5
 	github.com/segmentio/kafka-go v0.4.50
 	github.com/sirupsen/logrus v1.9.3
+	github.com/yuin/goldmark v1.7.16
 	golang.org/x/crypto v0.46.0
 	golang.org/x/image v0.34.0
 	gopkg.in/yaml.v3 v3.0.1

@@ -1,2 +1,10 @@
 各类展示信息做一层缓存
 
+取消存储 html_content，传入 Content 时进行一次清洗(安全转 html -> 回转 md)
+按Markdown 形式进行文段切割，存入 es
+
+重新开始分析完整方案，我现在开始想要的：
+后端不再存 Html_Content，直接将 Md 原文交给前端。
+Es 中存储原文不再依赖 html_content，传入的 content 需洗掉文章的 md 格式
+同时，Es 部分，存一份content_head 保存文章前 150 字用于简化返回。让文章内容“分段”，并给每段一个稳定锚点。
+数据库存储 Content 时需过滤一遍，保证安全，将攻击内容去除。

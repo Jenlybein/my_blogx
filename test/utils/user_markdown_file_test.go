@@ -58,16 +58,16 @@ func TestMarkdownHelpers(t *testing.T) {
 	if !strings.Contains(unsafe, "<script>") {
 		t.Fatal("MdToHTMLUnsafe 不应过滤 script")
 	}
-	if !strings.Contains(unsafe, "user-content-") {
-		t.Fatal("锚点前缀未生效")
+	if !strings.Contains(unsafe, `href="#`) {
+		t.Fatal("Markdown 链接应被渲染为 HTML 链接")
 	}
 
 	safe := markdown.MdToHTMLSafe(md)
 	if strings.Contains(safe, "<script>") {
 		t.Fatal("MdToHTMLSafe 应过滤 script")
 	}
-	if !strings.Contains(safe, "user-content-") {
-		t.Fatal("安全模式仍应保留锚点前缀")
+	if !strings.Contains(safe, `href="#`) {
+		t.Fatal("安全模式应保留普通锚点链接")
 	}
 
 	text := markdown.MdToText("**hello**")
