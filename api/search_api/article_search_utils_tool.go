@@ -5,7 +5,6 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/service/redis_service/redis_article"
-	"myblogx/utils/markdown"
 )
 
 // extractHighlightValues 提取高亮值
@@ -118,11 +117,8 @@ func extractArticleSearchResults(data map[string]any, topMap map[uint]int) (list
 		// 处理高亮，获取第一个高亮字段
 		highlightMap, _ := item["highlight"].(map[string]any)
 		title := article.Title
-		abstract := markdown.ExtractText(article.Abstract, 120)
+		abstract := article.Abstract
 		contentHead := article.ContentHead
-		if contentHead == "" {
-			contentHead = markdown.ExtractText(article.HtmlContent, 150)
-		}
 		if len(highlightMap) > 0 {
 			if values := extractHighlightValues(highlightMap, "title"); len(values) > 0 {
 				title = values[0]

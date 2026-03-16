@@ -485,6 +485,10 @@ func TestBuildAuthorAdminTopQuery(t *testing.T) {
 
 func TestBuildArticleSearchExtraBody(t *testing.T) {
 	defaultExtraBody := buildArticleSearchExtraBody("")
+	sourceFields, ok := defaultExtraBody["_source"].([]string)
+	if !ok || len(sourceFields) == 0 {
+		t.Fatalf("_source 白名单异常: %#v", defaultExtraBody["_source"])
+	}
 	defaultSortList, ok := defaultExtraBody["sort"].([]any)
 	if !ok || len(defaultSortList) != 1 {
 		t.Fatalf("默认排序条件异常: %#v", defaultExtraBody["sort"])
@@ -557,7 +561,6 @@ func TestExtractArticleSearchResults(t *testing.T) {
 					"id":            1,
 					"title":         "go search article",
 					"abstract":      "hello world",
-					"html_content":  "origin html content",
 					"content_head":  "origin content head",
 					"view_count":    10,
 					"digg_count":    20,

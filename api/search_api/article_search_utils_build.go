@@ -276,6 +276,24 @@ func buildArticleSearchExtraBody(sortField string) map[string]any {
 	}
 
 	return map[string]any{
+		"_source": []string{
+			"id",
+			"created_at",
+			"updated_at",
+			"title",
+			"abstract",
+			"content_head",
+			"cover",
+			"view_count",
+			"digg_count",
+			"comment_count",
+			"favor_count",
+			"comments_toggle",
+			"status",
+			"tag_list",
+			"author_id",
+			"category_id",
+		},
 		"sort": sortList,
 		// 高亮，用<em>标签包裹
 		"highlight": map[string]any{
