@@ -2,11 +2,14 @@ package search_api
 
 import (
 	"encoding/json"
+	"errors"
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/utils/markdown"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 // buildDefaultArticleSearchQuery 构建默认文章搜索查询
@@ -258,6 +261,16 @@ func buildCategoryIDQuery(query map[string]any, categoryID uint) map[string]any 
 		},
 	})
 	return query
+}
+
+// validateSearchCategory 校验分类是否归属于指定用户。
+func validateSearchCategory(db *gorm.DB, userID uint, categoryID uint) error {
+	if db == nil || userID == 0 || categoryID == 0 {
+		return errors.New("分类参数错误")
+	}
+
+	var category models.CategoryModel
+	return db.Take(&category, "id = ? AND user_id = ?", categoryID, userID).Error
 }
 
 // buildArticleSearchExtraBody 构建文章搜索额外参数

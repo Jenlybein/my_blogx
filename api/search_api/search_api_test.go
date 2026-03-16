@@ -167,6 +167,41 @@ func TestBuildCategoryIDQuery(t *testing.T) {
 	}
 }
 
+func TestValidateSearchCategory(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.CategoryModel{})
+
+	user := models.UserModel{
+		Username: "cat_user",
+		Password: "x",
+		Nickname: "cat_user",
+		Role:     enum.RoleUser,
+	}
+	other := models.UserModel{
+		Username: "cat_other",
+		Password: "x",
+		Nickname: "cat_other",
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("创建用户失败: %v", err)
+	}
+	if err := db.Create(&other).Error; err != nil {
+		t.Fatalf("创建其他用户失败: %v", err)
+	}
+
+	category := models.CategoryModel{Title: "go", UserID: user.ID}
+	if err := db.Create(&category).Error; err != nil {
+		t.Fatalf("创建分类失败: %v", err)
+	}
+
+	if err := validateSearchCategory(db, user.ID, category.ID); err != nil {
+		t.Fatalf("分类归属校验失败: %v", err)
+	}
+	if err := validateSearchCategory(db, other.ID, category.ID); err == nil {
+		t.Fatal("分类不属于该用户时应校验失败")
+	}
+}
+
 func TestBuildUserIDQuery(t *testing.T) {
 	query := buildDefaultArticleSearchQuery("golang")
 	query = buildUserIDQuery(query, 88)

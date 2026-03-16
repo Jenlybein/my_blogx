@@ -2,6 +2,7 @@ package search_api
 
 import (
 	"myblogx/common/res"
+	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
@@ -19,7 +20,6 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 	}
 
 	query := buildDefaultArticleSearchQuery(cr.Key)
-	topAuthorID := cr.UserID
 
 	switch cr.Type {
 	case 1:
@@ -42,7 +42,7 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 			res.FailWithMsg("不能搜索已删除的文章", c)
 			return
 		}
-		topAuthorID = claims.UserID
+		cr.UserID = claims.UserID
 		query = buildSelfArticleSearchQuery(cr.Key, claims.UserID, cr.Status)
 	case 5:
 		claims, err := jwts.ParseTokenByGin(c)
@@ -57,6 +57,18 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 		query = buildTagListQuery(query, cr.TagList)
 	}
 	if cr.CategoryID != 0 {
+		if cr.Type != 3 && cr.Type != 4 {
+			res.FailWithMsg("只有作者文章和自己文章支持按分类搜索", c)
+			return
+		}
+		if cr.UserID == 0 {
+			res.FailWithMsg("按分类搜索必须传 user_id", c)
+			return
+		}
+		if err := validateSearchCategory(global.DB, cr.UserID, cr.CategoryID); err != nil {
+			res.FailWithMsg("分类不存在或不属于该用户", c)
+			return
+		}
 		query = buildCategoryIDQuery(query, cr.CategoryID)
 	}
 
@@ -78,7 +90,7 @@ func (SearchApi) ArticleSearchView(c *gin.Context) {
 
 	topMap := map[uint]int{}
 	if cr.TopSearch && (cr.Type == 3 || cr.Type == 4) {
-		query, topMap = buildAuthorAdminTopQuery(query, topAuthorID)
+		query, topMap = buildAuthorAdminTopQuery(query, cr.UserID)
 	} else if cr.TopSearch {
 		query, topMap = buildAdminTopQuery(query)
 	}
