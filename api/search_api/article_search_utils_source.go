@@ -3,6 +3,7 @@ package search_api
 import (
 	"encoding/json"
 	"myblogx/models/enum"
+	"myblogx/utils/markdown"
 	"time"
 )
 
@@ -149,6 +150,34 @@ func sourceStringSliceValue(sourceMap map[string]any, key string) []string {
 	default:
 		return nil
 	}
+}
+
+// sourceContentPartsValue 从 ES _source 中提取正文分段字段。
+func sourceContentPartsValue(sourceMap map[string]any, key string) []markdown.ContentPart {
+	rawList, ok := sourceMap[key].([]any)
+	if !ok {
+		return nil
+	}
+
+	result := make([]markdown.ContentPart, 0, len(rawList))
+	for _, rawItem := range rawList {
+		itemMap, ok := rawItem.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		part := markdown.ContentPart{
+			Level: sourceIntValue(itemMap, "level"),
+			Title: sourceStringValue(itemMap, "title"),
+			Path:  sourceStringSliceValue(itemMap, "path"),
+		}
+		if part.Title == "" && part.Content == "" && len(part.Path) == 0 && part.Order == 0 && part.Level == 0 {
+			continue
+		}
+		result = append(result, part)
+	}
+
+	return result
 }
 
 // sourceTagTitlesValue 从 ES _source 中提取 tags 里的标签标题列表。

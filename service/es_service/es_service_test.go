@@ -1,9 +1,15 @@
 package es_service
 
 import (
+	"bufio"
 	"encoding/json"
 	"io"
+	"myblogx/conf"
+	confsite "myblogx/conf/site"
 	"myblogx/global"
+	"myblogx/models"
+	"myblogx/models/enum"
+	"myblogx/test/testutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -203,6 +209,254 @@ func TestDocumentAndBulkOps(t *testing.T) {
 	}
 	if resp := DeleteIndexWithResponse("idx"); !resp.Success {
 		t.Fatalf("DeleteIndexWithResponse 失败: %+v", resp)
+	}
+}
+
+func TestUpdateESDocsContent(t *testing.T) {
+	db := testutil.SetupSQLite(t,
+		&models.UserModel{},
+		&models.UserConfModel{},
+		&models.ArticleModel{},
+		&models.TagModel{},
+		&models.ArticleTagModel{},
+		&models.UserTopArticleModel{},
+	)
+	global.Config = &conf.Config{
+		ES: conf.ES{Index: "article_index"},
+		Site: conf.Site{
+			SiteInfo: confsite.SiteInfo{Mode: enum.SiteModeCommunity},
+		},
+	}
+
+	user := models.UserModel{Username: "author", Password: "x", Role: enum.RoleUser}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("创建用户失败: %v", err)
+	}
+	article := models.ArticleModel{
+		Title:    "t1",
+		Abstract: "摘要",
+		Content:  "# 新标题\n新正文\n[错误链接](### 新标题)",
+		AuthorID: user.ID,
+		Status:   enum.ArticleStatusExamining,
+	}
+	if err := db.Create(&article).Error; err != nil {
+		t.Fatalf("创建文章失败: %v", err)
+	}
+
+	var bulkDocs []map[string]any
+	setupMockES(t, func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		switch {
+		case path == "/":
+			writeJSON(w, 200, `{"name":"mock","cluster_name":"mock","version":{"number":"7.17.10"},"tagline":"You Know, for Search"}`)
+		case path == "/_bulk" || strings.HasSuffix(path, "/_bulk"):
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("读取 bulk body 失败: %v", err)
+			}
+			scanner := bufio.NewScanner(strings.NewReader(string(body)))
+			lineNo := 0
+			for scanner.Scan() {
+				lineNo++
+				line := scanner.Bytes()
+				if len(strings.TrimSpace(string(line))) == 0 {
+					continue
+				}
+				if lineNo%2 == 0 {
+					var doc map[string]any
+					if err = json.Unmarshal(line, &doc); err != nil {
+						t.Fatalf("解析 bulk 文档失败: %v", err)
+					}
+					bulkDocs = append(bulkDocs, doc)
+				}
+			}
+			writeJSON(w, 200, `{"took":1,"errors":false,"items":[]}`)
+		default:
+			writeJSON(w, 404, `{"error":{"reason":"not found"}}`)
+		}
+	})
+
+	if err := UpdateESDocsContent([]uint{article.ID}); err != nil {
+		t.Fatalf("UpdateESDocsContent 失败: %v", err)
+	}
+	if len(bulkDocs) != 1 {
+		t.Fatalf("应重建一篇 ES 文档, got=%d", len(bulkDocs))
+	}
+
+	docMap, ok := bulkDocs[0]["doc"].(map[string]any)
+	if !ok {
+		t.Fatalf("应使用 partial update 文档结构, got=%#v", bulkDocs[0])
+	}
+	parts, ok := docMap["content_parts"].([]any)
+	if !ok || len(parts) != 1 {
+		t.Fatalf("content_parts 同步错误: %#v", docMap["content_parts"])
+	}
+	firstPart, ok := parts[0].(map[string]any)
+	if !ok {
+		t.Fatalf("content_parts 首段结构错误: %#v", parts[0])
+	}
+	content, _ := firstPart["content"].(string)
+	if !strings.Contains(content, "新标题") || !strings.Contains(content, "新正文") {
+		t.Fatalf("content_parts 未同步最新正文: %q", content)
+	}
+	if strings.Contains(content, "](### ") {
+		t.Fatalf("content_parts 不应保留错误链接语法: %q", content)
+	}
+	if _, ok = docMap["tags"]; ok {
+		t.Fatalf("UpdateESDocsContent 不应更新 tags: %#v", docMap)
+	}
+}
+
+func TestUpdateESDocsTags(t *testing.T) {
+	db := testutil.SetupSQLite(t,
+		&models.UserModel{},
+		&models.UserConfModel{},
+		&models.ArticleModel{},
+		&models.TagModel{},
+		&models.ArticleTagModel{},
+	)
+	global.Config = &conf.Config{ES: conf.ES{Index: "article_index"}}
+
+	user := models.UserModel{Username: "author", Password: "x", Role: enum.RoleUser}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("创建用户失败: %v", err)
+	}
+	tagGo := models.TagModel{Title: "Go", IsEnabled: true}
+	tagES := models.TagModel{Title: "ES", IsEnabled: true}
+	if err := db.Create(&tagGo).Error; err != nil {
+		t.Fatalf("创建标签失败: %v", err)
+	}
+	if err := db.Create(&tagES).Error; err != nil {
+		t.Fatalf("创建标签失败: %v", err)
+	}
+	article := models.ArticleModel{Title: "t1", Content: "正文", AuthorID: user.ID, Status: enum.ArticleStatusExamining}
+	if err := db.Create(&article).Error; err != nil {
+		t.Fatalf("创建文章失败: %v", err)
+	}
+	if err := db.Model(&article).Association("Tags").Replace([]models.TagModel{tagGo, tagES}); err != nil {
+		t.Fatalf("写入文章标签失败: %v", err)
+	}
+
+	var bulkDocs []map[string]any
+	setupMockES(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/":
+			writeJSON(w, 200, `{"name":"mock","cluster_name":"mock","version":{"number":"7.17.10"},"tagline":"You Know, for Search"}`)
+		case r.URL.Path == "/_bulk" || strings.HasSuffix(r.URL.Path, "/_bulk"):
+			body, _ := io.ReadAll(r.Body)
+			scanner := bufio.NewScanner(strings.NewReader(string(body)))
+			lineNo := 0
+			for scanner.Scan() {
+				lineNo++
+				line := scanner.Bytes()
+				if len(strings.TrimSpace(string(line))) == 0 {
+					continue
+				}
+				if lineNo%2 == 0 {
+					var doc map[string]any
+					if err := json.Unmarshal(line, &doc); err != nil {
+						t.Fatalf("解析 bulk 文档失败: %v", err)
+					}
+					bulkDocs = append(bulkDocs, doc)
+				}
+			}
+			writeJSON(w, 200, `{"took":1,"errors":false,"items":[]}`)
+		default:
+			writeJSON(w, 404, `{"error":{"reason":"not found"}}`)
+		}
+	})
+
+	if err := UpdateESDocsTags([]uint{article.ID}); err != nil {
+		t.Fatalf("UpdateESDocsTags 失败: %v", err)
+	}
+	if len(bulkDocs) != 1 {
+		t.Fatalf("应更新一篇 ES 文档, got=%d", len(bulkDocs))
+	}
+	docMap, ok := bulkDocs[0]["doc"].(map[string]any)
+	if !ok {
+		t.Fatalf("应使用 partial update 文档结构, got=%#v", bulkDocs[0])
+	}
+	tags, ok := docMap["tags"].([]any)
+	if !ok || len(tags) != 2 {
+		t.Fatalf("tags 更新错误: %#v", docMap["tags"])
+	}
+	if _, ok = docMap["content_parts"]; ok {
+		t.Fatalf("UpdateESDocsTags 不应更新正文字段: %#v", docMap)
+	}
+}
+
+func TestUpdateESDocsTop(t *testing.T) {
+	db := testutil.SetupSQLite(t,
+		&models.UserModel{},
+		&models.UserConfModel{},
+		&models.ArticleModel{},
+		&models.UserTopArticleModel{},
+	)
+	global.Config = &conf.Config{ES: conf.ES{Index: "article_index"}}
+
+	admin := models.UserModel{Username: "admin", Password: "x", Role: enum.RoleAdmin}
+	author := models.UserModel{Username: "author", Password: "x", Role: enum.RoleUser}
+	if err := db.Create(&admin).Error; err != nil {
+		t.Fatalf("创建管理员失败: %v", err)
+	}
+	if err := db.Create(&author).Error; err != nil {
+		t.Fatalf("创建作者失败: %v", err)
+	}
+	article := models.ArticleModel{Title: "t1", Content: "正文", AuthorID: author.ID, Status: enum.ArticleStatusExamining}
+	if err := db.Create(&article).Error; err != nil {
+		t.Fatalf("创建文章失败: %v", err)
+	}
+	if err := db.Create(&models.UserTopArticleModel{UserID: admin.ID, ArticleID: article.ID}).Error; err != nil {
+		t.Fatalf("创建管理员置顶失败: %v", err)
+	}
+	if err := db.Create(&models.UserTopArticleModel{UserID: author.ID, ArticleID: article.ID}).Error; err != nil {
+		t.Fatalf("创建作者置顶失败: %v", err)
+	}
+
+	var bulkDocs []map[string]any
+	setupMockES(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/":
+			writeJSON(w, 200, `{"name":"mock","cluster_name":"mock","version":{"number":"7.17.10"},"tagline":"You Know, for Search"}`)
+		case r.URL.Path == "/_bulk" || strings.HasSuffix(r.URL.Path, "/_bulk"):
+			body, _ := io.ReadAll(r.Body)
+			scanner := bufio.NewScanner(strings.NewReader(string(body)))
+			lineNo := 0
+			for scanner.Scan() {
+				lineNo++
+				line := scanner.Bytes()
+				if len(strings.TrimSpace(string(line))) == 0 {
+					continue
+				}
+				if lineNo%2 == 0 {
+					var doc map[string]any
+					if err := json.Unmarshal(line, &doc); err != nil {
+						t.Fatalf("解析 bulk 文档失败: %v", err)
+					}
+					bulkDocs = append(bulkDocs, doc)
+				}
+			}
+			writeJSON(w, 200, `{"took":1,"errors":false,"items":[]}`)
+		default:
+			writeJSON(w, 404, `{"error":{"reason":"not found"}}`)
+		}
+	})
+
+	if err := UpdateESDocsTop([]uint{article.ID}); err != nil {
+		t.Fatalf("UpdateESDocsTop 失败: %v", err)
+	}
+	if len(bulkDocs) != 1 {
+		t.Fatalf("应更新一篇 ES 文档, got=%d", len(bulkDocs))
+	}
+	docMap, ok := bulkDocs[0]["doc"].(map[string]any)
+	if !ok {
+		t.Fatalf("应使用 partial update 文档结构, got=%#v", bulkDocs[0])
+	}
+	if docMap["admin_top"] != true || docMap["author_top"] != true {
+		t.Fatalf("置顶字段更新错误: %#v", docMap)
+	}
+	if _, ok = docMap["tags"]; ok {
+		t.Fatalf("UpdateESDocsTop 不应更新其他字段: %#v", docMap)
 	}
 }
 

@@ -119,6 +119,7 @@ func extractArticleSearchResults(data map[string]any) (list []SearchListResponse
 		title := sourceStringValue(sourceMap, "title")
 		abstract := sourceStringValue(sourceMap, "abstract")
 		contentHead := sourceStringValue(sourceMap, "content_head")
+		partList := sourceContentPartsValue(sourceMap, "content_parts")
 		if len(highlightMap) > 0 {
 			if values := extractHighlightValues(highlightMap, "title"); len(values) > 0 {
 				title = values[0]
@@ -126,7 +127,9 @@ func extractArticleSearchResults(data map[string]any) (list []SearchListResponse
 			if values := extractHighlightValues(highlightMap, "abstract"); len(values) > 0 {
 				abstract = values[0]
 			}
-			if values := extractHighlightValues(highlightMap, "html_content"); len(values) > 0 {
+			if values := extractHighlightValues(highlightMap, "content_head"); len(values) > 0 {
+				contentHead = values[0]
+			} else if values := extractHighlightValues(highlightMap, "content_parts.content"); len(values) > 0 {
 				contentHead = values[0]
 			}
 		}
@@ -138,6 +141,7 @@ func extractArticleSearchResults(data map[string]any) (list []SearchListResponse
 			Title:          title,
 			Abstract:       abstract,
 			Content:        contentHead,
+			Part:           partList,
 			Cover:          sourceStringValue(sourceMap, "cover"),
 			ViewCount:      sourceIntValue(sourceMap, "view_count"),
 			DiggCount:      sourceIntValue(sourceMap, "digg_count"),

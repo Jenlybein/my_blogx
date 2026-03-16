@@ -12,6 +12,7 @@ import (
 	"myblogx/models/enum/message_enum"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
+	"myblogx/utils/markdown"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -353,7 +354,6 @@ func TestArticleUpdateViewOnlyUpdatesProvidedFields(t *testing.T) {
 		Title:          "old title",
 		Abstract:       "manual abstract",
 		Content:        "old content",
-		HtmlContent:    "<p>old content</p>",
 		CategoryID:     &cat.ID,
 		Cover:          "old-cover",
 		AuthorID:       user.ID,
@@ -392,8 +392,8 @@ func TestArticleUpdateViewOnlyUpdatesProvidedFields(t *testing.T) {
 	if article.Abstract != "manual abstract" {
 		t.Fatalf("未传 abstract 不应更新, got=%s", article.Abstract)
 	}
-	if article.Content != "new content" {
-		t.Fatalf("已传 content 应更新, got=%s", article.Content)
+	if article.Content != markdown.MdToSafe("new content") {
+		t.Fatalf("已传 content 应更新为安全 Markdown, got=%q", article.Content)
 	}
 	if article.Cover != "old-cover" {
 		t.Fatalf("未传 cover 不应更新, got=%s", article.Cover)
@@ -406,9 +406,6 @@ func TestArticleUpdateViewOnlyUpdatesProvidedFields(t *testing.T) {
 	}
 	if len(article.Tags) != 1 || article.Tags[0].Title != tag.Title {
 		t.Fatalf("未传 tag_ids 不应更新标签关系, got=%+v", article.Tags)
-	}
-	if article.HtmlContent == "" {
-		t.Fatal("已传 content 时 html_content 应同步更新")
 	}
 
 	var relationCount int64

@@ -68,11 +68,14 @@ func TestModelMethods(t *testing.T) {
 	if !strings.Contains(article.Mapping(), "\"content_head\"") {
 		t.Fatal("Mapping 应包含 content_head 字段")
 	}
+	if !strings.Contains(article.Mapping(), "\"content_parts\"") {
+		t.Fatal("Mapping 应包含 content_parts 字段")
+	}
 	if article.Pipeline() == "" {
 		t.Fatal("Pipeline 不应为空")
 	}
-	if !strings.Contains(article.Pipeline(), "content_head") {
-		t.Fatal("Pipeline 应生成 content_head 字段")
+	if strings.Contains(article.Pipeline(), "html_content") {
+		t.Fatal("Pipeline 不应再依赖 html_content 字段")
 	}
 	if article.PipelineName() == "" {
 		t.Fatal("PipelineName 不应为空")

@@ -39,9 +39,9 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 		return
 	}
 
-	htmlContent := markdown.MdToHTMLSafe(cr.Content)
+	safeContent := markdown.MdToSafe(cr.Content)
 	if cr.Abstract == "" {
-		textContent := markdown.MdToText(cr.Content)
+		textContent := markdown.MdToText(safeContent)
 		cr.Abstract = markdown.ExtractText(textContent, 200)
 	}
 
@@ -49,8 +49,7 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 		AuthorID:       claims.UserID,
 		Title:          cr.Title,
 		Abstract:       cr.Abstract,
-		Content:        cr.Content,
-		HtmlContent:    htmlContent,
+		Content:        safeContent,
 		CategoryID:     cr.CategoryID,
 		Cover:          cr.Cover,
 		CommentsToggle: cr.CommentsToggle,

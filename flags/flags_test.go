@@ -10,6 +10,7 @@ import (
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/test/testutil"
+	"myblogx/utils/markdown"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -163,8 +164,7 @@ func TestBuildArticleESDocument(t *testing.T) {
 		},
 		Title:          "文章标题",
 		Abstract:       "文章摘要",
-		Content:        "不会同步到 ES",
-		HtmlContent:    "<p>正文</p>",
+		Content:        "# 标题\n正文",
 		CategoryID:     &categoryID,
 		Cover:          "/cover.png",
 		AuthorID:       9,
@@ -185,6 +185,14 @@ func TestBuildArticleESDocument(t *testing.T) {
 	if _, ok := doc["content"]; ok {
 		t.Fatal("content 不应被同步到 ES 文档")
 	}
+	if got, ok := doc["content_head"].(string); !ok || got == "" {
+		t.Fatalf("content_head 应被生成, got=%#v", doc["content_head"])
+	}
+	if parts, ok := doc["content_parts"].([]markdown.ContentPart); !ok || len(parts) == 0 {
+		t.Fatalf("content_parts 应被生成, got=%#v", doc["content_parts"])
+	} else if strings.Contains(parts[0].Content, "# ") {
+		t.Fatalf("content_parts 应存纯文本内容, got=%q", parts[0].Content)
+	}
 	if got, ok := doc["comments_toggle"].(int); !ok || got != 1 {
 		t.Fatalf("comments_toggle 应按 integer mapping 转成 1, got=%#v", doc["comments_toggle"])
 	}
@@ -195,7 +203,7 @@ func TestBuildArticleESDocument(t *testing.T) {
 	if doc["admin_top"] != true || doc["author_top"] != false {
 		t.Fatalf("置顶字段同步结果不正确: admin=%#v author=%#v", doc["admin_top"], doc["author_top"])
 	}
-	const expectedFieldCount = 18
+	const expectedFieldCount = 19
 	if len(doc) != expectedFieldCount {
 		t.Fatalf("ES 文档字段数不正确, got=%d want=%d", len(doc), expectedFieldCount)
 	}
@@ -239,7 +247,7 @@ func TestSyncArticleDocuments(t *testing.T) {
 		{
 			Title:          "第一篇",
 			Abstract:       "摘要1",
-			HtmlContent:    "<p>a</p>",
+			Content:        "# 第一篇\na",
 			AuthorID:       author1.ID,
 			ViewCount:      10,
 			DiggCount:      2,
@@ -251,7 +259,7 @@ func TestSyncArticleDocuments(t *testing.T) {
 		{
 			Title:          "第二篇",
 			Abstract:       "摘要2",
-			HtmlContent:    "<p>b</p>",
+			Content:        "# 第二篇\nb",
 			AuthorID:       author2.ID,
 			ViewCount:      20,
 			DiggCount:      5,

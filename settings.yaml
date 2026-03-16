@@ -75,7 +75,7 @@ river:
         - updated_at
         - title
         - abstract
-        - html_content
+        - content
         - category_id
   charset: "utf8mb4"
   mysqldump: "mysqldump"

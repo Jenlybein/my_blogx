@@ -36,15 +36,14 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 		updateMap["title"] = *cr.Title
 	}
 	if cr.Content != nil {
-		updateMap["content"] = *cr.Content
-		updateMap["html_content"] = markdown.MdToHTMLSafe(*cr.Content)
+		updateMap["content"] = markdown.MdToSafe(*cr.Content)
 	}
 	if cr.Abstract != nil {
 		abstract := *cr.Abstract
 		if abstract == "" {
 			content := article.Content
 			if cr.Content != nil {
-				content = *cr.Content
+				content = markdown.MdToSafe(*cr.Content)
 			}
 			textContent := markdown.MdToText(content)
 			abstract = markdown.ExtractText(textContent, 200)
@@ -117,6 +116,10 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 		applyTagArticleCountDelta(buildTagArticleCountDelta(oldTagIDs, newTagIDs))
 		if err := es_service.UpdateESDocsTags([]uint{article.ID}); err != nil {
 			global.Logger.Errorf("更新文章标签后刷新 ES 标签失败 article_id=%d err=%v", article.ID, err)
+		}
+	} else if cr.Content != nil {
+		if err := es_service.UpdateESDocsContent([]uint{article.ID}); err != nil {
+			global.Logger.Errorf("更新文章正文后刷新 ES 文档失败 article_id=%d err=%v", article.ID, err)
 		}
 	}
 	res.OkWithMsg("更新文章成功", c)

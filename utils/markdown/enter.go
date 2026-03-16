@@ -41,6 +41,7 @@ func MdToHTMLSafe(md string) string {
 
 // Markdown 内容过滤，确保安全合规
 func MdToSafe(md string) string {
+	md = normalizeMarkdownSyntax(md)
 	source := []byte(md)
 	doc := safeMarkdownEngine.Parser().Parse(text.NewReader(source))
 	sanitizeSafeMarkdownAST(doc, source)

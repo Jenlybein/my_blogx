@@ -3,6 +3,7 @@ package markdown
 import (
 	"bytes"
 	"regexp"
+	"strings"
 
 	mdrenderer "github.com/blackstork-io/goldmark-markdown"
 	mathjax "github.com/litao91/goldmark-mathjax"
@@ -20,6 +21,8 @@ var (
 	reMath = regexp.MustCompile(`^math(\s.+)?$`)
 	// 匹配 user-content- 开头的 id
 	reUserContentID = regexp.MustCompile(`^user-content-.*$`)
+	// 匹配把标题语法误写到链接目标里的历史内容，例如 [文本](### 标题)
+	reMalformedHeadingLink = regexp.MustCompile(`\[((?:\\.|[^\]])+)\]\((#{1,6})\s+([^)]+?)\s*\)`)
 )
 
 var rawHTMLMarkdownEngine = goldmark.New(
@@ -48,6 +51,7 @@ var safeMarkdownEngine = goldmark.New(
 )
 
 func getRawHTML(md string) string {
+	md = normalizeMarkdownSyntax(md)
 	source := []byte(md)
 	doc := rawHTMLMarkdownEngine.Parser().Parse(text.NewReader(source))
 
@@ -56,4 +60,27 @@ func getRawHTML(md string) string {
 		return ""
 	}
 	return buf.String()
+}
+
+func normalizeMarkdownSyntax(md string) string {
+	if md == "" {
+		return ""
+	}
+
+	return reMalformedHeadingLink.ReplaceAllStringFunc(md, func(match string) string {
+		submatches := reMalformedHeadingLink.FindStringSubmatch(match)
+		if len(submatches) != 4 {
+			return match
+		}
+
+		linkText := submatches[1]
+		title := strings.TrimSpace(submatches[3])
+		if title == "" {
+			return match
+		}
+
+		title = strings.Join(strings.Fields(title), "-")
+
+		return "[" + linkText + "](#" + title + ")"
+	})
 }

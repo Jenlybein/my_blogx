@@ -28,6 +28,9 @@ func TestMarkdownHelpers(t *testing.T) {
 	if strings.Contains(text, "<") {
 		t.Fatalf("MdToText 应返回纯文本: %s", text)
 	}
+	if got := markdown.MdToText("[这是一个链接](### 这是一个 标题 )"); strings.Contains(got, "[") || strings.Contains(got, "](") || !strings.Contains(got, "这是一个链接") {
+		t.Fatalf("MdToText 应先纠正错误链接语法再提取纯文本: %s", got)
+	}
 
 	if got := markdown.ExtractText("abcdef", 3); got != "abc" {
 		t.Fatalf("ExtractText 截断错误: %s", got)
@@ -93,5 +96,80 @@ func TestMdToSafeDropsMalformedURL(t *testing.T) {
 
 	if strings.Contains(safe, "http://[::1") {
 		t.Fatalf("MdToSafe 不应保留解析失败的链接: %s", safe)
+	}
+}
+
+func TestMdToSafeNormalizeMalformedHeadingLink(t *testing.T) {
+	md := "[这是一个链接](### 这是一个 标题 )"
+	safe := markdown.MdToSafe(md)
+
+	if strings.Contains(safe, "](### ") {
+		t.Fatalf("MdToSafe 应纠正误写成标题语法的链接目标: %s", safe)
+	}
+	if !strings.Contains(safe, "](#这是一个-标题)") {
+		t.Fatalf("MdToSafe 应转换为合法锚点链接: %s", safe)
+	}
+}
+
+func TestMdToContentParts(t *testing.T) {
+	md := "# 一级标题\n你好啊啊啊\n## 二级标题 1\n哈哈哈哈\n### 三级标题 1\n## 二级标题 2\n测试测试"
+	parts := markdown.MdToContentParts(md)
+
+	if len(parts) != 4 {
+		t.Fatalf("content_parts 数量错误: %+v", parts)
+	}
+	if parts[0].Level != 1 || parts[0].Title != "一级标题" || parts[0].Content != "一级标题\n你好啊啊啊" {
+		t.Fatalf("一级标题分段错误: %+v", parts[0])
+	}
+	if len(parts[1].Path) != 2 || parts[1].Path[0] != "一级标题" || parts[1].Path[1] != "二级标题 1" {
+		t.Fatalf("二级标题路径错误: %+v", parts[1])
+	}
+	if parts[2].Level != 3 || parts[2].Content != "三级标题 1" {
+		t.Fatalf("三级标题分段错误: %+v", parts[2])
+	}
+	if parts[3].Content != "二级标题 2\n测试测试" {
+		t.Fatalf("末尾分段错误: %+v", parts[3])
+	}
+	if got := markdown.MdToContentHead(md, 6); got != "一级标题 你" {
+		t.Fatalf("content_head 生成错误: %q", got)
+	}
+}
+
+func TestMdToContentPartsStripMarkdownFormat(t *testing.T) {
+	md := "# 一级 **标题**\n这是 [链接](https://example.com) 和 `代码`\n- 列表1\n- 列表2"
+	parts := markdown.MdToContentParts(md)
+
+	if len(parts) != 1 {
+		t.Fatalf("content_parts 数量错误: %+v", parts)
+	}
+
+	content := parts[0].Content
+	markdownTokens := []string{"**", "[", "](", "`", "# "}
+	for _, token := range markdownTokens {
+		if strings.Contains(content, token) {
+			t.Fatalf("content_parts 不应保留 Markdown 格式 token=%q content=%q", token, content)
+		}
+	}
+
+	if !strings.Contains(content, "链接") || !strings.Contains(content, "代码") || !strings.Contains(content, "列表1") {
+		t.Fatalf("content_parts 纯文本内容错误: %q", content)
+	}
+}
+
+func TestMdToContentPartsNormalizeMalformedHeadingLink(t *testing.T) {
+	md := "# 这是一个 标题\n\n[这是一个链接](### 这是一个 标题 )"
+	parts := markdown.MdToContentParts(md)
+
+	if len(parts) != 1 {
+		t.Fatalf("content_parts 数量错误: %+v", parts)
+	}
+	if strings.Contains(parts[0].Content, "[") || strings.Contains(parts[0].Content, "](") {
+		t.Fatalf("content_parts 不应保留残余 Markdown 链接语法: %q", parts[0].Content)
+	}
+	if !strings.Contains(parts[0].Content, "这是一个链接") {
+		t.Fatalf("content_parts 应保留链接文本: %q", parts[0].Content)
+	}
+	if got := markdown.MdToContentHead(md, 100); strings.Contains(got, "[") || strings.Contains(got, "](") {
+		t.Fatalf("content_head 不应保留残余 Markdown 链接语法: %q", got)
 	}
 }

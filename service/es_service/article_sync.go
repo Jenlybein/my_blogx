@@ -5,6 +5,7 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/utils/markdown"
 	"slices"
 	"strconv"
 
@@ -37,7 +38,8 @@ func BuildArticleESDocument(article models.ArticleModel, adminTop, authorTop boo
 		"updated_at":      article.UpdatedAt,
 		"title":           article.Title,
 		"abstract":        article.Abstract,
-		"html_content":    article.HtmlContent,
+		"content_parts":   markdown.MdToContentParts(article.Content),
+		"content_head":    markdown.MdToContentHead(article.Content, 150),
 		"category_id":     article.CategoryID,
 		"cover":           article.Cover,
 		"author_id":       article.AuthorID,
@@ -106,12 +108,119 @@ func SyncESDocs(articleIDs []uint) error {
 
 // UpdateESDocsTags 在文章标签关系变化后刷新对应文章的 ES 文档。
 func UpdateESDocsTags(articleIDs []uint) error {
-	return SyncESDocs(articleIDs)
+	articleIDs = normalizeArticleIDs(articleIDs)
+	if len(articleIDs) == 0 || global.DB == nil || global.ESClient == nil {
+		return nil
+	}
+
+	articleList, err := loadArticlesForESTags(global.DB, articleIDs)
+	if err != nil {
+		return err
+	}
+
+	reqs := make([]*BulkRequest, 0, len(articleList))
+	for _, article := range articleList {
+		tags := make([]models.ESTag, 0, len(article.Tags))
+		for _, tag := range article.Tags {
+			tags = append(tags, models.ESTag{
+				ID:    tag.ID,
+				Title: tag.Title,
+			})
+		}
+		reqs = append(reqs, &BulkRequest{
+			Action: ActionUpdate,
+			ID:     strconv.FormatUint(uint64(article.ID), 10),
+			Data: map[string]any{
+				"tags":       tags,
+				"updated_at": article.UpdatedAt,
+			},
+		})
+	}
+
+	return applyArticlePartialBulkUpdate(reqs, "更新文章 ES 标签失败")
+}
+
+// UpdateESDocsContent 在文章正文变化后刷新对应文章的 ES 文档。
+func UpdateESDocsContent(articleIDs []uint) error {
+	articleIDs = normalizeArticleIDs(articleIDs)
+	if len(articleIDs) == 0 || global.DB == nil || global.ESClient == nil {
+		return nil
+	}
+
+	articleList, err := loadArticlesForESContentUpdate(global.DB, articleIDs)
+	if err != nil {
+		return err
+	}
+
+	reqs := make([]*BulkRequest, 0, len(articleList))
+	for _, article := range articleList {
+		commentsToggle := 0
+		if article.CommentsToggle {
+			commentsToggle = 1
+		}
+		reqs = append(reqs, &BulkRequest{
+			Action: ActionUpdate,
+			ID:     strconv.FormatUint(uint64(article.ID), 10),
+			Data: map[string]any{
+				"updated_at":      article.UpdatedAt,
+				"title":           article.Title,
+				"abstract":        article.Abstract,
+				"content_parts":   markdown.MdToContentParts(article.Content),
+				"content_head":    markdown.MdToContentHead(article.Content, 150),
+				"category_id":     article.CategoryID,
+				"cover":           article.Cover,
+				"status":          article.Status,
+				"comments_toggle": commentsToggle,
+			},
+		})
+	}
+
+	return applyArticlePartialBulkUpdate(reqs, "更新文章 ES 正文失败")
 }
 
 // UpdateESDocsTop 在文章置顶状态变化后刷新对应文章的 ES 文档。
 func UpdateESDocsTop(articleIDs []uint) error {
-	return SyncESDocs(articleIDs)
+	articleIDs = normalizeArticleIDs(articleIDs)
+	if len(articleIDs) == 0 || global.DB == nil || global.ESClient == nil {
+		return nil
+	}
+
+	topMap, err := loadArticleESTopMap(global.DB, articleIDs)
+	if err != nil {
+		return err
+	}
+
+	reqs := make([]*BulkRequest, 0, len(articleIDs))
+	for _, articleID := range articleIDs {
+		top := topMap[articleID]
+		reqs = append(reqs, &BulkRequest{
+			Action: ActionUpdate,
+			ID:     strconv.FormatUint(uint64(articleID), 10),
+			Data: map[string]any{
+				"admin_top":  top.AdminTop,
+				"author_top": top.AuthorTop,
+			},
+		})
+	}
+
+	return applyArticlePartialBulkUpdate(reqs, "更新文章 ES 置顶字段失败")
+}
+
+func applyArticlePartialBulkUpdate(reqs []*BulkRequest, errPrefix string) error {
+	if len(reqs) == 0 {
+		return nil
+	}
+
+	resp := IndexBulk(models.ArticleModel{}.Index(), reqs)
+	if !resp.Success {
+		return fmt.Errorf("%s: %s", errPrefix, resp.Msg)
+	}
+	if data, ok := resp.Data.(map[string]any); ok {
+		if hasErrors, ok := data["errors"].(bool); ok && hasErrors {
+			return fmt.Errorf("%s: bulk errors", errPrefix)
+		}
+	}
+	return nil
 }
 
 func normalizeArticleIDs(articleIDs []uint) []uint {
@@ -143,7 +252,7 @@ func loadArticlesForES(db *gorm.DB, articleIDs []uint) ([]models.ArticleModel, e
 		"updated_at",
 		"title",
 		"abstract",
-		"html_content",
+		"content",
 		"category_id",
 		"cover",
 		"author_id",
@@ -154,6 +263,37 @@ func loadArticlesForES(db *gorm.DB, articleIDs []uint) ([]models.ArticleModel, e
 		"status",
 		"comments_toggle",
 	).
+		Where("id IN ?", articleIDs).
+		Preload("Tags", func(db *gorm.DB) *gorm.DB {
+			return db.Select("tag_models.id", "tag_models.title").Order("sort desc, id asc")
+		}).
+		Order("id asc").
+		Find(&articleList).Error
+	return articleList, err
+}
+
+func loadArticlesForESContentUpdate(db *gorm.DB, articleIDs []uint) ([]models.ArticleModel, error) {
+	var articleList []models.ArticleModel
+	err := db.Select(
+		"id",
+		"updated_at",
+		"title",
+		"abstract",
+		"content",
+		"category_id",
+		"cover",
+		"status",
+		"comments_toggle",
+	).
+		Where("id IN ?", articleIDs).
+		Order("id asc").
+		Find(&articleList).Error
+	return articleList, err
+}
+
+func loadArticlesForESTags(db *gorm.DB, articleIDs []uint) ([]models.ArticleModel, error) {
+	var articleList []models.ArticleModel
+	err := db.Select("id", "updated_at").
 		Where("id IN ?", articleIDs).
 		Preload("Tags", func(db *gorm.DB) *gorm.DB {
 			return db.Select("tag_models.id", "tag_models.title").Order("sort desc, id asc")

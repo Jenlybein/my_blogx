@@ -1,10 +1,12 @@
 package search_api
 
 import (
+	"encoding/json"
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/test/testutil"
+	"myblogx/utils/markdown"
 	"testing"
 	"time"
 )
@@ -370,6 +372,16 @@ func TestBuildArticleSearchExtraBody(t *testing.T) {
 	if !ok || len(sourceFields) == 0 {
 		t.Fatalf("_source 白名单异常: %#v", defaultExtraBody["_source"])
 	}
+	hasContentParts := false
+	for _, field := range sourceFields {
+		if field == "content_parts" {
+			hasContentParts = true
+			break
+		}
+	}
+	if !hasContentParts {
+		t.Fatalf("_source 白名单缺少 content_parts: %#v", sourceFields)
+	}
 	defaultSortList, ok := defaultExtraBody["sort"].([]any)
 	if !ok || len(defaultSortList) != 1 {
 		t.Fatalf("默认排序条件异常: %#v", defaultExtraBody["sort"])
@@ -422,11 +434,11 @@ func TestExtractArticleSearchResults(t *testing.T) {
 	article := models.ArticleModel{
 		Model:        models.Model{ID: 1},
 		Title:        "db article",
+		Content:      "db markdown content",
 		CategoryID:   &category.ID,
 		AuthorID:     user.ID,
 		Status:       enum.ArticleStatusPublished,
 		Abstract:     "db abstract",
-		HtmlContent:  "db html content",
 		ContentHead:  "db content head",
 		ViewCount:    10,
 		DiggCount:    20,
@@ -441,12 +453,28 @@ func TestExtractArticleSearchResults(t *testing.T) {
 		"hits": []any{
 			map[string]any{
 				"_source": map[string]any{
-					"id":              1,
-					"created_at":      createdAt.Format(time.RFC3339Nano),
-					"updated_at":      updatedAt.Format(time.RFC3339Nano),
-					"title":           "go search article",
-					"abstract":        "hello world",
-					"content_head":    "origin content head",
+					"id":           1,
+					"created_at":   createdAt.Format(time.RFC3339Nano),
+					"updated_at":   updatedAt.Format(time.RFC3339Nano),
+					"title":        "go search article",
+					"abstract":     "hello world",
+					"content_head": "origin content head",
+					"content_parts": []any{
+						map[string]any{
+							"order":   0,
+							"level":   1,
+							"title":   "一级标题",
+							"path":    []any{"一级标题"},
+							"content": "一级标题\n正文一",
+						},
+						map[string]any{
+							"order":   1,
+							"level":   2,
+							"title":   "二级标题",
+							"path":    []any{"一级标题", "二级标题"},
+							"content": "二级标题\n正文二",
+						},
+					},
 					"cover":           "/cover.png",
 					"view_count":      10,
 					"digg_count":      20,
@@ -462,9 +490,9 @@ func TestExtractArticleSearchResults(t *testing.T) {
 					"admin_top":  true,
 				},
 				"highlight": map[string]any{
-					"title":        []any{"<em>go</em> search"},
-					"abstract":     []any{"<em>hello</em> world", "another <em>piece</em>"},
-					"html_content": []any{"prefix <em>go</em> suffix", "second <em>segment</em>"},
+					"title":                 []any{"<em>go</em> search"},
+					"abstract":              []any{"<em>hello</em> world", "another <em>piece</em>"},
+					"content_parts.content": []any{"prefix <em>go</em> suffix", "second <em>segment</em>"},
 				},
 			},
 		},
@@ -485,6 +513,42 @@ func TestExtractArticleSearchResults(t *testing.T) {
 	}
 	if list[0].Content != "prefix <em>go</em> suffix" {
 		t.Fatalf("正文摘要回填错误: %+v", list[0])
+	}
+	expectedParts := []markdown.ContentPart{
+		{
+			Level: 1,
+			Title: "一级标题",
+			Path:  []string{"一级标题"},
+		},
+		{
+			Level: 2,
+			Title: "二级标题",
+			Path:  []string{"一级标题", "二级标题"},
+		},
+	}
+	if len(list[0].Part) != len(expectedParts) {
+		t.Fatalf("正文分段数量错误: %+v", list[0].Part)
+	}
+	for index, expected := range expectedParts {
+		if list[0].Part[index].Level != expected.Level ||
+			list[0].Part[index].Title != expected.Title {
+			t.Fatalf("正文分段解析错误 index=%d got=%+v expected=%+v", index, list[0].Part[index], expected)
+		}
+		if len(list[0].Part[index].Path) != len(expected.Path) {
+			t.Fatalf("正文分段路径长度错误 index=%d got=%+v expected=%+v", index, list[0].Part[index].Path, expected.Path)
+		}
+		for pathIndex, pathItem := range expected.Path {
+			if list[0].Part[index].Path[pathIndex] != pathItem {
+				t.Fatalf("正文分段路径解析错误 index=%d got=%+v expected=%+v", index, list[0].Part[index].Path, expected.Path)
+			}
+		}
+	}
+	partRaw, err := json.Marshal(list[0].Part[0])
+	if err != nil {
+		t.Fatalf("正文分段序列化失败: %v", err)
+	}
+	if string(partRaw) != `{"level":1,"title":"一级标题","path":["一级标题"]}` {
+		t.Fatalf("正文分段返回字段错误: %s", string(partRaw))
 	}
 	if list[0].Cover != "/cover.png" || !list[0].CommentsToggle || list[0].Status != enum.ArticleStatusPublished {
 		t.Fatalf("基础字段解析错误: %+v", list[0])

@@ -1,26 +1,6 @@
 {
   "settings": {
-    "index.default_pipeline": "article_pipeline",
-    "analysis": {
-      "char_filter": {
-        "my_html_strip": {
-          "type": "html_strip",
-          "escaped_tags": []
-        }
-      },
-      "analyzer": {
-        "ik_html_analyzer": {
-          "type": "custom",
-          "char_filter": [
-            "my_html_strip"
-          ],
-          "tokenizer": "ik_max_word",
-          "filter": [
-            "lowercase"
-          ]
-        }
-      }
-    }
+    "index.default_pipeline": "article_pipeline"
   },
   "mappings": {
     "properties": {
@@ -46,13 +26,36 @@
       "abstract": {
         "type": "text"
       },
-      "html_content": {
+      "content_head": {
         "type": "text",
-        "analyzer": "ik_html_analyzer",
+        "analyzer": "ik_max_word",
         "search_analyzer": "ik_smart"
       },
-      "content_head": {
-        "type": "text"
+      "content_parts": {
+        "properties": {
+          "order": {
+            "type": "integer"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              }
+            }
+          },
+          "path": {
+            "type": "keyword"
+          },
+          "content": {
+            "type": "text",
+            "analyzer": "ik_max_word",
+            "search_analyzer": "ik_smart"
+          }
+        }
       },
       "category_id": {
         "type": "integer"

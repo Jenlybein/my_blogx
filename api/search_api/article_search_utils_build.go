@@ -79,7 +79,7 @@ func buildArticleSearchQuery(key string, boolQuery map[string]any) map[string]an
 			map[string]any{
 				"multi_match": map[string]any{
 					"query":  key,
-					"fields": []string{"title", "abstract", "html_content"},
+					"fields": []string{"title", "abstract", "content_parts.content"},
 				},
 			},
 		}
@@ -273,6 +273,7 @@ func buildArticleSearchExtraBody(sortField string) map[string]any {
 			"title",
 			"abstract",
 			"content_head",
+			"content_parts",
 			"cover",
 			"view_count",
 			"digg_count",
@@ -296,7 +297,11 @@ func buildArticleSearchExtraBody(sortField string) map[string]any {
 				"abstract": map[string]any{
 					"number_of_fragments": 1,
 				},
-				"html_content": map[string]any{
+				"content_head": map[string]any{
+					"fragment_size":       120,
+					"number_of_fragments": 1,
+				},
+				"content_parts.content": map[string]any{
 					"fragment_size":       120,
 					"number_of_fragments": 1,
 				},

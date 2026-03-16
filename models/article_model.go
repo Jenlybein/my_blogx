@@ -22,8 +22,7 @@ type ArticleModel struct {
 	Title          string             `gorm:"size:256" json:"title"`
 	Abstract       string             `gorm:"size:256" json:"abstract"`
 	Content        string             `gorm:"type:longtext" json:"content"`
-	HtmlContent    string             `gorm:"type:longtext" json:"html_content"`
-	ContentHead    string             `gorm:"-" json:"content_head,omitempty"` // ES 冗余字段，保存去除 HTML 后的正文前 150 字
+	ContentHead    string             `gorm:"-" json:"content_head,omitempty"` // ES 冗余字段，保存去除 Markdown 格式后的正文前 150 字
 	CategoryID     *uint              `gorm:"index" json:"category_id"`
 	Cover          string             `gorm:"size:256" json:"cover"`
 	AuthorID       uint               `gorm:"index" json:"author_id"`
