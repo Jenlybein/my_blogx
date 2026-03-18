@@ -29,6 +29,7 @@ fields=(
   "access_key"
   "secret_key"
   "addresses"
+  "base_url"
 )
 
 # ========== 【常量定义】 ==========

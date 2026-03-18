@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark/text"
@@ -12,6 +13,31 @@ func MdToText(md string) string {
 	raw := getRawHTML(md)
 	// 移除所有 HTML 标签，只保留文本内容
 	return bluemonday.StrictPolicy().Sanitize(raw)
+}
+
+// 纯文本输出，且清空所有换行和冗余空白，适合单个段落使用
+func MdToTextParagraph(md string) string {
+	text := MdToText(md)
+	return strings.Join(strings.Fields(strings.TrimSpace(text)), " ")
+}
+
+// 纯文本输出，且清空所有冗余空白
+func MdToPlainText(value string) string {
+	value = MdToText(value)
+
+	value = strings.ReplaceAll(value, "\r\n", "\n")
+	value = strings.ReplaceAll(value, "\r", "\n")
+
+	lines := strings.Split(value, "\n")
+	result := make([]string, 0, len(lines))
+	for _, line := range lines {
+		line = strings.Join(strings.Fields(line), " ")
+		if line == "" {
+			continue
+		}
+		result = append(result, line)
+	}
+	return strings.Join(result, "\n")
 }
 
 // 允许所有 HTML 标签存在，不做任何过滤

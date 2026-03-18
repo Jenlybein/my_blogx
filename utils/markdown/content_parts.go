@@ -1,8 +1,6 @@
 package markdown
 
 import (
-	"strings"
-
 	gast "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
 )
@@ -21,17 +19,13 @@ type partHeading struct {
 	Start int
 }
 
-func MdToContentHead(md string, length int) string {
-	return ExtractText(normalizeInlineText(mdFragmentToPlainText(md)), length)
-}
-
 func MdToContentParts(md string) []ContentPart {
 	md = normalizeMarkdownSyntax(md)
 	source := []byte(md)
 	doc := rawHTMLMarkdownEngine.Parser().Parse(text.NewReader(source))
 	headings := collectPartHeadings(doc, source)
 	if len(headings) == 0 {
-		content := mdFragmentToPlainText(md)
+		content := MdToPlainText(md)
 		if content == "" {
 			return nil
 		}
@@ -45,7 +39,7 @@ func MdToContentParts(md string) []ContentPart {
 	parts := make([]ContentPart, 0, len(headings)+1)
 	order := 0
 
-	preface := mdFragmentToPlainText(string(source[:headings[0].Start]))
+	preface := MdToPlainText(string(source[:headings[0].Start]))
 	if preface != "" {
 		parts = append(parts, ContentPart{
 			Order:   order,
@@ -62,7 +56,7 @@ func MdToContentParts(md string) []ContentPart {
 			end = headings[index+1].Start
 		}
 
-		content := mdFragmentToPlainText(string(source[heading.Start:end]))
+		content := MdToPlainText(string(source[heading.Start:end]))
 		if content == "" {
 			continue
 		}
@@ -95,7 +89,7 @@ func collectPartHeadings(doc gast.Node, source []byte) []partHeading {
 		}
 
 		start := heading.Lines().At(0).Start
-		title := mdFragmentToPlainText(string(heading.Lines().Value(source)))
+		title := MdToPlainText(string(heading.Lines().Value(source)))
 		if title == "" {
 			continue
 		}
@@ -107,28 +101,4 @@ func collectPartHeadings(doc gast.Node, source []byte) []partHeading {
 		})
 	}
 	return headings
-}
-
-func mdFragmentToPlainText(md string) string {
-	return normalizePartText(MdToText(md))
-}
-
-func normalizeInlineText(text string) string {
-	return strings.Join(strings.Fields(text), " ")
-}
-
-func normalizePartText(value string) string {
-	value = strings.ReplaceAll(value, "\r\n", "\n")
-	value = strings.ReplaceAll(value, "\r", "\n")
-
-	lines := strings.Split(value, "\n")
-	result := make([]string, 0, len(lines))
-	for _, line := range lines {
-		line = normalizeInlineText(line)
-		if line == "" {
-			continue
-		}
-		result = append(result, line)
-	}
-	return strings.Join(result, "\n")
 }

@@ -42,7 +42,7 @@ kafka:
     topic: blogx-mysql
     group_id: logistics_group
     username: logistics
-    password: REDACTED_KAFKA_PASSWORD
+    password: ******_password2
 es:
   addresses:
     - http://******_addr1:9200
@@ -75,8 +75,9 @@ river:
         - updated_at
         - title
         - abstract
-        - content
         - category_id
+        - cover
+        - comments_toggle
   charset: "utf8mb4"
   mysqldump: "mysqldump"
   skip_master_data: true
@@ -146,7 +147,14 @@ qiniu:
   size: 0
   expiry: 0
 ai:
-  enable: false
-  secret: ""
+  enable: true
+  secret: "******_secret2
+  base_url: "******_base_url1
+  chat_model: "gpt-3.5-turbo"
+  reason_model: ""
+  timeout_sec:
+  max_input_chars:
+  temperature:
+  daily_quota:
   nickname: ""
   avatar: ""

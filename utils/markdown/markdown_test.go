@@ -130,7 +130,7 @@ func TestMdToContentParts(t *testing.T) {
 	if parts[3].Content != "二级标题 2\n测试测试" {
 		t.Fatalf("末尾分段错误: %+v", parts[3])
 	}
-	if got := markdown.MdToContentHead(md, 6); got != "一级标题 你" {
+	if got := markdown.ExtractText(markdown.MdToTextParagraph(md), 6); got != "一级标题 你" {
 		t.Fatalf("content_head 生成错误: %q", got)
 	}
 }
@@ -169,7 +169,7 @@ func TestMdToContentPartsNormalizeMalformedHeadingLink(t *testing.T) {
 	if !strings.Contains(parts[0].Content, "这是一个链接") {
 		t.Fatalf("content_parts 应保留链接文本: %q", parts[0].Content)
 	}
-	if got := markdown.MdToContentHead(md, 100); strings.Contains(got, "[") || strings.Contains(got, "](") {
+	if got := markdown.ExtractText(markdown.MdToTextParagraph(md), 100); strings.Contains(got, "[") || strings.Contains(got, "](") {
 		t.Fatalf("content_head 不应保留残余 Markdown 链接语法: %q", got)
 	}
 }
