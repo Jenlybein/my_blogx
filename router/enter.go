@@ -31,6 +31,7 @@ func Run() {
 	GlobalNotifRouter(nr)
 	FollowRouter(nr)
 	SearchRouter(nr)
+	AIRouter(nr)
 
 	addr := global.Config.System.Addr()
 	r.Run(addr)

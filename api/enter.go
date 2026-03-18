@@ -3,6 +3,7 @@
 package api
 
 import (
+	"myblogx/api/ai_api"
 	"myblogx/api/article_api"
 	"myblogx/api/banner_api"
 	"myblogx/api/captcha_api"
@@ -32,6 +33,7 @@ type Api struct {
 	GlobalNotifApi  global_notif_api.GlobalNotifApi
 	FollowApi       follow_api.FollowApi
 	SearchApi       search_api.SearchApi
+	AIApi           ai_api.AIApi
 }
 
 var App = Api{}
