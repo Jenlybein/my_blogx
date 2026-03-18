@@ -10,7 +10,7 @@ import (
 )
 
 func (SearchApi) ArticleSearchView(c *gin.Context) {
-	cr := middleware.GetBindQuery[ArticleSearchRequest](c)
+	cr := middleware.GetBindQuery[search_service.ArticleSearchRequest](c)
 	claims, _ := jwts.ParseTokenByGin(c)
 	list, count, err := search_service.SearchArticles(cr, claims)
 	if err != nil {

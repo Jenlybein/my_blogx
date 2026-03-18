@@ -190,10 +190,4 @@ func normalizeArticleMetainfoReply(
 	return result, nil
 }
 
-func mustJSONString(v any) string {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return "[]"
-	}
-	return string(data)
-}
+

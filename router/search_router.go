@@ -2,8 +2,8 @@ package router
 
 import (
 	"myblogx/api"
-	"myblogx/api/search_api"
 	mw "myblogx/middleware"
+	"myblogx/service/search_service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,5 +15,5 @@ func SearchRouter(r *gin.RouterGroup) {
 
 	app := api.App.SearchApi
 
-	group.GET("articles", mw.BindQuery[search_api.ArticleSearchRequest], app.ArticleSearchView)
+	group.GET("articles", mw.BindQuery[search_service.ArticleSearchRequest], app.ArticleSearchView)
 }

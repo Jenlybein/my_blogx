@@ -285,15 +285,11 @@ func buildArticleSearchExtraBody(sortField, key string) map[string]any {
 		"admin_top",
 		"author_top",
 	}
-	highlightFields := map[string]any{
-		"title": map[string]any{},
-		"abstract": map[string]any{
-			"number_of_fragments": 1,
-		},
-	}
+	highlightFields := map[string]any{}
 	if strings.TrimSpace(key) != "" {
 		sourceFields = append(sourceFields, "content_head", "content_parts")
-		highlightFields["content_head"] = map[string]any{
+		highlightFields["title"] = map[string]any{}
+		highlightFields["abstract"] = map[string]any{
 			"fragment_size":       120,
 			"number_of_fragments": 1,
 		}
