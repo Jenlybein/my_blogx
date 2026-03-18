@@ -1,4 +1,4 @@
-package search_api
+package search_service
 
 import (
 	"myblogx/global"

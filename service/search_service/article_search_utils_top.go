@@ -1,4 +1,4 @@
-package search_api
+package search_service
 
 // buildAdminTopQuery 为搜索查询追加“管理员置顶优先”加权。
 // 这里直接使用 ES 文档中的 admin_top 字段，不再额外查数据库拼文章 ID。
