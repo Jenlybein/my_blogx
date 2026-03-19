@@ -94,6 +94,10 @@ func ParseTokenByGin(c *gin.Context) (*MyClaims, error) {
 		tokenString = c.Query("token")
 	}
 
+	if tokenString == "" {
+		tokenString = c.Request.Header.Get("Token")
+	}
+
 	return ParseToken(tokenString)
 }
 

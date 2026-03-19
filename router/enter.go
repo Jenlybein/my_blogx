@@ -12,6 +12,7 @@ import (
 func Run() {
 	gin.SetMode(global.Config.System.GinMode)
 	r := gin.Default()
+	r.Use(middleware.CorsMiddleware())
 
 	r.Static("/uploads", "./uploads")
 

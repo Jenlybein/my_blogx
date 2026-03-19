@@ -79,7 +79,6 @@ func (AIApi) AIArticleSearchLLMView(c *gin.Context) {
 		return
 	}
 
-	var contentBuilder strings.Builder
 	for contentChan != nil || errChan != nil {
 		select {
 		// 接收消息
@@ -88,9 +87,8 @@ func (AIApi) AIArticleSearchLLMView(c *gin.Context) {
 				contentChan = nil
 				continue
 			}
-			contentBuilder.WriteString(text)
 			res.SSEOk(AIBaseResponse{
-				Content: contentBuilder.String(),
+				Content: text,
 			}, c)
 		// 接收错误
 		case streamErr, ok := <-errChan:
