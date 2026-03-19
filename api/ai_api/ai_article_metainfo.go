@@ -10,7 +10,7 @@ import (
 )
 
 func (AIApi) AIArticleMetaInfoView(c *gin.Context) {
-	cr := middleware.GetBindJson[AIArticleMetaInfoRequest](c)
+	cr := middleware.GetBindJson[AIBaseRequest](c)
 	claims := jwts.MustGetClaimsByGin(c)
 
 	data, err := ai_service.GenerateArticleMetainfo(claims.UserID, cr.Content)

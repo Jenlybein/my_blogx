@@ -6,30 +6,35 @@ import (
 	"fmt"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/service/search_service"
 	"strings"
 )
 
-var articleSearchPrompt = `
-你是一个博客文章搜索助手。你的任务是判断用户当前输入是不是“搜索文章”的请求，并把搜索条件提炼成结构化 JSON。
+var (
+	articleSearchPrompt = `
+你是一个博客文章搜索助手。你的任务是判断用户当前输入是不是“搜索文章”的请求，并想象如何转化词汇能搜索到用户真正需要的文章，把搜索条件提炼成结构化 JSON。
 
 规则：
 1. 只能输出合法 JSON，不要输出解释、Markdown、代码块。
 2. intent 只能是 "search" 或 "other"。
 3. 如果用户是在找站内文章、教程、内容、主题资料，intent="search"。
 4. 如果用户明显是在闲聊、问候、写作、聊天、与文章搜索无关，intent="other"。
-5. query 是搜索词数组，保留 1~5 个最相关关键词或同义词，不能是空白字符串。
-6. tag_list 只能从给定标签候选中选择，最多 3 个；没有合适标签就返回空数组。
-7. sort 只能为 1~6：
+5. 若 intent=="other"，则除 intent 和 content 外的所有字段都返回对应格式的空；若 intent=="search"，则 content 留空，其他字段按要求填写。
+6. content 为正常回复用户的文本，不包含任何搜索词。
+6. query 是搜索词数组，保留 1~5 个最相关关键词或同义词，不能是空白字符串。
+7. tag_list 只能从给定标签候选中选择，最多 3 个；没有合适标签就返回空数组。
+8. sort 只能为 1~6：
    1 默认相关度
    2 最新发布
    3 最多回复
    4 最多点赞
    5 最多收藏
    6 最多浏览
-8. 如果用户没有明确排序偏好，sort 返回 1。
-9. 严格输出：
+9. 如果用户没有明确排序偏好，sort 返回 1。
+10. 严格输出：
 {
   "intent": "search",
+  "content": "你好，我是 AI 助手。",
   "query": ["Go", "Gin", "中间件"],
   "tag_list": ["Go", "Gin"],
   "sort": 1
@@ -37,9 +42,26 @@ var articleSearchPrompt = `
 
 标签候选：%s
 `
+	articleSearchAnswerPrompt = `
+你是一个站内文章搜索助手。请根据用户问题和搜索结果，生成一段简洁自然的中文回复。
+
+要求：
+1. 只输出回复正文，不要输出 Markdown 代码块。
+2. 如果有结果，先用一句话概括，再列出最多 6 篇最相关文章。
+3. 文章使用这种格式：
+   1. <a href="/article/9">python环境搭建</a>
+4. 如果没有结果，明确告诉用户暂时没找到相关文章。
+5. 不要编造文章，不要输出不在结果里的链接。
+
+用户问题：%s
+
+搜索结果(JSON)：%s
+`
+)
 
 type ArticleSearchRewrite struct {
 	Intent  string   `json:"intent"`
+	Content string   `json:"content"`
 	Query   []string `json:"query"`
 	TagList []string `json:"tag_list"`
 	Sort    int8     `json:"sort"`
@@ -96,9 +118,10 @@ func normalizeArticleSearchRewrite(raw, fallbackContent string, validTags []stri
 	}
 
 	result := &ArticleSearchRewrite{
-		Intent: normalizeArticleSearchIntent(payload.Intent),
-		Query:  normalizeArticleSearchQueries(payload.Query, fallbackContent),
-		Sort:   normalizeArticleSearchSort(payload.Sort),
+		Intent:  normalizeArticleSearchIntent(payload.Intent),
+		Content: normalizeArticleSearchReplyContent(payload.Content),
+		Query:   normalizeArticleSearchQueries(payload.Query, fallbackContent),
+		Sort:    normalizeArticleSearchSort(payload.Sort),
 	}
 
 	validTagMap := make(map[string]string, len(validTags))
@@ -180,4 +203,93 @@ func normalizeArticleSearchSort(sort int8) int8 {
 
 func normalizeArticleSearchText(text string) string {
 	return strings.Join(strings.Fields(strings.TrimSpace(text)), " ")
+}
+
+func normalizeArticleSearchReplyContent(content string) string {
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return "我目前主要帮你搜索站内文章，你也可以直接告诉我想找什么主题的文章。"
+	}
+	return content
+}
+
+func AnalyzeArticleSearch(question string, list []search_service.SearchListResponse) (string, error) {
+	msgList, err := buildArticleSearchAnalyzeMessages(question, list)
+	if err != nil {
+		return "", err
+	}
+
+	reply, err := Chat(msgList)
+	if err != nil {
+		return "", fmt.Errorf("文章搜索结果分析失败: %w", err)
+	}
+
+	reply = strings.TrimSpace(reply)
+	if reply == "" {
+		return "", errors.New("文章搜索结果分析为空")
+	}
+	return reply, nil
+}
+
+func AnalyzeArticleSearchStream(question string, list []search_service.SearchListResponse) (chan string, chan error, error) {
+	msgList, err := buildArticleSearchAnalyzeMessages(question, list)
+	if err != nil {
+		return nil, nil, err
+	}
+	contentChan, errChan := ChatStream(msgList)
+	return contentChan, errChan, nil
+}
+
+func buildArticleSearchAnalyzeMessages(question string, list []search_service.SearchListResponse) ([]Message, error) {
+	if strings.TrimSpace(question) == "" {
+		return nil, errors.New("用户问题不能为空")
+	}
+
+	searchList := make([]AISearchList, 0, len(list))
+	for _, item := range list {
+		searchList = append(searchList, AISearchList{
+			ID:           item.ID,
+			CreatedAt:    item.CreatedAt,
+			Title:        item.Title,
+			Abstract:     item.Abstract,
+			Content:      item.Content,
+			Part:         item.Part,
+			ViewCount:    item.ViewCount,
+			DiggCount:    item.DiggCount,
+			CommentCount: item.CommentCount,
+			FavorCount:   item.FavorCount,
+			Tags:         item.Tags,
+		})
+	}
+
+	return []Message{
+		{
+			Role:    "system",
+			Content: fmt.Sprintf(articleSearchAnswerPrompt, strings.TrimSpace(question), mustJSONString(searchList)),
+		},
+		{
+			Role:    "user",
+			Content: strings.TrimSpace(question),
+		},
+	}, nil
+}
+
+func AnalyzeArticleSearchIntent(content string) (*ArticleSearchRewrite, error) {
+	msgList := []Message{
+		{
+			Role:    "system",
+			Content: articleSearchPrompt,
+		},
+		{
+			Role:    "user",
+			Content: strings.TrimSpace(content),
+		},
+	}
+
+	reply, err := Chat(msgList)
+	if err != nil {
+		return nil, fmt.Errorf("文章搜索意图分析失败: %w", err)
+	}
+
+	return normalizeArticleSearchRewrite(reply, content, nil)
 }

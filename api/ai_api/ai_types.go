@@ -2,7 +2,11 @@ package ai_api
 
 import "myblogx/service/ai_service"
 
-type AIArticleMetaInfoRequest struct {
+type AIBaseRequest struct {
+	Content string `json:"content" binding:"required"`
+}
+
+type AIBaseResponse struct {
 	Content string `json:"content" binding:"required"`
 }
 

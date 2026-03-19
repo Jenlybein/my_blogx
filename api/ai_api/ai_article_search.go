@@ -1,7 +1,6 @@
 package ai_api
 
 import (
-	"fmt"
 	"myblogx/common"
 	"myblogx/common/res"
 	"myblogx/middleware"
@@ -12,8 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (AIApi) AIArticleSearchView(c *gin.Context) {
-	cr := middleware.GetBindJson[AIArticleMetaInfoRequest](c)
+func (AIApi) AIArticleSearchListView(c *gin.Context) {
+	cr := middleware.GetBindJson[AIBaseRequest](c)
 
 	rewrite, err := ai_service.RewriteArticleSearch(cr.Content)
 	if err != nil {
@@ -25,7 +24,7 @@ func (AIApi) AIArticleSearchView(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(rewrite)
+	// fmt.Println(rewrite)
 
 	key := buildAIArticleSearchKey(rewrite.Query)
 	if key == "" {
@@ -33,37 +32,78 @@ func (AIApi) AIArticleSearchView(c *gin.Context) {
 		return
 	}
 
-	list := make([]search_service.SearchListResponse, 0, 20)
-	seen := make(map[uint]struct{}, 20)
-
-	if len(rewrite.TagList) > 0 {
-		tagList, _, err := search_service.SearchArticles(search_service.ArticleSearchRequest{
-			Type:     1,
-			Sort:     rewrite.Sort,
-			TagList:  rewrite.TagList,
-			Key:      key,
-			PageInfo: common.PageInfo{Page: 1, Limit: 10},
-		}, nil)
-		if err != nil {
-			res.FailWithMsg(err.Error(), c)
-			return
-		}
-		list = appendUniqueSearchResults(list, seen, tagList)
-	}
-
-	queryList, _, err := search_service.SearchArticles(search_service.ArticleSearchRequest{
-		Type:     1,
-		Sort:     rewrite.Sort,
-		Key:      key,
-		PageInfo: common.PageInfo{Page: 1, Limit: 10},
-	}, nil)
+	list, err := searchAIArticleList(rewrite)
 	if err != nil {
 		res.FailWithMsg(err.Error(), c)
 		return
 	}
-	list = appendUniqueSearchResults(list, seen, queryList)
 
 	res.OkWithData(list, c)
+}
+
+func (AIApi) AIArticleSearchLLMView(c *gin.Context) {
+	cr := middleware.GetBindJson[AIBaseRequest](c)
+	prepareAIArticleSearchSSE(c)
+
+	// 意图识别与搜索重写
+	rewrite, err := ai_service.RewriteArticleSearch(cr.Content)
+	if err != nil {
+		res.SSEFail(err.Error(), c)
+		return
+	}
+
+	// 非搜索意图，直接回复
+	if rewrite.Intent != "search" {
+		res.SSEOk(AIBaseResponse{
+			Content: rewrite.Content,
+		}, c)
+		return
+	}
+
+	// 搜索意图，进行搜索
+	key := buildAIArticleSearchKey(rewrite.Query)
+	if key == "" {
+		res.SSEFail("搜索关键词不能为空", c)
+		return
+	}
+
+	list, err := searchAIArticleList(rewrite)
+	if err != nil {
+		res.SSEFail(err.Error(), c)
+		return
+	}
+
+	contentChan, errChan, err := ai_service.AnalyzeArticleSearchStream(cr.Content, list)
+	if err != nil {
+		res.SSEFail(err.Error(), c)
+		return
+	}
+
+	var contentBuilder strings.Builder
+	for contentChan != nil || errChan != nil {
+		select {
+		// 接收消息
+		case text, ok := <-contentChan:
+			if !ok {
+				contentChan = nil
+				continue
+			}
+			contentBuilder.WriteString(text)
+			res.SSEOk(AIBaseResponse{
+				Content: contentBuilder.String(),
+			}, c)
+		// 接收错误
+		case streamErr, ok := <-errChan:
+			if !ok {
+				errChan = nil
+				continue
+			}
+			if streamErr != nil {
+				res.SSEFail(streamErr.Error(), c)
+				return
+			}
+		}
+	}
 }
 
 func buildAIArticleSearchKey(queryList []string) string {
@@ -95,4 +135,48 @@ func appendUniqueSearchResults(
 		list = append(list, item)
 	}
 	return list
+}
+
+func searchAIArticleList(rewrite *ai_service.ArticleSearchRewrite) ([]search_service.SearchListResponse, error) {
+	key := buildAIArticleSearchKey(rewrite.Query)
+	if key == "" {
+		return nil, nil
+	}
+
+	list := make([]search_service.SearchListResponse, 0, 20)
+	seen := make(map[uint]struct{}, 20)
+
+	if len(rewrite.TagList) > 0 {
+		tagList, _, err := search_service.SearchArticles(search_service.ArticleSearchRequest{
+			Type:     1,
+			Sort:     rewrite.Sort,
+			TagList:  rewrite.TagList,
+			Key:      key,
+			PageInfo: common.PageInfo{Page: 1, Limit: 10},
+		}, nil)
+		if err != nil {
+			return nil, err
+		}
+		list = appendUniqueSearchResults(list, seen, tagList)
+	}
+
+	queryList, _, err := search_service.SearchArticles(search_service.ArticleSearchRequest{
+		Type:     1,
+		Sort:     rewrite.Sort,
+		Key:      key,
+		PageInfo: common.PageInfo{Page: 1, Limit: 10},
+	}, nil)
+	if err != nil {
+		return nil, err
+	}
+	list = appendUniqueSearchResults(list, seen, queryList)
+
+	return list, nil
+}
+
+func prepareAIArticleSearchSSE(c *gin.Context) {
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
 }

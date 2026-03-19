@@ -121,7 +121,7 @@ func TestAIArticleMetaInfoView(t *testing.T) {
 			Username: user.Username,
 		},
 	})
-	c.Set("requestJson", ai_api.AIArticleMetaInfoRequest{
+	c.Set("requestJson", ai_api.AIBaseRequest{
 		Content: "# Go 中间件\n\n这是一篇讲 Gin 中间件设计的文章。",
 	})
 

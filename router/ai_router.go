@@ -15,6 +15,7 @@ func AIRouter(r *gin.RouterGroup) {
 	authGroup := group.Group("", mw.AuthMiddleware)
 	//adminGroup := authGroup.Group("", mw.AdminMiddleware)
 
-	authGroup.POST("article_metainfo", mw.BindJson[ai_api.AIArticleMetaInfoRequest], app.AIArticleMetaInfoView)
-	authGroup.POST("article_search", mw.BindJson[ai_api.AIArticleMetaInfoRequest], app.AIArticleSearchView)
+	authGroup.POST("metainfo", mw.BindJson[ai_api.AIBaseRequest], app.AIArticleMetaInfoView)
+	authGroup.POST("search/list", mw.BindJson[ai_api.AIBaseRequest], app.AIArticleSearchListView)
+	authGroup.GET("search/llm", mw.BindJson[ai_api.AIBaseRequest], app.AIArticleSearchLLMView)
 }
