@@ -12,15 +12,20 @@ import (
 type SiteApi struct {
 }
 
-// 站点信息请求参数
-type SiteInfoRequest struct {
-	Name string `uri:"name"`
-}
-
 // 敏感信息占位符
 var sensitive_place_holder = "******"
 
 // 站点 qq 登录地址
 func (SiteApi) SiteInfoQQView(c *gin.Context) {
 	res.OkWithData(global.Config.QQ.Url(), c)
+}
+
+// AI 信息获取
+func (SiteApi) SiteInfoAIView(c *gin.Context) {
+	res.OkWithData(SiteAIResponse{
+		Enable:   global.Config.AI.Enable,
+		Nickname: global.Config.AI.Nickname,
+		Avatar:   global.Config.AI.Avatar,
+		Abstract: global.Config.AI.Abstract,
+	}, c)
 }

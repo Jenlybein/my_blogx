@@ -156,5 +156,6 @@ ai:
   max_input_chars:
   temperature:
   daily_quota:
-  nickname: ""
+  abstract: "你好！我是我的博客的AI助手，可以帮助你找到喜欢的文章！"
+  nickname: "博客AI助手"
   avatar: ""

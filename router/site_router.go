@@ -16,8 +16,11 @@ func SiteRouter(r *gin.RouterGroup) {
 	adminGroup := authGroup.Group("", mw.AdminMiddleware)
 
 	app := api.App.SiteApi
+
 	Group.GET("qq_url", app.SiteInfoQQView)
 	Group.GET(":name", mw.BindUri[site_api.SiteInfoRequest], app.SiteInfoView)
+	Group.GET("ai_info", app.SiteInfoAIView)
+
 	adminGroup.GET("admin/:name", mw.BindUri[site_api.SiteInfoRequest], app.SiteInfoAdminView)
 	adminGroup.PUT(":name", mw.BindUri[site_api.SiteInfoRequest], app.SiteUpdateView)
 }
