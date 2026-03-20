@@ -1,3 +1,5 @@
+-- TODO：后续需用 mysqldump 导出完整数据库，替换这里的操作。263 集
+
 -- 创建新用户 admin，允许从任意IP访问
 CREATE USER 'admin' @'%' IDENTIFIED BY 'REDACTED_SHARED_PASSWORD';
 
