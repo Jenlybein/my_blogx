@@ -7,4 +7,11 @@ uploads
 
 .readmd
 
+init/deploy/es/data
+init/deploy/redis/data
+init/deploy/redis/data
+init/deploy/nginx/cert
+init/deploy/sql_master/data
+init/deploy/sql_slave/data
+
 *.exe
