@@ -7,7 +7,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD # root用户的密码
       TZ: "Asia/Shanghai" # 设置时区
-      MYSQL_DATABASE: "myblogx"
+      MYSQL_DATABASE: "blogx"
     command:
     ports:
       - 3306:3306 # 映射宿主机端口：容器端口
@@ -55,6 +55,20 @@ services:
     depends_on:
       mysql-master:
         condition: service_healthy # 等待主库健康检查通过后再启动
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-uroot",
+          "-pREDACTED_SHARED_PASSWORD",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
       blogx_network:
         ipv4_address: 10.2.0.3
@@ -81,6 +95,16 @@ services:
     volumes:
       - ./es/data:/usr/share/elasticsearch/data
       - ./es/start.sh:/start.sh:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS -u elastic:$${ELASTIC_PASSWORD} http://127.0.0.1:9200/_cluster/health?wait_for_status=green&timeout=5s > /dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 40s
     networks:
       blogx_network:
         ipv4_address: 10.2.0.4
@@ -95,6 +119,11 @@ services:
     volumes:
       - ./redis/data:/data
       - ./redis/conf/redis.conf:/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "REDACTED_SHARED_PASSWORD", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
       blogx_network:
         ipv4_address: 10.2.0.5
@@ -218,33 +247,71 @@ services:
         user_kafka_admin="REDACTED_KAFKA_ADMIN_PASSWORD"
         user_logistics="REDACTED_KAFKA_PASSWORD";
 
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1 || exit 1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
     networks:
       blogx_network:
         ipv4_address: 10.2.0.6
 
   blogx_server:
     restart: unless-stopped
-    build: ../../
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    environment:
+      ES_WAIT_URL: "http://es:9200/_cluster/health?wait_for_status=yellow&timeout=5s"
+      ES_WAIT_AUTH_HEADER: "Authorization: Basic ZWxhc3RpYzpteWJsb2d4QWJjMTIzNDU="
     networks:
       blogx_network:
         ipv4_address: 10.2.0.7
     depends_on:
-      - mysql-master
-      - es
-      - redis
+      mysql-master:
+        condition: service_healthy
+      mysql-slave:
+        condition: service_healthy
+      es:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     volumes:
       - ./blog_server/settings.yaml:/app/settings.yaml
       - ./blog_server/uploads:/app/uploads
       - ./blog_server/logs:/app/logs
-    command: "/app/main"
+      - ./blog_server/var:/app/var
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:8080/api/site/ai_info || exit 1",
+        ]
+      interval: 100s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    command:
+      [
+        "/bin/sh",
+        "-c",
+        "until wget -S -O /dev/null http://es:9200 2>&1 | grep -q '401 Unauthorized'; do echo '等待 ES 完整启动...'; sleep 3; done; exec /app/main",
+      ]
 
   blog_web:
     image: nginx:latest
     restart: unless-stopped
     volumes:
-      - ./blog_web/nginx.conf:/etc/nginx/nginx.conf
-      - ./blog_web/logs:/var/log/nginx/
-      - ./blog_web/dist:/usr/share/nginx/fai_web
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/logs:/var/log/nginx/
+      - ./nginx/dist:/usr/share/nginx/fai_web
       - ./nginx/cert/:/usr/share/nginx/cert
     networks:
       blogx_network:
