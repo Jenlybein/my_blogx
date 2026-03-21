@@ -28,12 +28,13 @@ WORKDIR /app
 
 # 从第一阶段（builder）的/build目录复制编译好的main可执行文件到当前镜像的/app目录
 COPY --from=builder /build/main /app
+COPY init/deploy/blog_server/mariadb-dump-wrapper.sh /usr/local/bin/mariadb-dump-wrapper
 
 # 安装运行时依赖：时区、CA 证书、mysql 客户端（包含 mysqldump）
 RUN apk add --no-cache tzdata ca-certificates mysql-client && update-ca-certificates
 
 # 预创建运行时目录，便于卷挂载和 river 位点持久化
-RUN mkdir -p /app/logs /app/uploads /app/var
+RUN chmod +x /usr/local/bin/mariadb-dump-wrapper && mkdir -p /app/logs /app/uploads /app/var
 
 # 容器启动时执行的命令：运行/app/main可执行文件
 CMD ["./main"]

@@ -79,7 +79,7 @@ river:
         - cover
         - comments_toggle
   charset: "utf8mb4"
-  mysqldump: "mysqldump"
+  mysqldump: "/usr/local/bin/mariadb-dump-wrapper"
   skip_master_data: true
   bulk_size: 128
   flush_bulk_time: 200
