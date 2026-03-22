@@ -6,6 +6,7 @@ import (
 	"myblogx/api/article_api/category"
 	"myblogx/api/article_api/favorite"
 	"myblogx/api/article_api/tags"
+	"myblogx/api/article_api/top"
 	"myblogx/api/article_api/view_history"
 	mw "myblogx/middleware"
 	"myblogx/models"
@@ -39,6 +40,11 @@ func ArticleRouter(r *gin.RouterGroup) {
 	authGroup.DELETE("favorite/contents", mw.BindJson[favorite.FavoriteRemovePatchModel], app.FavoriteRemovePatchView)
 	authGroup.DELETE("favorite", mw.BindJson[models.IDListRequest], app.FavoriteDeleteView)
 	authGroup.POST("favorite", mw.BindJson[article_api.ArticleFavoriteRequest], app.ArticleFavoriteSaveView)
+
+	// 置顶
+	group.GET("top", mw.BindQuery[top.ArticleTopListRequest], app.ArticleTopListView)
+	authGroup.POST("top", mw.BindJson[top.ArticleTopSetRequest], app.ArticleTopSetView)
+	authGroup.DELETE("top", mw.BindJson[top.ArticleTopSetRequest], app.ArticleTopRemoveView)
 
 	// 浏览历史
 	authGroup.GET("history", mw.BindQuery[view_history.ArticleViewHistoryRequest], app.ArticleViewHistoryView)

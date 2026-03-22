@@ -5,6 +5,7 @@ import (
 	"myblogx/api/user_api/auth_api"
 	"myblogx/api/user_api/log_api"
 	"myblogx/api/user_api/profile_api"
+	"myblogx/api/user_api/user_man_api"
 	mw "myblogx/middleware"
 	"myblogx/models"
 
@@ -33,4 +34,7 @@ func UserRouter(r *gin.RouterGroup) {
 
 	log := api.App.UserApi.LogApi
 	authGroup.GET("login/log", mw.BindQuery[log_api.UserLoginListRequest], log.UserLoginLogList)
+
+	man := api.App.UserApi.UserManApi
+	adminGroup.GET("admin/list", mw.BindQuery[user_man_api.UserListRequest], man.UserListView)
 }

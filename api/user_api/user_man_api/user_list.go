@@ -14,7 +14,7 @@ func (a *UserManApi) UserListView(c *gin.Context) {
 
 	_list, count, _ := common.ListQuery(models.UserModel{}, common.Options{
 		Likes:         []string{"nickname", "username"},
-		ExactPreloads: map[string][]string{"LoginList": {"id", "ip", "addr", "abstract", "created_at"}},
+		ExactPreloads: map[string][]string{"LoginList": {"id", "ip", "addr", "created_at"}},
 		PageInfo:      cr.PageInfo,
 	})
 

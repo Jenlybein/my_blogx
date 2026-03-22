@@ -212,37 +212,61 @@ func buildArticleListQuery(cr ArticleListRequest) *gorm.DB {
 	return query
 }
 
-// handleTopArticles 计算用户置顶文章的排序表达式，并返回置顶状态映射。
-// 目前管理员置顶逻辑尚未接入，因此 adminTopMap 暂时保持为空。
+// handleTopArticles 计算作者置顶 / 管理员置顶的状态映射和默认排序表达式。
+// 默认情况下管理员置顶优先；查看某位作者的文章时，再叠加该作者自己的置顶顺序。
 func handleTopArticles(userID uint) (map[uint]bool, map[uint]bool, string) {
 	userTopMap := make(map[uint]bool)
 	adminTopMap := make(map[uint]bool)
-	order := "article_models.created_at desc"
+	orderParts := make([]string, 0)
+	orderedArticleMap := make(map[uint]struct{})
 
-	if userID == 0 {
-		return userTopMap, adminTopMap, order
+	appendOrder := func(articleID uint) {
+		if articleID == 0 {
+			return
+		}
+		if _, ok := orderedArticleMap[articleID]; ok {
+			return
+		}
+		orderedArticleMap[articleID] = struct{}{}
+		orderParts = append(orderParts, fmt.Sprintf("article_models.id in (%d) desc", articleID))
 	}
 
-	var topRows []struct {
+	var adminTopRows []struct {
 		ArticleID uint
 	}
 	if err := global.DB.Model(&models.UserTopArticleModel{}).
-		Select("article_id").
-		Where("user_id = ?", userID).
-		Order("created_at desc").
-		Find(&topRows).Error; err != nil {
-		return userTopMap, adminTopMap, order
-	}
-	if len(topRows) == 0 {
-		return userTopMap, adminTopMap, order
-	}
-
-	parts := make([]string, 0, len(topRows))
-	for _, item := range topRows {
-		parts = append(parts, fmt.Sprintf("article_models.id in (%d) desc", item.ArticleID))
-		userTopMap[item.ArticleID] = true
+		Select("user_top_article_models.article_id").
+		Joins("JOIN user_models ON user_models.id = user_top_article_models.user_id").
+		Where("user_models.role = ?", enum.RoleAdmin).
+		Order("user_top_article_models.created_at desc").
+		Find(&adminTopRows).Error; err == nil {
+		for _, item := range adminTopRows {
+			adminTopMap[item.ArticleID] = true
+			appendOrder(item.ArticleID)
+		}
 	}
 
-	order = fmt.Sprintf("%s, article_models.created_at desc", strings.Join(parts, ","))
+	if userID != 0 {
+		var userTopRows []struct {
+			ArticleID uint
+		}
+		if err := global.DB.Model(&models.UserTopArticleModel{}).
+			Select("user_top_article_models.article_id").
+			Joins("JOIN article_models ON article_models.id = user_top_article_models.article_id").
+			Where("user_top_article_models.user_id = ? AND article_models.author_id = ?", userID, userID).
+			Order("user_top_article_models.created_at desc").
+			Find(&userTopRows).Error; err == nil {
+			for _, item := range userTopRows {
+				userTopMap[item.ArticleID] = true
+				appendOrder(item.ArticleID)
+			}
+		}
+	}
+
+	if len(orderParts) == 0 {
+		return userTopMap, adminTopMap, "article_models.created_at desc"
+	}
+
+	order := fmt.Sprintf("%s, article_models.created_at desc", strings.Join(orderParts, ","))
 	return userTopMap, adminTopMap, order
 }
