@@ -9,6 +9,7 @@ import (
 	"myblogx/api/captcha_api"
 	"myblogx/api/chat_api"
 	"myblogx/api/comment_api"
+	"myblogx/api/data_api"
 	"myblogx/api/follow_api"
 	global_notif_api "myblogx/api/global_msg_api"
 	"myblogx/api/image_api"
@@ -34,6 +35,7 @@ type Api struct {
 	FollowApi       follow_api.FollowApi
 	SearchApi       search_api.SearchApi
 	AIApi           ai_api.AIApi
+	DataApi         data_api.DataApi
 }
 
 var App = Api{}

@@ -33,6 +33,7 @@ func Run() {
 	FollowRouter(nr)
 	SearchRouter(nr)
 	AIRouter(nr)
+	DataRouter(nr)
 
 	addr := global.Config.System.Addr()
 	r.Run(addr)

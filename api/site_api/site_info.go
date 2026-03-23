@@ -4,6 +4,7 @@ import (
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
+	"myblogx/service/redis_service/redis_site"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +18,7 @@ func (s SiteApi) SiteInfoView(c *gin.Context) {
 	switch cr.Name {
 	// 站点版本
 	case "site":
+		redis_site.SetFlow()
 		rep := global.Config.Site
 		rep.About.Version = global.Version
 		data = rep

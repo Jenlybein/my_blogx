@@ -2,6 +2,8 @@
 
 各类展示信息做一层缓存
 
+修改 middleware，jwt 每天登录接入时，如果是第一次被使用，则记录该用户今天登录了。
+
 思考：把 tags、content_parts、content_head 改为用 river 传输
 
 AI 写作助手
