@@ -10,6 +10,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func TestNewUserService(t *testing.T) {
+	user := models.UserModel{
+		Username: "u1",
+	}
+	s := user_service.NewUserService(user)
+	if s == nil {
+		t.Fatal("NewUserService 不应返回 nil")
+	}
+}
+
 func TestUserLoginCreateLog(t *testing.T) {
 	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserLoginModel{})
 
@@ -45,5 +55,25 @@ func TestUserLoginCreateLog(t *testing.T) {
 	}
 	if log.Addr == "" {
 		t.Fatalf("地址字段不应为空: %+v", log)
+	}
+}
+
+func TestNextAutoUsername(t *testing.T) {
+	testutil.SetupMiniRedis(t)
+
+	username1, err := user_service.NextAutoUsername()
+	if err != nil {
+		t.Fatalf("首次生成用户名失败: %v", err)
+	}
+	if username1 != "100001" {
+		t.Fatalf("首次用户名错误: got=%s want=100001", username1)
+	}
+
+	username2, err := user_service.NextAutoUsername()
+	if err != nil {
+		t.Fatalf("第二次生成用户名失败: %v", err)
+	}
+	if username2 != "100002" {
+		t.Fatalf("第二次用户名错误: got=%s want=100002", username2)
 	}
 }

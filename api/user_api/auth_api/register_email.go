@@ -1,7 +1,6 @@
 package auth_api
 
 import (
-	"fmt"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
@@ -38,11 +37,15 @@ func (AuthApi) RegisterEmailView(c *gin.Context) {
 		res.FailWithMsg("邮箱注册失败", c)
 		return
 	}
-	var maxID uint64
-	global.DB.Model(&models.UserModel{}).Select("MAX(id)").Scan(&maxID)
+	username, err := user_service.NextAutoUsername()
+	if err != nil {
+		global.Logger.Errorf("邮箱注册生成用户名失败: %v", err)
+		res.FailWithMsg("邮箱注册失败", c)
+		return
+	}
 
 	user := models.UserModel{
-		Username:       fmt.Sprintf("%d", maxID+1+10000),
+		Username:       username,
 		Password:       hashedPassword,
 		Nickname:       email,
 		Avatar:         "xxx.png",

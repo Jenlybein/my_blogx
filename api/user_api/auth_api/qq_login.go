@@ -1,7 +1,6 @@
 package auth_api
 
 import (
-	"fmt"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
@@ -25,7 +24,7 @@ func (AuthApi) QQLoginView(c *gin.Context) {
 	}
 
 	cr := middleware.GetBindJson[QQLoginRequest](c)
-	
+
 	userInfoResp, err := qq_service.GetUserInfo(cr.Code)
 	if err != nil {
 		res.FailWithError(err, c)
@@ -34,11 +33,16 @@ func (AuthApi) QQLoginView(c *gin.Context) {
 
 	var user models.UserModel
 	if err = global.DB.Take(&user, "open_id = ?", userInfoResp.OpenID).Error; err != nil {
+		username, usernameErr := user_service.NextAutoUsername()
+		if usernameErr != nil {
+			global.Logger.Errorf("qq 登录生成用户名失败: %v", usernameErr)
+			res.FailWithMsg("qq登录失败", c)
+			return
+		}
+
 		// 创建用户
-		var maxID uint64
-		global.DB.Model(&models.UserModel{}).Select("MAX(id)").Scan(&maxID)
 		user = models.UserModel{
-			Username:       fmt.Sprintf("%d", maxID+1+10000),
+			Username:       username,
 			Nickname:       userInfoResp.NickName,
 			Avatar:         userInfoResp.Avatar,
 			RegisterSource: enum.RegisterQQSourceType,
