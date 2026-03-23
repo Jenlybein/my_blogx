@@ -87,7 +87,7 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 	return nil, errors.New("token 无效")
 }
 
-func ParseTokenByGin(c *gin.Context) (*MyClaims, error) {
+func GetTokenByGin(c *gin.Context) string {
 	tokenString := c.Request.Header.Get("token")
 
 	if tokenString == "" {
@@ -98,6 +98,11 @@ func ParseTokenByGin(c *gin.Context) (*MyClaims, error) {
 		tokenString = c.Request.Header.Get("Token")
 	}
 
+	return tokenString
+}
+
+func ParseTokenByGin(c *gin.Context) (*MyClaims, error) {
+	tokenString := GetTokenByGin(c)
 	return ParseToken(tokenString)
 }
 

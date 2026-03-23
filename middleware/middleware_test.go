@@ -147,7 +147,7 @@ func TestAuthAndAdminMiddleware(t *testing.T) {
 	}
 
 	{
-		redisJWT.TokenBlackList(userToken, redisJWT.UserBlackType)
+		redisJWT.SetTokenBlack(userToken, redisJWT.UserBlackType)
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/auth", nil)
 		req.Header.Set("token", userToken)

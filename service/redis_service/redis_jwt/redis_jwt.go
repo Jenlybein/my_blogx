@@ -24,6 +24,7 @@ const (
 func (b BlackType) String() string {
 	return fmt.Sprintf("%d", b)
 }
+
 func BlackTypeFromString(str string) (BlackType, error) {
 	num1, err := strconv.Atoi(str)
 	if err != nil {
@@ -31,6 +32,7 @@ func BlackTypeFromString(str string) (BlackType, error) {
 	}
 	return BlackType(num1), nil
 }
+
 func BlackTypeMsg(blackType BlackType) string {
 	switch blackType {
 	case UserBlackType:
@@ -44,7 +46,7 @@ func BlackTypeMsg(blackType BlackType) string {
 	}
 }
 
-func TokenBlackList(token string, blackType BlackType) {
+func SetTokenBlack(token string, blackType BlackType) {
 	key := fmt.Sprintf("token_blacklist_%s", token)
 
 	// 获取 token 原本的过期时间
@@ -89,9 +91,6 @@ func HasTokenBlack(token string) (BlackMsg string, ok bool) {
 }
 
 func HasTokenBlackByGin(c *gin.Context) (BlackMsg string, ok bool) {
-	token := c.GetHeader("token")
-	if token == "" {
-		token = c.Query("token")
-	}
+	token := jwts.GetTokenByGin(c)
 	return HasTokenBlack(token)
 }

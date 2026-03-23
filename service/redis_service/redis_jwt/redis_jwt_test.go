@@ -51,7 +51,7 @@ func TestTokenBlacklistFlow(t *testing.T) {
 		t.Fatalf("生成 token 失败: %v", err)
 	}
 
-	redis_jwt.TokenBlackList(token, redis_jwt.UserBlackType)
+	redis_jwt.SetTokenBlack(token, redis_jwt.UserBlackType)
 	msg, ok := redis_jwt.HasTokenBlack(token)
 	if ok {
 		t.Fatalf("黑名单 token 应返回 ok=false: %s", msg)
@@ -81,7 +81,7 @@ func TestHasTokenBlackByGin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("生成 token 失败: %v", err)
 	}
-	redis_jwt.TokenBlackList(token, redis_jwt.AdminBlackType)
+	redis_jwt.SetTokenBlack(token, redis_jwt.AdminBlackType)
 
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
