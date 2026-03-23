@@ -267,6 +267,7 @@ services:
       context: ../..
       dockerfile: Dockerfile
     environment:
+      TZ: "Asia/Shanghai" # 设置时区
       ES_WAIT_URL: "http://es:9200/_cluster/health?wait_for_status=yellow&timeout=5s"
       ES_WAIT_AUTH_HEADER: "Authorization: Basic ZWxhc3RpYzpteWJsb2d4QWJjMTIzNDU="
     depends_on:

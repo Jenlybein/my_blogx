@@ -53,10 +53,11 @@ func (ArticleApi) ArticleDetailView(c *gin.Context) {
 		return
 	}
 
-	article.DiggCount += redis_article.GetCacheDigg(article.ID)
-	article.ViewCount += redis_article.GetCacheView(article.ID)
-	article.FavorCount += redis_article.GetCacheFavorite(article.ID)
-	article.CommentCount += redis_article.GetCacheComment(article.ID)
+	counters := redis_article.GetBatchCounters([]uint{article.ID})
+	article.DiggCount += counters.DiggMap[article.ID]
+	article.ViewCount += counters.ViewMap[article.ID]
+	article.FavorCount += counters.FavorMap[article.ID]
+	article.CommentCount += counters.CommentMap[article.ID]
 
 	response := ArticleDetailResponse{
 		ID:             article.ID,

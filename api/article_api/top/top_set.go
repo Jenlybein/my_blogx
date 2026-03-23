@@ -16,11 +16,6 @@ import (
 
 const maxUserTopArticleCount = 3
 
-var (
-	errArticleTopExists = errors.New("article top already exists")
-	errArticleTopLimit  = errors.New("article top limit exceeded")
-)
-
 func (TopApi) ArticleTopSetView(c *gin.Context) {
 	cr := middleware.GetBindJson[ArticleTopSetRequest](c)
 	claims := jwts.MustGetClaimsByGin(c)
@@ -52,6 +47,7 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 	}
 
 	err := global.DB.Transaction(func(tx *gorm.DB) error {
+		// 检查是否已经置顶
 		var count int64
 		if err := tx.Model(&models.UserTopArticleModel{}).
 			Where("user_id = ? AND article_id = ?", claims.UserID, article.ID).
@@ -59,9 +55,10 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 			return err
 		}
 		if count > 0 {
-			return errArticleTopExists
+			return errors.New("文章已被置顶")
 		}
 
+		// 检查用户置顶数量
 		if cr.Type == 1 && !claims.IsAdmin() {
 			if err := tx.Model(&models.UserTopArticleModel{}).
 				Where("user_id = ?", claims.UserID).
@@ -69,7 +66,7 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 				return err
 			}
 			if count >= maxUserTopArticleCount {
-				return errArticleTopLimit
+				return errors.New("文章置顶数量达到限制")
 			}
 		}
 
@@ -79,15 +76,8 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 		}).Error
 	})
 	if err != nil {
-		switch {
-		case errors.Is(err, errArticleTopExists):
-			res.FailWithMsg("文章已置顶", c)
-		case errors.Is(err, errArticleTopLimit):
-			res.FailWithMsg("每个用户最多置顶 3 篇自己的文章", c)
-		default:
-			global.Logger.Errorf("文章置顶失败 article_id=%d user_id=%d type=%d err=%v", article.ID, claims.UserID, cr.Type, err)
-			res.FailWithMsg("文章置顶失败", c)
-		}
+		global.Logger.Errorf("文章置顶失败 article_id=%d user_id=%d type=%d err=%v", article.ID, claims.UserID, cr.Type, err)
+		res.FailWithError(err, c)
 		return
 	}
 
