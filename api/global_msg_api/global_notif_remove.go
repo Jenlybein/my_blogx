@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (GlobalNotifApi) GlobalNotifAdminRemoveView(c *gin.Context) {
@@ -90,7 +91,16 @@ func (GlobalNotifApi) GlobalNotifUserRemoveView(c *gin.Context) {
 				MsgID:  notif.ID,
 				UserID: claims.UserID,
 			}
-			if err := tx.Create(&userNotif).Error; err != nil {
+			if err := tx.Clauses(clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "msg_id"},
+					{Name: "user_id"},
+				},
+				DoUpdates: clause.Assignments(map[string]any{
+					"deleted_at": now,
+					"updated_at": now,
+				}),
+			}).Create(&userNotif).Error; err != nil {
 				return err
 			}
 			successCount++

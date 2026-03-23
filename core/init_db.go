@@ -93,7 +93,7 @@ func InitDB(dbCfg []conf.DB) *gorm.DB {
 		LogLevel:                  logger.Warn, // SQL 日志级别（Debug 核心）
 		Colorful:                  true,        // 彩色输出（开发环境友好）
 		IgnoreRecordNotFoundError: true,        // 忽略记录不存在错误
-		
+
 	}
 	if global.Config.GORM.Debug {
 		logConfig.LogLevel = logger.Info
@@ -106,6 +106,7 @@ func InitDB(dbCfg []conf.DB) *gorm.DB {
 	gormCfg := gorm.Config{
 		Logger:                                   newLogger, // 配置日志
 		DisableForeignKeyConstraintWhenMigrating: true,      // 禁用外键约束
+		TranslateError:                           true,      // 翻译错误
 	}
 
 	// 从配置文件中读取数据库配置

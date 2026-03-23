@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (GlobalNotifApi) GlobalNotifReadView(c *gin.Context) {
@@ -60,14 +61,20 @@ func (GlobalNotifApi) GlobalNotifReadView(c *gin.Context) {
 			userNotif = models.UserGlobalNotifModel{
 				MsgID:  notif.ID,
 				UserID: claims.UserID,
+				IsRead: true,
+				ReadAt: &now,
 			}
-			if err := tx.Create(&userNotif).Error; err != nil {
-				return err
-			}
-			if err := tx.Model(&userNotif).Updates(map[string]any{
-				"is_read": true,
-				"read_at": &now,
-			}).Error; err != nil {
+			if err := tx.Clauses(clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "msg_id"},
+					{Name: "user_id"},
+				},
+				DoUpdates: clause.Assignments(map[string]any{
+					"is_read":    true,
+					"read_at":    &now,
+					"updated_at": now,
+				}),
+			}).Create(&userNotif).Error; err != nil {
 				return err
 			}
 			successCount++

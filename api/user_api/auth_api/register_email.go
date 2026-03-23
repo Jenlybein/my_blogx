@@ -1,6 +1,7 @@
 package auth_api
 
 import (
+	"errors"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
@@ -11,6 +12,8 @@ import (
 	"myblogx/utils/pwd"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type RegisterEmailRequest struct {
@@ -44,18 +47,48 @@ func (AuthApi) RegisterEmailView(c *gin.Context) {
 		return
 	}
 
-	user := models.UserModel{
-		Username:       username,
-		Password:       hashedPassword,
-		Nickname:       email,
-		Avatar:         "xxx.png",
-		RegisterSource: enum.RegisterEmailSourceType,
-		Email:          email,
-		Role:           enum.RoleUser,
+	var user models.UserModel
+	for range 5 {
+		user = models.UserModel{
+			Username:       username,
+			Password:       hashedPassword,
+			Nickname:       email,
+			Avatar:         "xxx.png",
+			RegisterSource: enum.RegisterEmailSourceType,
+			Email:          email,
+			Role:           enum.RoleUser,
+		}
+		result := global.DB.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "email"}},
+			DoNothing: true,
+		}).Create(&user)
+		if result.Error == nil {
+			if result.RowsAffected == 0 {
+				res.FailWithMsg("邮箱已被使用", c)
+				return
+			}
+			break
+		}
+		if !errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			err = result.Error
+			break
+		}
+
+		username, err = user_service.NextAutoUsername()
+		if err != nil {
+			global.Logger.Errorf("邮箱注册生成用户名失败: %v", err)
+			res.FailWithMsg("邮箱注册失败", c)
+			return
+		}
 	}
-	if err = global.DB.Create(&user).Error; err != nil {
+	if err != nil {
 		res.FailWithMsg("邮箱注册失败", c)
 		global.Logger.Errorf("邮箱注册失败 %v", err)
+		return
+	}
+	if user.ID == 0 {
+		res.FailWithMsg("邮箱注册失败", c)
+		global.Logger.Errorf("邮箱注册失败: 自动用户名重试次数耗尽")
 		return
 	}
 

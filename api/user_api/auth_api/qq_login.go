@@ -1,6 +1,7 @@
 package auth_api
 
 import (
+	"errors"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
@@ -11,6 +12,8 @@ import (
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type QQLoginRequest struct {
@@ -32,25 +35,49 @@ func (AuthApi) QQLoginView(c *gin.Context) {
 	}
 
 	var user models.UserModel
-	if err = global.DB.Take(&user, "open_id = ?", userInfoResp.OpenID).Error; err != nil {
-		username, usernameErr := user_service.NextAutoUsername()
-		if usernameErr != nil {
-			global.Logger.Errorf("qq 登录生成用户名失败: %v", usernameErr)
-			res.FailWithMsg("qq登录失败", c)
+	err = global.DB.Take(&user, "open_id = ?", userInfoResp.OpenID).Error
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			res.FailWithMsg("qq登录失败 "+err.Error(), c)
 			return
 		}
 
-		// 创建用户
-		user = models.UserModel{
-			Username:       username,
-			Nickname:       userInfoResp.NickName,
-			Avatar:         userInfoResp.Avatar,
-			RegisterSource: enum.RegisterQQSourceType,
-			OpenID:         userInfoResp.OpenID,
-			Role:           enum.RoleUser,
+		for range 5 {
+			username, usernameErr := user_service.NextAutoUsername()
+			if usernameErr != nil {
+				global.Logger.Errorf("qq 登录生成用户名失败: %v", usernameErr)
+				res.FailWithMsg("qq登录失败", c)
+				return
+			}
+
+			user = models.UserModel{
+				Username:       username,
+				Nickname:       userInfoResp.NickName,
+				Avatar:         userInfoResp.Avatar,
+				RegisterSource: enum.RegisterQQSourceType,
+				OpenID:         userInfoResp.OpenID,
+				Role:           enum.RoleUser,
+			}
+			result := global.DB.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "open_id"}},
+				DoNothing: true,
+			}).Create(&user)
+			if result.Error == nil {
+				if result.RowsAffected == 0 {
+					if err = global.DB.Take(&user, "open_id = ?", userInfoResp.OpenID).Error; err != nil {
+						res.FailWithMsg("qq登录失败 "+err.Error(), c)
+						return
+					}
+				}
+				break
+			}
+			if !errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+				res.FailWithMsg("qq登录失败 "+result.Error.Error(), c)
+				return
+			}
 		}
-		if err = global.DB.Create(&user).Error; err != nil {
-			res.FailWithMsg("qq登录失败 "+err.Error(), c)
+		if user.ID == 0 {
+			res.FailWithMsg("qq登录失败", c)
 			return
 		}
 	}

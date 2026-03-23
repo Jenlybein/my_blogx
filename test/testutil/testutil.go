@@ -55,7 +55,9 @@ func SetupSQLite(t *testing.T, models ...any) *gorm.DB {
 	InitGlobals()
 
 	dsn := fmt.Sprintf("file:%d?mode=memory&cache=shared", time.Now().UnixNano())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+		TranslateError: true,
+	})
 	if err != nil {
 		t.Fatalf("打开 sqlite 失败: %v", err)
 	}

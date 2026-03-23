@@ -312,3 +312,34 @@ func TestGlobalNotifReadView(t *testing.T) {
 		}
 	}
 }
+
+func TestUserGlobalNotifStateUniqueIndex(t *testing.T) {
+	_, user := setupGlobalNotifEnv(t)
+	db := global.DB
+
+	notif := models.GlobalNotifModel{
+		Title:           "unique-state",
+		Content:         "unique-state",
+		UserVisibleRule: global_notif_enum.UserVisibleAllUsers,
+		ExpireTime:      time.Now().Add(24 * time.Hour),
+	}
+	if err := db.Create(&notif).Error; err != nil {
+		t.Fatalf("创建通知失败: %v", err)
+	}
+
+	first := models.UserGlobalNotifModel{
+		MsgID:  notif.ID,
+		UserID: user.ID,
+	}
+	if err := db.Create(&first).Error; err != nil {
+		t.Fatalf("创建首条用户通知状态失败: %v", err)
+	}
+
+	second := models.UserGlobalNotifModel{
+		MsgID:  notif.ID,
+		UserID: user.ID,
+	}
+	if err := db.Create(&second).Error; err == nil {
+		t.Fatal("同一用户同一通知不应创建出第二条状态记录")
+	}
+}

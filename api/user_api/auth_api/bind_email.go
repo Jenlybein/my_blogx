@@ -1,12 +1,14 @@
 package auth_api
 
 import (
+	"errors"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func (AuthApi) BindEmailView(c *gin.Context) {
@@ -25,6 +27,10 @@ func (AuthApi) BindEmailView(c *gin.Context) {
 	}
 
 	if err := global.DB.Model(&user).Update("email", email).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			res.FailWithMsg("邮箱已被使用", c)
+			return
+		}
 		res.FailWithError(err, c)
 		return
 	}

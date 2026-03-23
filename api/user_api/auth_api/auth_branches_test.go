@@ -152,4 +152,74 @@ func TestEmailPasswordAndBindFailureBranches(t *testing.T) {
 			t.Fatalf("绑定邮箱缺少 email 应失败, body=%s", w.Body.String())
 		}
 	})
+
+	t.Run("绑定邮箱不允许重复", func(t *testing.T) {
+		otherUser := models.UserModel{
+			Username: "u_bind_other",
+			Password: hashPwd,
+			Email:    "used@example.com",
+			Role:     enum.RoleUser,
+		}
+		if err := db.Create(&otherUser).Error; err != nil {
+			t.Fatalf("创建已绑定邮箱用户失败: %v", err)
+		}
+
+		c, w := newCtx()
+		c.Set("email", "used@example.com")
+		c.Set("claims", &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Role: enum.RoleUser}})
+		api.BindEmailView(c)
+		if code := readCode(t, w); code == 0 {
+			t.Fatalf("绑定重复邮箱应失败, body=%s", w.Body.String())
+		}
+	})
+}
+
+func TestUserModelUniqueIndexes(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{})
+
+	first := models.UserModel{
+		Username: "unique_user_1",
+		Email:    "same@example.com",
+		OpenID:   "openid-1",
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(&first).Error; err != nil {
+		t.Fatalf("创建首个用户失败: %v", err)
+	}
+
+	t.Run("用户名唯一", func(t *testing.T) {
+		user := models.UserModel{
+			Username: "unique_user_1",
+			Email:    "another@example.com",
+			OpenID:   "openid-2",
+			Role:     enum.RoleUser,
+		}
+		if err := db.Create(&user).Error; err == nil {
+			t.Fatal("重复用户名应被唯一索引拦截")
+		}
+	})
+
+	t.Run("邮箱唯一", func(t *testing.T) {
+		user := models.UserModel{
+			Username: "unique_user_2",
+			Email:    "same@example.com",
+			OpenID:   "openid-3",
+			Role:     enum.RoleUser,
+		}
+		if err := db.Create(&user).Error; err == nil {
+			t.Fatal("重复邮箱应被唯一索引拦截")
+		}
+	})
+
+	t.Run("OpenID唯一", func(t *testing.T) {
+		user := models.UserModel{
+			Username: "unique_user_3",
+			Email:    "third@example.com",
+			OpenID:   "openid-1",
+			Role:     enum.RoleUser,
+		}
+		if err := db.Create(&user).Error; err == nil {
+			t.Fatal("重复 OpenID 应被唯一索引拦截")
+		}
+	})
 }
