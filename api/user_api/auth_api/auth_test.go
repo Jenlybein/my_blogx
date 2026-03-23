@@ -17,6 +17,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func strPtr(s string) *string {
+	return &s
+}
+
 func newCtx() (*gin.Context, *httptest.ResponseRecorder) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
@@ -104,7 +108,7 @@ func TestResetUpdateBindEmail(t *testing.T) {
 	user := models.UserModel{
 		Username: "u1",
 		Password: hashPwd,
-		Email:    "old@example.com",
+		Email:    strPtr("old@example.com"),
 		Role:     enum.RoleUser,
 	}
 	if err := db.Create(&user).Error; err != nil {
@@ -113,7 +117,7 @@ func TestResetUpdateBindEmail(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("email", user.Email)
+		c.Set("email", *user.Email)
 		c.Set("requestJson", auth_api.ResetPasswordRequest{NewPassword: "newpwd"})
 		api.ResetPwdByEmailView(c)
 		if code := readCode(t, w); code != 0 {

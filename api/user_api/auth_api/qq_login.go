@@ -50,12 +50,13 @@ func (AuthApi) QQLoginView(c *gin.Context) {
 				return
 			}
 
+			openID := userInfoResp.OpenID
 			user = models.UserModel{
 				Username:       username,
 				Nickname:       userInfoResp.NickName,
 				Avatar:         userInfoResp.Avatar,
 				RegisterSource: enum.RegisterQQSourceType,
-				OpenID:         userInfoResp.OpenID,
+				OpenID:         &openID,
 				Role:           enum.RoleUser,
 			}
 			result := global.DB.Clauses(clause.OnConflict{

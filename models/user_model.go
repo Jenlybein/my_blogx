@@ -18,8 +18,8 @@ type UserModel struct {
 	Abstract       string                  `gorm:"size:256" json:"abstract"`
 	RegisterSource enum.RegisterSourceType `json:"register_source"` // 注册来源
 	Password       string                  `gorm:"size:64" json:"-"`
-	Email          string                  `gorm:"size:256;default:null;uniqueIndex:uk_user_email" json:"email"`
-	OpenID         string                  `gorm:"size:64;default:null;uniqueIndex:uk_user_open_id" json:"open_id"` // qq 登录的 openid
+	Email          *string                 `gorm:"size:256;uniqueIndex:uk_user_email" json:"email"`
+	OpenID         *string                 `gorm:"size:64;uniqueIndex:uk_user_open_id" json:"open_id"` // qq 登录的 openid
 	Role           enum.RoleType           `gorm:"default:0" json:"role"`
 	IP             string                  `gorm:"size:64" json:"ip"`    // 注册时的 IP
 	Addr           string                  `gorm:"size:256" json:"addr"` // 注册时的地址

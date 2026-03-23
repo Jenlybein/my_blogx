@@ -22,7 +22,7 @@ func TestPwdLoginAndSendEmailFailureBranches(t *testing.T) {
 	user := models.UserModel{
 		Username: "u_pwd",
 		Password: hashPwd,
-		Email:    "u_pwd@example.com",
+		Email:    strPtr("u_pwd@example.com"),
 		Role:     enum.RoleUser,
 	}
 	if err := db.Create(&user).Error; err != nil {
@@ -67,7 +67,7 @@ func TestEmailPasswordAndBindFailureBranches(t *testing.T) {
 	user := models.UserModel{
 		Username: "u_email",
 		Password: hashPwd,
-		Email:    "u_email@example.com",
+		Email:    strPtr("u_email@example.com"),
 		Role:     enum.RoleUser,
 	}
 	if err := db.Create(&user).Error; err != nil {
@@ -95,7 +95,7 @@ func TestEmailPasswordAndBindFailureBranches(t *testing.T) {
 
 	t.Run("重置密码新旧相同", func(t *testing.T) {
 		c, w := newCtx()
-		c.Set("email", user.Email)
+		c.Set("email", *user.Email)
 		c.Set("requestJson", auth_api.ResetPasswordRequest{NewPassword: "same-old"})
 		api.ResetPwdByEmailView(c)
 		if code := readCode(t, w); code == 0 {
@@ -108,7 +108,7 @@ func TestEmailPasswordAndBindFailureBranches(t *testing.T) {
 		noEmailUser := models.UserModel{
 			Username: "u_no_email",
 			Password: noEmailPwd,
-			Email:    "",
+			Email:    nil,
 			Role:     enum.RoleUser,
 		}
 		if err := db.Create(&noEmailUser).Error; err != nil {
@@ -157,7 +157,7 @@ func TestEmailPasswordAndBindFailureBranches(t *testing.T) {
 		otherUser := models.UserModel{
 			Username: "u_bind_other",
 			Password: hashPwd,
-			Email:    "used@example.com",
+			Email:    strPtr("used@example.com"),
 			Role:     enum.RoleUser,
 		}
 		if err := db.Create(&otherUser).Error; err != nil {
@@ -179,8 +179,8 @@ func TestUserModelUniqueIndexes(t *testing.T) {
 
 	first := models.UserModel{
 		Username: "unique_user_1",
-		Email:    "same@example.com",
-		OpenID:   "openid-1",
+		Email:    strPtr("same@example.com"),
+		OpenID:   strPtr("openid-1"),
 		Role:     enum.RoleUser,
 	}
 	if err := db.Create(&first).Error; err != nil {
@@ -190,8 +190,8 @@ func TestUserModelUniqueIndexes(t *testing.T) {
 	t.Run("用户名唯一", func(t *testing.T) {
 		user := models.UserModel{
 			Username: "unique_user_1",
-			Email:    "another@example.com",
-			OpenID:   "openid-2",
+			Email:    strPtr("another@example.com"),
+			OpenID:   strPtr("openid-2"),
 			Role:     enum.RoleUser,
 		}
 		if err := db.Create(&user).Error; err == nil {
@@ -202,8 +202,8 @@ func TestUserModelUniqueIndexes(t *testing.T) {
 	t.Run("邮箱唯一", func(t *testing.T) {
 		user := models.UserModel{
 			Username: "unique_user_2",
-			Email:    "same@example.com",
-			OpenID:   "openid-3",
+			Email:    strPtr("same@example.com"),
+			OpenID:   strPtr("openid-3"),
 			Role:     enum.RoleUser,
 		}
 		if err := db.Create(&user).Error; err == nil {
@@ -214,8 +214,8 @@ func TestUserModelUniqueIndexes(t *testing.T) {
 	t.Run("OpenID唯一", func(t *testing.T) {
 		user := models.UserModel{
 			Username: "unique_user_3",
-			Email:    "third@example.com",
-			OpenID:   "openid-1",
+			Email:    strPtr("third@example.com"),
+			OpenID:   strPtr("openid-1"),
 			Role:     enum.RoleUser,
 		}
 		if err := db.Create(&user).Error; err == nil {

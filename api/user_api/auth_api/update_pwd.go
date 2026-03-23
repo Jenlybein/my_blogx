@@ -28,7 +28,7 @@ func (AuthApi) UpdatePwdByEmailView(c *gin.Context) {
 	}
 
 	// 邮箱注册 or 已绑定邮箱的用户
-	if user.Email == "" {
+	if user.Email == nil || *user.Email == "" {
 		res.FailWithMsg("用户未绑定邮箱", c)
 		return
 	}

@@ -49,13 +49,14 @@ func (AuthApi) RegisterEmailView(c *gin.Context) {
 
 	var user models.UserModel
 	for range 5 {
+		emailValue := email
 		user = models.UserModel{
 			Username:       username,
 			Password:       hashedPassword,
 			Nickname:       email,
 			Avatar:         "xxx.png",
 			RegisterSource: enum.RegisterEmailSourceType,
-			Email:          email,
+			Email:          &emailValue,
 			Role:           enum.RoleUser,
 		}
 		result := global.DB.Clauses(clause.OnConflict{
