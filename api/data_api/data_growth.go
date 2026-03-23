@@ -6,6 +6,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/redis_service/redis_site"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,15 @@ func (DataApi) GrowthDataView(c *gin.Context) {
 	var err error
 	switch cr.Type {
 	case 1:
+		flowList := redis_site.GetRecentFlow(7)
+		resp.DateCountList = make([]DateCountItem, 0, len(flowList))
+		for _, item := range flowList {
+			resp.DateCountList = append(resp.DateCountList, DateCountItem{
+				Date:  item.Date,
+				Count: item.Count,
+			})
+		}
+	case 2:
 		err = global.DB.
 			Table("article_models").
 			Select("DATE(created_at) AS date, COUNT(*) AS count").
@@ -31,7 +41,7 @@ func (DataApi) GrowthDataView(c *gin.Context) {
 			Group("DATE(created_at)").
 			Order("DATE(created_at) ASC").
 			Scan(&statList).Error
-	case 2:
+	case 3:
 		err = global.DB.
 			Model(&models.UserModel{}).
 			Select("DATE(created_at) AS date, COUNT(*) AS count").
@@ -46,18 +56,20 @@ func (DataApi) GrowthDataView(c *gin.Context) {
 		return
 	}
 
-	dateMap := make(map[string]int, len(statList))
-	for _, item := range statList {
-		dateMap[item.Date] = item.Count
-	}
+	if cr.Type == 2 || cr.Type == 3 {
+		dateMap := make(map[string]int, len(statList))
+		for _, item := range statList {
+			dateMap[item.Date] = item.Count
+		}
 
-	resp.DateCountList = make([]DateCountItem, 0, 7)
-	for i := 0; i < 7; i++ {
-		date := rangeStart.AddDate(0, 0, i).Format("2006-01-02")
-		resp.DateCountList = append(resp.DateCountList, DateCountItem{
-			Date:  date,
-			Count: dateMap[date],
-		})
+		resp.DateCountList = make([]DateCountItem, 0, 7)
+		for i := 0; i < 7; i++ {
+			date := rangeStart.AddDate(0, 0, i).Format("2006-01-02")
+			resp.DateCountList = append(resp.DateCountList, DateCountItem{
+				Date:  date,
+				Count: dateMap[date],
+			})
+		}
 	}
 
 	todayCount := resp.DateCountList[len(resp.DateCountList)-1].Count

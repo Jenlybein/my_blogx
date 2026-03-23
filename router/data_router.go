@@ -17,4 +17,5 @@ func DataRouter(r *gin.RouterGroup) {
 
 	adminGroup.GET("sum", app.SumView)
 	adminGroup.GET("growth", mw.BindQuery[data_api.GrowthDataRequest], app.GrowthDataView)
+	adminGroup.GET("article-year", app.ArticleYearDataView)
 }

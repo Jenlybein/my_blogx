@@ -11,8 +11,8 @@ type SumResponse struct {
 }
 
 type GrowthDataRequest struct {
-	// 1 文章发布 2 用户注册
-	Type int8 `json:"type" form:"type" binding:"required,oneof=1 2"`
+	// 1 网站流量 2 文章发布 3 用户注册
+	Type int8 `form:"type" binding:"required,oneof=1 2 3"`
 }
 
 type DateCountItem struct {
@@ -23,5 +23,9 @@ type DateCountItem struct {
 type GrowthDataResponse struct {
 	GrowthRate    int             `json:"growth_rate"`
 	GrowthNum     int             `json:"growth_num"`
+	DateCountList []DateCountItem `json:"date_count_list"`
+}
+
+type ArticleYearDataResponse struct {
 	DateCountList []DateCountItem `json:"date_count_list"`
 }
