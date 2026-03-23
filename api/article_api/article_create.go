@@ -65,7 +65,7 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 		if err := tx.Create(&article).Error; err != nil {
 			return err
 		}
-		return tx.Model(&article).Association("Tags").Replace(tagList)
+		return syncArticleTags(tx, article.ID, tagIDs)
 	}); err != nil {
 		res.FailWithMsg("创建文章失败", c)
 		return

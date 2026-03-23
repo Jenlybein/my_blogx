@@ -2,12 +2,14 @@ package article_api
 
 import (
 	"errors"
+	"time"
 
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/service/redis_service/redis_tag"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func validateArticleCategory(db *gorm.DB, userID uint, categoryID *uint) error {
@@ -108,4 +110,69 @@ func applyTagArticleCountDelta(deltaMap map[uint]int) {
 			global.Logger.Errorf("标签文章数缓存更新失败 tag_id=%d delta=%d err=%v", tagID, delta, err)
 		}
 	}
+}
+
+func syncArticleTags(tx *gorm.DB, articleID uint, newTagIDs []uint) error {
+	newTagIDs = normalizeTagIDs(newTagIDs)
+
+	var relationList []models.ArticleTagModel
+	if err := tx.Unscoped().
+		Where("article_id = ?", articleID).
+		Find(&relationList).Error; err != nil {
+		return err
+	}
+
+	currentMap := make(map[uint]models.ArticleTagModel, len(relationList))
+	for _, item := range relationList {
+		currentMap[item.TagID] = item
+	}
+
+	for _, tagID := range newTagIDs {
+		relation, ok := currentMap[tagID]
+		if ok && relation.DeletedAt.Valid {
+			if err := tx.Unscoped().Model(&relation).Updates(map[string]any{
+				"deleted_at": nil,
+				"updated_at": time.Now(),
+			}).Error; err != nil {
+				return err
+			}
+			continue
+		}
+		if ok {
+			continue
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "article_id"},
+				{Name: "tag_id"},
+			},
+			DoUpdates: clause.Assignments(map[string]any{
+				"deleted_at": nil,
+				"updated_at": time.Now(),
+			}),
+		}).Create(&models.ArticleTagModel{
+			ArticleID: articleID,
+			TagID:     tagID,
+		}).Error; err != nil {
+			return err
+		}
+	}
+
+	newSet := make(map[uint]struct{}, len(newTagIDs))
+	for _, tagID := range newTagIDs {
+		newSet[tagID] = struct{}{}
+	}
+	for _, relation := range relationList {
+		if relation.DeletedAt.Valid {
+			continue
+		}
+		if _, ok := newSet[relation.TagID]; ok {
+			continue
+		}
+		if err := tx.Delete(&relation).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

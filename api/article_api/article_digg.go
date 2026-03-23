@@ -1,7 +1,6 @@
 package article_api
 
 import (
-	"errors"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
@@ -10,9 +9,11 @@ import (
 	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (ArticleApi) ArticleDiggView(c *gin.Context) {
@@ -25,43 +26,44 @@ func (ArticleApi) ArticleDiggView(c *gin.Context) {
 	}
 
 	claims := jwts.MustGetClaimsByGin(c)
-	if err := global.DB.Take(&models.ArticleDiggModel{}, "article_id = ? and user_id = ?", id.ID, claims.UserID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := global.DB.Create(&models.ArticleDiggModel{
-				ArticleID: id.ID,
-				UserID:    claims.UserID,
-			}).Error; err != nil {
-				res.FailWithMsg("点赞失败", c)
-				return
-			}
-
-			// 写入点赞缓存
-			redis_article.SetCacheDigg(id.ID, 1)
-
-			// 创建点赞消息
-			go message_service.InsertArticleDiggMessage(message_service.ArticleDiggMessage{
-				ReceiverID:   article.AuthorID,
-				ActionUserID: claims.UserID,
-				ArticleID:    article.ID,
-				ArticleTitle: article.Title,
-			})
-
-			res.OkWithMsg("点赞成功", c)
-			return
-		}
-		res.FailWithMsg("查询点赞记录失败", c)
-		return
-	} else {
-		// 如果已点赞
-		if err := global.DB.Unscoped().Delete(&models.ArticleDiggModel{}, "article_id = ? and user_id = ?", id.ID, claims.UserID).Error; err != nil {
+	var digg models.ArticleDiggModel
+	if err := global.DB.Take(&digg, "article_id = ? and user_id = ?", id.ID, claims.UserID).Error; err == nil {
+		if err := global.DB.Delete(&digg).Error; err != nil {
 			res.FailWithMsg("取消点赞失败", c)
 			return
 		}
 
-		// 删除点赞缓存
 		redis_article.SetCacheDigg(id.ID, -1)
-
 		res.OkWithMsg("取消点赞成功", c)
 		return
+	} else if err != gorm.ErrRecordNotFound {
+		res.FailWithMsg("查询点赞记录失败", c)
+		return
 	}
+
+	if err := global.DB.Clauses(clause.OnConflict{
+		Columns: []clause.Column{
+			{Name: "article_id"},
+			{Name: "user_id"},
+		},
+		DoUpdates: clause.Assignments(map[string]any{
+			"deleted_at": nil,
+			"updated_at": time.Now(),
+		}),
+	}).Create(&models.ArticleDiggModel{
+		ArticleID: id.ID,
+		UserID:    claims.UserID,
+	}).Error; err != nil {
+		res.FailWithMsg("点赞失败", c)
+		return
+	}
+
+	redis_article.SetCacheDigg(id.ID, 1)
+	go message_service.InsertArticleDiggMessage(message_service.ArticleDiggMessage{
+		ReceiverID:   article.AuthorID,
+		ActionUserID: claims.UserID,
+		ArticleID:    article.ID,
+		ArticleTitle: article.Title,
+	})
+	res.OkWithMsg("点赞成功", c)
 }

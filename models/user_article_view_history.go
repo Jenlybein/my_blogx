@@ -2,14 +2,11 @@
 
 package models
 
-import "time"
-
 // 用户文章查看历史表
 type UserArticleViewHistoryModel struct {
-	ArticleID    uint         `gorm:"primaryKey" json:"article_id"`
-	UserID       uint         `gorm:"primaryKey" json:"user_id"`
-	CreatedAt    time.Time    `gorm:"primaryKey" json:"created_at"`
-	UpdatedAt    time.Time    `json:"updated_at"`
+	Model
+	ArticleID    uint         `gorm:"uniqueIndex:uk_user_article_history,priority:1" json:"article_id"`
+	UserID       uint         `gorm:"uniqueIndex:uk_user_article_history,priority:2" json:"user_id"`
 	ArticleModel ArticleModel `gorm:"foreignKey:ArticleID;references:ID" json:"-"`
 	UserModel    UserModel    `gorm:"foreignKey:UserID;references:ID" json:"-"`
 }

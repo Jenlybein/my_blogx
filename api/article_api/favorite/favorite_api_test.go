@@ -481,5 +481,20 @@ func TestFavoriteRemovePatchView(t *testing.T) {
 		if remainInFavoriteTwo != 1 {
 			t.Fatalf("其他收藏夹关系不应被删除, remain=%d", remainInFavoriteTwo)
 		}
+
+		c2, w2 := newCtx()
+		c2.Set("claims", &jwts.MyClaims{Claims: jwts.Claims{
+			UserID:   user.ID,
+			Role:     user.Role,
+			Username: user.Username,
+		}})
+		c2.Set("requestJson", FavoriteRemovePatchModel{
+			FavoriteID: favoriteOne.ID,
+			Articles:   []uint{articles[0].ID},
+		})
+		api.FavoriteRemovePatchView(c2)
+		if code := readCode(t, w2); code == 0 {
+			t.Fatalf("再次移除已软删关系应失败, body=%s", w2.Body.String())
+		}
 	})
 }

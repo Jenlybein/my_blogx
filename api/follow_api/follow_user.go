@@ -6,9 +6,11 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/utils/jwts"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // 当前登录用户关注其他用户
@@ -24,13 +26,24 @@ func (FollowApi) FollowUserView(c *gin.Context) {
 
 	// TODO：考虑每天关注量上限和取关量上限
 
-	var follow models.UserFollowModel
-	if err := global.DB.Take(&follow, "followed_user_id = ? and fans_user_id = ?", cr.ID, claims.UserID).Error; err == nil {
+	if err := global.DB.Take(&models.UserFollowModel{}, "followed_user_id = ? and fans_user_id = ?", cr.ID, claims.UserID).Error; err == nil {
 		res.FailWithMsg("请勿重复关注", c)
+		return
+	} else if err != gorm.ErrRecordNotFound {
+		res.FailWithMsg("关注失败", c)
 		return
 	}
 
-	if err := global.DB.Create(&models.UserFollowModel{
+	if err := global.DB.Clauses(clause.OnConflict{
+		Columns: []clause.Column{
+			{Name: "followed_user_id"},
+			{Name: "fans_user_id"},
+		},
+		DoUpdates: clause.Assignments(map[string]any{
+			"deleted_at": nil,
+			"updated_at": time.Now(),
+		}),
+	}).Create(&models.UserFollowModel{
 		FollowedUserID: cr.ID,
 		FansUserID:     claims.UserID,
 	}).Error; err != nil {
@@ -61,7 +74,7 @@ func (FollowApi) UnfollowUserView(c *gin.Context) {
 		return
 	}
 
-	if err := global.DB.Unscoped().Delete(&follow).Error; err != nil {
+	if err := global.DB.Delete(&follow).Error; err != nil {
 		res.FailWithMsg("取消关注失败", c)
 		return
 	}

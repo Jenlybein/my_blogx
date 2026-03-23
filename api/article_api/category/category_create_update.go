@@ -7,8 +7,11 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/utils/jwts"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // 创建或者编辑分类（传入ID则视为创建，不传入则视为编辑）
@@ -21,9 +24,21 @@ func (CategoryApi) CategoryCreateUpdateView(c *gin.Context) {
 		if err := global.DB.Take(&models.CategoryModel{}, "user_id = ? and title = ?", claims.UserID, cr.Title).Error; err == nil {
 			res.FailWithMsg("分类名称重复", c)
 			return
+		} else if err != gorm.ErrRecordNotFound {
+			res.FailWithMsg(fmt.Sprintf("创建分类失败 %v", err), c)
+			return
 		}
 
-		if err := global.DB.Create(&models.CategoryModel{
+		if err := global.DB.Clauses(clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "user_id"},
+				{Name: "title"},
+			},
+			DoUpdates: clause.Assignments(map[string]any{
+				"deleted_at": nil,
+				"updated_at": time.Now(),
+			}),
+		}).Create(&models.CategoryModel{
 			Title:  cr.Title,
 			UserID: claims.UserID,
 		}).Error; err != nil {

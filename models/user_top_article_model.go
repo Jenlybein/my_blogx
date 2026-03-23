@@ -2,13 +2,11 @@
 
 package models
 
-import "time"
-
 // 用户置顶文章表
 type UserTopArticleModel struct {
-	UserID       uint         `gorm:"primaryKey" json:"user_id"`
-	ArticleID    uint         `gorm:"primaryKey" json:"article_id"`
+	Model
+	UserID       uint         `gorm:"uniqueIndex:uk_user_top_article,priority:1" json:"user_id"`
+	ArticleID    uint         `gorm:"uniqueIndex:uk_user_top_article,priority:2" json:"article_id"`
 	UserModel    UserModel    `gorm:"foreignKey:UserID;references:ID" json:"-"`
 	ArticleModel ArticleModel `gorm:"foreignKey:ArticleID;references:ID" json:"-"`
-	CreatedAt    time.Time    `json:"created_at"`
 }

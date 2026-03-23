@@ -104,7 +104,7 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 			return err
 		}
 		if cr.TagIDs != nil {
-			return tx.Model(&article).Association("Tags").Replace(tagList)
+			return syncArticleTags(tx, article.ID, newTagIDs)
 		}
 		return nil
 	}); err != nil {

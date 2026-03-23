@@ -189,6 +189,23 @@ func TestArticleTopRemoveViewRemovesOnlyCurrentUsersTop(t *testing.T) {
 	if count != 0 {
 		t.Fatalf("全部取消置顶后关系应清空, got=%d", count)
 	}
+
+	{
+		c, w := newTopCtx()
+		c.Set("claims", userClaims)
+		c.Set("requestJson", ArticleTopSetRequest{ArticleID: article.ID, Type: 1})
+		api.ArticleTopSetView(c)
+		if code := readTopCode(t, w); code != 0 {
+			t.Fatalf("软删后重新置顶应成功, code=%d body=%s", code, w.Body.String())
+		}
+	}
+
+	if err := global.DB.Unscoped().Model(&models.UserTopArticleModel{}).Where("user_id = ? AND article_id = ?", user.ID, article.ID).Count(&count).Error; err != nil {
+		t.Fatalf("统计恢复后的置顶关系失败: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("重新置顶应复用原关系, got=%d", count)
+	}
 }
 
 func TestArticleTopListViewByAuthor(t *testing.T) {
@@ -200,23 +217,29 @@ func TestArticleTopListViewByAuthor(t *testing.T) {
 	other := createTopArticle(t, admin.ID, "other-top", enum.ArticleStatusPublished)
 
 	if err := global.DB.Create(&models.UserTopArticleModel{
+		Model: models.Model{
+			CreatedAt: time.Date(2026, 3, 22, 10, 0, 0, 0, time.UTC),
+		},
 		UserID:    user.ID,
 		ArticleID: article1.ID,
-		CreatedAt: time.Date(2026, 3, 22, 10, 0, 0, 0, time.UTC),
 	}).Error; err != nil {
 		t.Fatalf("创建作者置顶失败: %v", err)
 	}
 	if err := global.DB.Create(&models.UserTopArticleModel{
+		Model: models.Model{
+			CreatedAt: time.Date(2026, 3, 22, 10, 5, 0, 0, time.UTC),
+		},
 		UserID:    user.ID,
 		ArticleID: article2.ID,
-		CreatedAt: time.Date(2026, 3, 22, 10, 5, 0, 0, time.UTC),
 	}).Error; err != nil {
 		t.Fatalf("创建作者第二条置顶失败: %v", err)
 	}
 	if err := global.DB.Create(&models.UserTopArticleModel{
+		Model: models.Model{
+			CreatedAt: time.Date(2026, 3, 22, 10, 10, 0, 0, time.UTC),
+		},
 		UserID:    admin.ID,
 		ArticleID: other.ID,
-		CreatedAt: time.Date(2026, 3, 22, 10, 10, 0, 0, time.UTC),
 	}).Error; err != nil {
 		t.Fatalf("创建其他置顶失败: %v", err)
 	}
@@ -261,23 +284,29 @@ func TestArticleTopListViewByAdminDeduplicatesArticles(t *testing.T) {
 	article2 := createTopArticle(t, user.ID, "admin-top-2", enum.ArticleStatusPublished)
 
 	if err := global.DB.Create(&models.UserTopArticleModel{
+		Model: models.Model{
+			CreatedAt: time.Date(2026, 3, 22, 11, 0, 0, 0, time.UTC),
+		},
 		UserID:    admin1.ID,
 		ArticleID: article1.ID,
-		CreatedAt: time.Date(2026, 3, 22, 11, 0, 0, 0, time.UTC),
 	}).Error; err != nil {
 		t.Fatalf("创建管理员置顶失败: %v", err)
 	}
 	if err := global.DB.Create(&models.UserTopArticleModel{
+		Model: models.Model{
+			CreatedAt: time.Date(2026, 3, 22, 11, 5, 0, 0, time.UTC),
+		},
 		UserID:    admin1.ID,
 		ArticleID: article2.ID,
-		CreatedAt: time.Date(2026, 3, 22, 11, 5, 0, 0, time.UTC),
 	}).Error; err != nil {
 		t.Fatalf("创建管理员第二条置顶失败: %v", err)
 	}
 	if err := global.DB.Create(&models.UserTopArticleModel{
+		Model: models.Model{
+			CreatedAt: time.Date(2026, 3, 22, 11, 10, 0, 0, time.UTC),
+		},
 		UserID:    admin2.ID,
 		ArticleID: article1.ID,
-		CreatedAt: time.Date(2026, 3, 22, 11, 10, 0, 0, time.UTC),
 	}).Error; err != nil {
 		t.Fatalf("创建重复管理员置顶失败: %v", err)
 	}

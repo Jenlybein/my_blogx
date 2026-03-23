@@ -2,10 +2,7 @@
 
 package models
 
-import (
-	"myblogx/models/enum"
-	"time"
-)
+import "myblogx/models/enum"
 
 // 评论表
 type CommentModel struct {
@@ -25,9 +22,9 @@ type CommentModel struct {
 
 // 用户点赞表
 type CommentDiggModel struct {
-	CommentID    uint         `gorm:"primaryKey" json:"comment_id"`
-	UserID       uint         `gorm:"primaryKey" json:"user_id"`
-	CreatedAt    time.Time    `json:"created_at"`
+	Model
+	CommentID    uint         `gorm:"uniqueIndex:uk_comment_digg,priority:1" json:"comment_id"`
+	UserID       uint         `gorm:"uniqueIndex:uk_comment_digg,priority:2" json:"user_id"`
 	UserModel    UserModel    `gorm:"foreignKey:UserID;references:ID" json:"-"`
 	CommentModel CommentModel `gorm:"foreignKey:CommentID;references:ID" json:"-"`
 }

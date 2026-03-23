@@ -9,9 +9,11 @@ import (
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (TagsApi) TagCreateUpdateView(c *gin.Context) {
@@ -35,7 +37,17 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 			return
 		}
 
-		if err := global.DB.Create(&models.TagModel{
+		if err := global.DB.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "title"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"sort":        cr.Sort,
+				"description": cr.Description,
+				"is_enabled":  isEnabled,
+				"created_by":  claims.UserID,
+				"deleted_at":  nil,
+				"updated_at":  time.Now(),
+			}),
+		}).Create(&models.TagModel{
 			Title:       title,
 			Sort:        cr.Sort,
 			Description: cr.Description,

@@ -7,8 +7,11 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/utils/jwts"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // 创建或者编辑收藏夹（传入ID则视为创建，不传入则视为编辑）
@@ -21,9 +24,23 @@ func (FavoriteApi) FavoriteCreateUpdateView(c *gin.Context) {
 		if err := global.DB.Take(&models.FavoriteModel{}, "user_id = ? and title = ?", claims.UserID, cr.Title).Error; err == nil {
 			res.FailWithMsg("收藏夹名称重复", c)
 			return
+		} else if err != gorm.ErrRecordNotFound {
+			res.FailWithMsg(fmt.Sprintf("创建收藏夹失败 %v", err), c)
+			return
 		}
 
-		if err := global.DB.Create(&models.FavoriteModel{
+		if err := global.DB.Clauses(clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "user_id"},
+				{Name: "title"},
+			},
+			DoUpdates: clause.Assignments(map[string]any{
+				"cover":      cr.Cover,
+				"abstract":   cr.Abstract,
+				"deleted_at": nil,
+				"updated_at": time.Now(),
+			}),
+		}).Create(&models.FavoriteModel{
 			UserID:   claims.UserID,
 			Title:    cr.Title,
 			Cover:    cr.Cover,

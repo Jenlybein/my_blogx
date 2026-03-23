@@ -10,9 +10,11 @@ import (
 	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
@@ -33,28 +35,37 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 		}
 
 		var articleFavorite models.UserArticleFavorModel
-		if err = tx.Take(&articleFavorite, "article_id = ? and user_id = ? and favor_id = ?", cr.ArticleID, claims.UserID, favorite.ID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				articleFavorite = models.UserArticleFavorModel{
-					ArticleID: cr.ArticleID,
-					UserID:    claims.UserID,
-					FavorID:   favorite.ID,
-				}
-				if err = tx.Create(&articleFavorite).Error; err != nil {
-					return err
-				}
-
-				isFavorited = true
-				return nil
+		if err = tx.Take(&articleFavorite, "article_id = ? and user_id = ? and favor_id = ?", cr.ArticleID, claims.UserID, favorite.ID).Error; err == nil {
+			if err = tx.Delete(&articleFavorite).Error; err != nil {
+				return err
 			}
+
+			isFavorited = false
+			return nil
+		}
+		if err != gorm.ErrRecordNotFound {
 			return err
 		}
 
-		if err = tx.Unscoped().Delete(&articleFavorite).Error; err != nil {
+		if err = tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "article_id"},
+				{Name: "user_id"},
+				{Name: "favor_id"},
+			},
+			DoUpdates: clause.Assignments(map[string]any{
+				"deleted_at": nil,
+				"updated_at": time.Now(),
+			}),
+		}).Create(&models.UserArticleFavorModel{
+			ArticleID: cr.ArticleID,
+			UserID:    claims.UserID,
+			FavorID:   favorite.ID,
+		}).Error; err != nil {
 			return err
 		}
 
-		isFavorited = false
+		isFavorited = true
 		return nil
 	}); err != nil {
 		res.FailWithMsg("收藏操作失败", c)
@@ -88,12 +99,25 @@ func getOrCreateFavoriteID(db *gorm.DB, favorID, userID uint) (*models.FavoriteM
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				favorite = models.FavoriteModel{
+					UserID:    userID,
 					Title:     "默认收藏夹",
 					IsDefault: true,
-					UserID:    userID,
 				}
-				if err := db.Create(&favorite).Error; err != nil {
+				if err := db.Clauses(clause.OnConflict{
+					Columns: []clause.Column{
+						{Name: "user_id"},
+						{Name: "title"},
+					},
+					DoUpdates: clause.Assignments(map[string]any{
+						"is_default": true,
+						"deleted_at": nil,
+						"updated_at": time.Now(),
+					}),
+				}).Create(&favorite).Error; err != nil {
 					return nil, errors.New("创建默认收藏夹失败")
+				}
+				if err := db.Take(&favorite, "is_default = ? and user_id = ?", true, userID).Error; err != nil {
+					return nil, errors.New("查询默认收藏夹失败")
 				}
 				return &favorite, nil
 			}

@@ -1,7 +1,6 @@
 package comment_api
 
 import (
-	"errors"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
@@ -10,9 +9,11 @@ import (
 	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_comment"
 	"myblogx/utils/jwts"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (CommentApi) CommentDiggView(c *gin.Context) {
@@ -25,42 +26,48 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 	}
 
 	claims := jwts.MustGetClaimsByGin(c)
-	if err := global.DB.Take(&models.CommentDiggModel{}, "comment_id = ? and user_id = ?", id.ID, claims.UserID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := global.DB.Create(&models.CommentDiggModel{
-				CommentID: id.ID,
-				UserID:    claims.UserID,
-			}).Error; err != nil {
-				res.FailWithMsg("点赞失败", c)
-				return
-			}
-
-			if err := redis_comment.SetCacheDigg(id.ID, 1); err != nil {
-				global.Logger.Errorf("写入评论点赞缓存失败 comment_id=%d err=%v", id.ID, err)
-			}
-
-			go message_service.InsertCommentDiggMessage(message_service.CommentDiggMessage{
-				ReceiverID:   comment.UserID,
-				ActionUserID: claims.UserID,
-				CommentID:    comment.ID,
-				Content:      comment.Content,
-				ArticleID:    comment.ArticleID,
-				ArticleTitle: comment.ArticleModel.Title,
-			})
-
-			res.OkWithMsg("点赞成功", c)
+	var digg models.CommentDiggModel
+	if err := global.DB.Take(&digg, "comment_id = ? and user_id = ?", id.ID, claims.UserID).Error; err == nil {
+		if err := global.DB.Delete(&digg).Error; err != nil {
+			res.FailWithMsg("取消点赞失败", c)
 			return
 		}
+		if err := redis_comment.SetCacheDigg(id.ID, -1); err != nil {
+			global.Logger.Errorf("回写评论点赞缓存失败 comment_id=%d err=%v", id.ID, err)
+		}
+		res.OkWithMsg("取消点赞成功", c)
+		return
+	} else if err != gorm.ErrRecordNotFound {
 		res.FailWithMsg("查询点赞记录失败", c)
 		return
 	}
 
-	if err := global.DB.Unscoped().Delete(&models.CommentDiggModel{}, "comment_id = ? and user_id = ?", id.ID, claims.UserID).Error; err != nil {
-		res.FailWithMsg("取消点赞失败", c)
+	if err := global.DB.Clauses(clause.OnConflict{
+		Columns: []clause.Column{
+			{Name: "comment_id"},
+			{Name: "user_id"},
+		},
+		DoUpdates: clause.Assignments(map[string]any{
+			"deleted_at": nil,
+			"updated_at": time.Now(),
+		}),
+	}).Create(&models.CommentDiggModel{
+		CommentID: id.ID,
+		UserID:    claims.UserID,
+	}).Error; err != nil {
+		res.FailWithMsg("点赞失败", c)
 		return
 	}
-	if err := redis_comment.SetCacheDigg(id.ID, -1); err != nil {
-		global.Logger.Errorf("回写评论点赞缓存失败 comment_id=%d err=%v", id.ID, err)
+	if err := redis_comment.SetCacheDigg(id.ID, 1); err != nil {
+		global.Logger.Errorf("写入评论点赞缓存失败 comment_id=%d err=%v", id.ID, err)
 	}
-	res.OkWithMsg("取消点赞成功", c)
+	go message_service.InsertCommentDiggMessage(message_service.CommentDiggMessage{
+		ReceiverID:   comment.UserID,
+		ActionUserID: claims.UserID,
+		CommentID:    comment.ID,
+		Content:      comment.Content,
+		ArticleID:    comment.ArticleID,
+		ArticleTitle: comment.ArticleModel.Title,
+	})
+	res.OkWithMsg("点赞成功", c)
 }

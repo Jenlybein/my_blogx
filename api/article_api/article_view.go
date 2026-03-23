@@ -22,8 +22,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-
-
 func (ArticleApi) ArticleVisitView(c *gin.Context) {
 	cr := middleware.GetBindJson[ArticleViewCountRequest](c)
 
@@ -88,6 +86,7 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 			},
 			DoUpdates: clause.Assignments(map[string]interface{}{
 				"updated_at": time.Now(),
+				"deleted_at": nil,
 			}),
 		}).Create(&articleHistory).Error; err != nil {
 			global.Logger.Errorf("数据库更新浏览历史失败 %v, article_id: %d", err, cr.ArticleID)

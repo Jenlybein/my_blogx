@@ -85,6 +85,22 @@ func TestCommentDiggView(t *testing.T) {
 		if redis_comment.GetCacheDigg(published.ID) != 0 {
 			t.Fatalf("取消点赞后缓存应归零: %d", redis_comment.GetCacheDigg(published.ID))
 		}
+
+		c3, w3 := newCommentCtx()
+		c3.Set("claims", claims)
+		c3.Set("requestUri", models.IDRequest{ID: published.ID})
+		api.CommentDiggView(c3)
+		if code := readBizCode(t, w3); code != 0 {
+			t.Fatalf("软删后重新点赞应成功 body=%s", w3.Body.String())
+		}
+		if err := global.DB.Unscoped().Model(&models.CommentDiggModel{}).
+			Where("comment_id = ? and user_id = ?", published.ID, user.ID).
+			Count(&cnt).Error; err != nil {
+			t.Fatalf("查询点赞记录失败: %v", err)
+		}
+		if cnt != 1 {
+			t.Fatalf("软删恢复后应复用同一条点赞记录: %d", cnt)
+		}
 	})
 
 	t.Run("审核中评论不允许点赞", func(t *testing.T) {

@@ -31,3 +31,15 @@ AI 博客助手
 
 多语言能力
 比如自动生成英文摘要、中英双语文章、标题翻译、术语解释。对技术博客挺实用，尤其如果你想做搜索流量扩展。
+
+
+修复：
+1.高危：密码重置、修改密码后不会让历史登录态失效。reset_pwd.go 和 update_pwd.go 只更新密码哈希，没有提升 token_version、没有清理会话、没有批量注销。只要旧 token 没过期，仍可继续访问。
+2.高危：鉴权只信 JWT 自带 role/user_id，不校验用户状态、角色变更、封禁状态、会话版本。auth_middleware.go 只做“解析 JWT + 查黑名单”。而 user_model.go 里甚至没有 status、token_version、locked_until 一类字段。结果是管理员降权、封禁用户、删除账号后，旧 token 仍可能继续生效直到过期。
+3.高危：日志模型允许存储登录密码明文，且辅助代码会输出 token。log_model.go 有 Password 字段；login_log.go 会把失败时传入的密码落库，login_log.go 还直接 fmt.Println(token)。这类设计必须立即移除，不应依赖“目前主流程没调用”来规避风险。
+4.中高危：登出能力没真正接通，而且当前黑名单模式只适合“补充”，不适合承担完整会话管理。user_logout.go 有实现，但 user_router.go 没挂 /logout。即使挂上，redis_jwt.go 也只是拉黑“当前 access token”，并不能覆盖多端会话管理、密码变更全端退出、刷新续期等场景。
+5.中高危：登出能力没真正接通，而且当前黑名单模式只适合“补充”，不适合承担完整会话管理。user_logout.go 有实现，但 user_router.go 没挂 /logout。即使挂上，redis_jwt.go 也只是拉黑“当前 access token”，并不能覆盖多端会话管理、密码变更全端退出、刷新续期等场景。
+6.中高危：token 获取方式允许 query 参数，容易泄露到日志、代理、历史记录里。utils/jwts/enter.go 支持从 ?token= 读取。除 WebSocket 特殊场景外，不建议这么做；而且当前没有区分 HTTP 与 WS 的令牌传输策略。（全局改为只能从 Header 取 token，WS做另外的校验方式）
+7.中危：鉴权语义不一致，部分“可选登录态”接口直接解析 JWT，绕过黑名单检查。article_detail.go、article_search.go、favorite_list.go 都直接 ParseTokenByGin。这会导致“强鉴权接口已退出，弱鉴权接口仍把你识别成登录用户”的不一致行为。
+8.中危：密码登录、邮箱验证码发送缺少真正的限流和风控，且验证码默认可关闭。pwd_login.go、send_email.go、captcha_middleware.go、settings.yaml 组合起来意味着当前系统对撞库、爆破、验证码轰炸的抵抗力不足。
+9.中危：存在账号枚举问题。密码登录会区分“用户名不存在”和“密码错误”(pwd_login.go)；邮箱验证码发送会区分“邮箱已注册/未注册”(send_email.go)。这会帮助攻击者探测有效账号。

@@ -28,7 +28,7 @@ func (GlobalNotifApi) GlobalNotifAdminRemoveView(c *gin.Context) {
 	}
 
 	if len(list) > 0 {
-		if err := global.DB.Unscoped().Delete(&list).Error; err != nil {
+		if err := global.DB.Delete(&list).Error; err != nil {
 			res.FailWithError(err, c)
 			return
 		}

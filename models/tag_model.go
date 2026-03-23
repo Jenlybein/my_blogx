@@ -27,7 +27,7 @@ func (t *TagModel) BeforeDelete(tx *gorm.DB) (err error) {
 	if len(relationList) == 0 {
 		return nil
 	}
-	if err = tx.Unscoped().Delete(&relationList).Error; err != nil {
+	if err = tx.Delete(&relationList).Error; err != nil {
 		return err
 	}
 	if global.Redis != nil {

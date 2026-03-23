@@ -9,9 +9,11 @@ import (
 	"myblogx/models/enum"
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const maxUserTopArticleCount = 3
@@ -47,15 +49,11 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 	}
 
 	err := global.DB.Transaction(func(tx *gorm.DB) error {
-		// 检查是否已经置顶
 		var count int64
-		if err := tx.Model(&models.UserTopArticleModel{}).
-			Where("user_id = ? AND article_id = ?", claims.UserID, article.ID).
-			Count(&count).Error; err != nil {
-			return err
-		}
-		if count > 0 {
+		if err := tx.Take(&models.UserTopArticleModel{}, "user_id = ? AND article_id = ?", claims.UserID, article.ID).Error; err == nil {
 			return errors.New("文章已被置顶")
+		} else if err != gorm.ErrRecordNotFound {
+			return err
 		}
 
 		// 检查用户置顶数量
@@ -70,7 +68,16 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 			}
 		}
 
-		return tx.Create(&models.UserTopArticleModel{
+		return tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "user_id"},
+				{Name: "article_id"},
+			},
+			DoUpdates: clause.Assignments(map[string]any{
+				"deleted_at": nil,
+				"updated_at": time.Now(),
+			}),
+		}).Create(&models.UserTopArticleModel{
 			UserID:    claims.UserID,
 			ArticleID: article.ID,
 		}).Error

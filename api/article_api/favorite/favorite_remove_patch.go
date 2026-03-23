@@ -46,7 +46,7 @@ func (f FavoriteApi) FavoriteRemovePatchView(c *gin.Context) {
 		if len(relationList) == 0 {
 			return gorm.ErrRecordNotFound
 		}
-		if err := tx.Unscoped().Delete(&relationList).Error; err != nil {
+		if err := tx.Delete(&relationList).Error; err != nil {
 			return err
 		}
 		return nil

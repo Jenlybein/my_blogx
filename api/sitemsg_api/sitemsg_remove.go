@@ -29,7 +29,7 @@ func (a *SitemsgApi) SitemsgRemoveView(c *gin.Context) {
 			return
 		}
 
-		if err := global.DB.Unscoped().Delete(&msg).Error; err != nil {
+		if err := global.DB.Delete(&msg).Error; err != nil {
 			res.FailWithError(err, c)
 			return
 		}
@@ -55,7 +55,7 @@ func (a *SitemsgApi) SitemsgRemoveView(c *gin.Context) {
 	}
 
 	if len(msgList) > 0 {
-		if err := global.DB.Unscoped().Delete(&msgList).Error; err != nil {
+		if err := global.DB.Delete(&msgList).Error; err != nil {
 			res.FailWithError(err, c)
 			return
 		}

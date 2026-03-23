@@ -12,8 +12,8 @@ import (
 // 收藏表
 type FavoriteModel struct {
 	Model
-	UserID      uint                    `gorm:"index" json:"user_id"`
-	Title       string                  `gorm:"size:32" json:"title"`
+	UserID      uint                    `gorm:"uniqueIndex:uk_favorite_user_title,priority:1;index" json:"user_id"`
+	Title       string                  `gorm:"size:32;uniqueIndex:uk_favorite_user_title,priority:2" json:"title"`
 	Cover       string                  `gorm:"size:256" json:"cover"`
 	Abstract    string                  `gorm:"size:256" json:"abstract"`
 	IsDefault   bool                    `gorm:"default:false" json:"is_default"`
@@ -28,7 +28,7 @@ func (f *FavoriteModel) BeforeDelete(tx *gorm.DB) (err error) {
 		return err
 	}
 
-	if err = tx.Unscoped().Delete(&favorList).Error; err != nil {
+	if err = tx.Delete(&favorList).Error; err != nil {
 		return err
 	}
 

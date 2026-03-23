@@ -146,6 +146,29 @@ func TestTagCRUDAndOptions(t *testing.T) {
 			t.Fatalf("删除标签失败, body=%s", w.Body.String())
 		}
 	}
+
+	{
+		c, w := newCtx()
+		enabled := true
+		c.Set("claims", claims)
+		c.Set("requestJson", TagRequest{
+			Title:     "Go",
+			Sort:      20,
+			IsEnabled: &enabled,
+		})
+		api.TagCreateUpdateView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("软删后复用同名标签应成功, body=%s", w.Body.String())
+		}
+	}
+
+	var restored models.TagModel
+	if err := global.DB.Where("title = ?", "Go").Take(&restored).Error; err != nil {
+		t.Fatalf("查询恢复后的标签失败: %v", err)
+	}
+	if restored.ID != tag.ID {
+		t.Fatalf("同名标签应恢复原记录, got=%d want=%d", restored.ID, tag.ID)
+	}
 }
 
 func TestTagUpdateKeepsArticleTagRelation(t *testing.T) {

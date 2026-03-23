@@ -35,7 +35,7 @@ func (CategoryApi) CategoryDeleteView(c *gin.Context) {
 	}
 
 	if len(list) > 0 {
-		if err := global.DB.Unscoped().Delete(&list).Error; err != nil {
+		if err := global.DB.Delete(&list).Error; err != nil {
 			global.Logger.Errorf("删除对应的分类失败 err: %v", err)
 			res.FailWithMsg("删除分类失败", c)
 			return

@@ -73,10 +73,23 @@ func TestFollowAndUnfollowUserView(t *testing.T) {
 		}
 		assertFollowCount(t, users.owner.ID, users.followedA.ID, 0)
 
+		c4b, w4b := newFollowCtx(t, http.MethodPost, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
+		api.FollowUserView(c4b)
+		if readFollowCode(t, w4b) != 0 {
+			t.Fatalf("软删后重新关注应成功, body=%s", w4b.Body.String())
+		}
+		assertFollowCount(t, users.owner.ID, users.followedA.ID, 1)
+
 		c5, w5 := newFollowCtx(t, http.MethodDelete, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
 		api.UnfollowUserView(c5)
-		if readFollowCode(t, w5) == 0 {
-			t.Fatalf("未关注时取消关注应失败, body=%s", w5.Body.String())
+		if readFollowCode(t, w5) != 0 {
+			t.Fatalf("重新关注后的再次取消关注应成功, body=%s", w5.Body.String())
+		}
+
+		c6, w6 := newFollowCtx(t, http.MethodDelete, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
+		api.UnfollowUserView(c6)
+		if readFollowCode(t, w6) == 0 {
+			t.Fatalf("未关注时取消关注应失败, body=%s", w6.Body.String())
 		}
 	})
 }
@@ -261,7 +274,9 @@ func createFollow(t *testing.T, fansUserID, followedUserID uint) {
 func createFollowAt(t *testing.T, fansUserID, followedUserID uint, createdAt time.Time) {
 	t.Helper()
 	row := models.UserFollowModel{
-		CreatedAt:      createdAt,
+		Model: models.Model{
+			CreatedAt: createdAt,
+		},
 		FansUserID:     fansUserID,
 		FollowedUserID: followedUserID,
 	}
