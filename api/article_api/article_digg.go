@@ -10,7 +10,6 @@ import (
 	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -53,19 +52,11 @@ func (ArticleApi) ArticleDiggView(c *gin.Context) {
 
 	// 点赞成功与否只看本次恢复/新建是否真的写入，不能再依赖前置查询快照。
 	createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
-		Model: &models.ArticleDiggModel{},
-		CreateValue: &models.ArticleDiggModel{
+		Value: &models.ArticleDiggModel{
 			ArticleID: id.ID,
 			UserID:    claims.UserID,
 		},
-		Match: map[string]any{
-			"article_id": id.ID,
-			"user_id":    claims.UserID,
-		},
-		RestoreAssignments: map[string]any{
-			"deleted_at": nil,
-			"updated_at": time.Now(),
-		},
+		Match: []string{"article_id", "user_id"},
 	})
 	if err != nil {
 		res.FailWithMsg("点赞失败", c)

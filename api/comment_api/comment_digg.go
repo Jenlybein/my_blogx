@@ -10,7 +10,6 @@ import (
 	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_comment"
 	"myblogx/utils/jwts"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -54,19 +53,11 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 
 	// 点赞成功与否只看本次恢复/新建是否真正落库。
 	createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
-		Model: &models.CommentDiggModel{},
-		CreateValue: &models.CommentDiggModel{
+		Value: &models.CommentDiggModel{
 			CommentID: id.ID,
 			UserID:    claims.UserID,
 		},
-		Match: map[string]any{
-			"comment_id": id.ID,
-			"user_id":    claims.UserID,
-		},
-		RestoreAssignments: map[string]any{
-			"deleted_at": nil,
-			"updated_at": time.Now(),
-		},
+		Match: []string{"comment_id", "user_id"},
 	})
 	if err != nil {
 		res.FailWithMsg("点赞失败", c)

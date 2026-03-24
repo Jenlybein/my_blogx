@@ -11,7 +11,6 @@ import (
 	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -58,21 +57,12 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 
 		// 收藏成功与否只看本次恢复/新建是否真正生效。
 		createdOrRestored, err := dbservice.RestoreOrCreateUnique(tx, dbservice.UniqueWriteOptions{
-			Model: &models.UserArticleFavorModel{},
-			CreateValue: &models.UserArticleFavorModel{
+			Value: &models.UserArticleFavorModel{
 				ArticleID: cr.ArticleID,
 				UserID:    claims.UserID,
 				FavorID:   favorite.ID,
 			},
-			Match: map[string]any{
-				"article_id": cr.ArticleID,
-				"user_id":    claims.UserID,
-				"favor_id":   favorite.ID,
-			},
-			RestoreAssignments: map[string]any{
-				"deleted_at": nil,
-				"updated_at": time.Now(),
-			},
+			Match: []string{"article_id", "user_id", "favor_id"},
 		})
 		if err != nil {
 			return err
@@ -115,21 +105,12 @@ func getOrCreateFavoriteID(db *gorm.DB, favorID, userID uint) (*models.FavoriteM
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				_, err := dbservice.RestoreOrCreateUnique(db, dbservice.UniqueWriteOptions{
-					Model: &models.FavoriteModel{},
-					CreateValue: &models.FavoriteModel{
+					Value: &models.FavoriteModel{
 						UserID:    userID,
 						Title:     "默认收藏夹",
 						IsDefault: true,
 					},
-					Match: map[string]any{
-						"user_id": userID,
-						"title":   "默认收藏夹",
-					},
-					RestoreAssignments: map[string]any{
-						"is_default": true,
-						"deleted_at": nil,
-						"updated_at": time.Now(),
-					},
+					Match: []string{"user_id", "title"},
 				})
 				if err != nil {
 					return nil, errors.New("创建默认收藏夹失败")

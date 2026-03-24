@@ -10,7 +10,6 @@ import (
 	dbservice "myblogx/service/db_service"
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -75,19 +74,11 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 		}
 
 		createdOrRestored, err := dbservice.RestoreOrCreateUnique(tx, dbservice.UniqueWriteOptions{
-			Model: &models.UserTopArticleModel{},
-			CreateValue: &models.UserTopArticleModel{
+			Value: &models.UserTopArticleModel{
 				UserID:    claims.UserID,
 				ArticleID: article.ID,
 			},
-			Match: map[string]any{
-				"user_id":    claims.UserID,
-				"article_id": article.ID,
-			},
-			RestoreAssignments: map[string]any{
-				"deleted_at": nil,
-				"updated_at": time.Now(),
-			},
+			Match: []string{"user_id", "article_id"},
 		})
 		if err != nil {
 			return err

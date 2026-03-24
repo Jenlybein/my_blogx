@@ -11,7 +11,6 @@ import (
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -35,25 +34,14 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 	if cr.ID == 0 {
 		// 标签创建也要以本次真实写入结果为准，避免并发下双成功。
 		createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
-			Model: &models.TagModel{},
-			CreateValue: &models.TagModel{
+			Value: &models.TagModel{
 				Title:       title,
 				Sort:        cr.Sort,
 				Description: cr.Description,
 				IsEnabled:   isEnabled,
 				CreatedBy:   claims.UserID,
 			},
-			Match: map[string]any{
-				"title": title,
-			},
-			RestoreAssignments: map[string]any{
-				"sort":        cr.Sort,
-				"description": cr.Description,
-				"is_enabled":  isEnabled,
-				"created_by":  claims.UserID,
-				"deleted_at":  nil,
-				"updated_at":  time.Now(),
-			},
+			Match: []string{"title"},
 		})
 		if err != nil {
 			res.FailWithMsg(fmt.Sprintf("创建标签失败: %v", err), c)

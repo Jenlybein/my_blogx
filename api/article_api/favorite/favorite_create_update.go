@@ -9,7 +9,6 @@ import (
 	"myblogx/models"
 	dbservice "myblogx/service/db_service"
 	"myblogx/utils/jwts"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -24,23 +23,13 @@ func (FavoriteApi) FavoriteCreateUpdateView(c *gin.Context) {
 	if cr.ID == 0 {
 		// 收藏夹创建同样以本次恢复/新建是否落库为准，避免并发下两个请求都返回成功。
 		createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
-			Model: &models.FavoriteModel{},
-			CreateValue: &models.FavoriteModel{
+			Value: &models.FavoriteModel{
 				UserID:   claims.UserID,
 				Title:    cr.Title,
 				Cover:    cr.Cover,
 				Abstract: cr.Abstract,
 			},
-			Match: map[string]any{
-				"user_id": claims.UserID,
-				"title":   cr.Title,
-			},
-			RestoreAssignments: map[string]any{
-				"cover":      cr.Cover,
-				"abstract":   cr.Abstract,
-				"deleted_at": nil,
-				"updated_at": time.Now(),
-			},
+			Match: []string{"user_id", "title"},
 		})
 		if err != nil {
 			res.FailWithMsg(fmt.Sprintf("创建收藏夹失败 %v", err), c)

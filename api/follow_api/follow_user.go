@@ -7,7 +7,6 @@ import (
 	"myblogx/models"
 	dbservice "myblogx/service/db_service"
 	"myblogx/utils/jwts"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,19 +26,11 @@ func (FollowApi) FollowUserView(c *gin.Context) {
 
 	// 这里不能再依赖“先查一次”来判断是否成功，而是要看本次写入是否真的生效。
 	createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
-		Model: &models.UserFollowModel{},
-		CreateValue: &models.UserFollowModel{
+		Value: &models.UserFollowModel{
 			FollowedUserID: cr.ID,
 			FansUserID:     claims.UserID,
 		},
-		Match: map[string]any{
-			"followed_user_id": cr.ID,
-			"fans_user_id":     claims.UserID,
-		},
-		RestoreAssignments: map[string]any{
-			"deleted_at": nil,
-			"updated_at": time.Now(),
-		},
+		Match: []string{"followed_user_id", "fans_user_id"},
 	})
 	if err != nil {
 		res.FailWithMsg("关注失败", c)
