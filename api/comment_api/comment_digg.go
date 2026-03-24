@@ -52,13 +52,10 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 	}
 
 	// 点赞成功与否只看本次恢复/新建是否真正落库。
-	createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
-		Value: &models.CommentDiggModel{
-			CommentID: id.ID,
-			UserID:    claims.UserID,
-		},
-		Match: []string{"comment_id", "user_id"},
-	})
+	createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, &models.CommentDiggModel{
+		CommentID: id.ID,
+		UserID:    claims.UserID,
+	}, []string{"comment_id", "user_id"})
 	if err != nil {
 		res.FailWithMsg("点赞失败", c)
 		return

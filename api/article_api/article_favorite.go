@@ -21,7 +21,8 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 	claims := jwts.MustGetClaimsByGin(c)
 
 	var article models.ArticleModel
-	if err := global.DB.Take(&article, "id = ? and status = ?", cr.ArticleID, enum.ArticleStatusPublished).Error; err != nil {
+	if err := global.DB.Select("id", "author_id", "title").
+		Take(&article, "id = ? and status = ?", cr.ArticleID, enum.ArticleStatusPublished).Error; err != nil {
 		res.FailWithMsg("查询文章失败", c)
 		return
 	}
@@ -33,46 +34,8 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 			return err
 		}
 
-		var articleFavorite models.UserArticleFavorModel
-		if err = tx.Take(&articleFavorite, "article_id = ? and user_id = ? and favor_id = ?", cr.ArticleID, claims.UserID, favorite.ID).Error; err == nil {
-			// 取消收藏必须看本次 Delete 是否真的删掉了活记录，避免并发下双成功。
-			deleteResult := tx.Where(map[string]any{
-				"article_id": cr.ArticleID,
-				"user_id":    claims.UserID,
-				"favor_id":   favorite.ID,
-			}).Delete(&models.UserArticleFavorModel{})
-			if deleteResult.Error != nil {
-				return deleteResult.Error
-			}
-			if deleteResult.RowsAffected == 0 {
-				return errors.New("收藏状态已变化，请刷新后重试")
-			}
-
-			isFavorited = false
-			return nil
-		}
-		if err != gorm.ErrRecordNotFound {
-			return err
-		}
-
-		// 收藏成功与否只看本次恢复/新建是否真正生效。
-		createdOrRestored, err := dbservice.RestoreOrCreateUnique(tx, dbservice.UniqueWriteOptions{
-			Value: &models.UserArticleFavorModel{
-				ArticleID: cr.ArticleID,
-				UserID:    claims.UserID,
-				FavorID:   favorite.ID,
-			},
-			Match: []string{"article_id", "user_id", "favor_id"},
-		})
-		if err != nil {
-			return err
-		}
-		if !createdOrRestored {
-			return errors.New("请勿重复收藏")
-		}
-
-		isFavorited = true
-		return nil
+		isFavorited, err = switchArticleFavorite(tx, cr.ArticleID, claims.UserID, favorite.ID)
+		return err
 	}); err != nil {
 		res.FailWithMsg("收藏操作失败", c)
 		return
@@ -98,35 +61,57 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 	}
 }
 
+// getOrCreateFavoriteID 获取收藏夹；如果获取的是默认收藏夹，不存在就新建
 func getOrCreateFavoriteID(db *gorm.DB, favorID, userID uint) (*models.FavoriteModel, error) {
 	var favorite models.FavoriteModel
 	if favorID == 0 {
-		err := db.Take(&favorite, "is_default = ? and user_id = ?", true, userID).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				_, err := dbservice.RestoreOrCreateUnique(db, dbservice.UniqueWriteOptions{
-					Value: &models.FavoriteModel{
-						UserID:    userID,
-						Title:     "默认收藏夹",
-						IsDefault: true,
-					},
-					Match: []string{"user_id", "title"},
-				})
-				if err != nil {
-					return nil, errors.New("创建默认收藏夹失败")
-				}
-				if err := db.Take(&favorite, "is_default = ? and user_id = ?", true, userID).Error; err != nil {
-					return nil, errors.New("查询默认收藏夹失败")
-				}
-				return &favorite, nil
-			}
-			return nil, errors.New("查询默认收藏夹失败")
+		if err := db.Where("is_default = ? AND user_id = ?", true, userID).
+			Attrs(models.FavoriteModel{
+				UserID:    userID,
+				Title:     "默认收藏夹",
+				IsDefault: true,
+			}).
+			FirstOrCreate(favorite).Error; err != nil {
+			return nil, errors.New("创建默认收藏夹失败")
 		}
-		return &favorite, nil
-	}
-
-	if err := db.Take(&favorite, "id = ? and user_id = ?", favorID, userID).Error; err != nil {
-		return nil, errors.New("收藏夹不存在")
+	} else {
+		if err := db.Select("id").Take(&favorite, "id = ? and user_id = ?", favorID, userID).Error; err != nil {
+			return nil, errors.New("收藏夹不存在")
+		}
 	}
 	return &favorite, nil
+}
+
+// switchArticleFavorite 只处理单个收藏关系的切换，避免收藏夹解析和副作用逻辑混在一起。
+func switchArticleFavorite(tx *gorm.DB, articleID, userID, favorID uint) (bool, error) {
+	var articleFavorite models.UserArticleFavorModel
+	if err := tx.Select("id").
+		Take(&articleFavorite, "article_id = ? and user_id = ? and favor_id = ?", articleID, userID, favorID).Error; err == nil {
+		// 取消收藏必须看本次 Delete 是否真的删掉了活记录，避免并发下双成功。
+		deleteResult := tx.Where("article_id = ? and user_id = ? and favor_id = ?", articleID, userID, favorID).
+			Delete(&models.UserArticleFavorModel{})
+		if deleteResult.Error != nil {
+			return false, deleteResult.Error
+		}
+		if deleteResult.RowsAffected == 0 {
+			return false, errors.New("收藏状态已变化，请刷新后重试")
+		}
+		return false, nil
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, err
+	}
+
+	// 收藏成功与否只看本次恢复/新建是否真正生效。
+	createdOrRestored, err := dbservice.RestoreOrCreateUnique(tx, &models.UserArticleFavorModel{
+		ArticleID: articleID,
+		UserID:    userID,
+		FavorID:   favorID,
+	}, []string{"article_id", "user_id", "favor_id"})
+	if err != nil {
+		return false, err
+	}
+	if !createdOrRestored {
+		return false, errors.New("请勿重复收藏")
+	}
+	return true, nil
 }

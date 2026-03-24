@@ -73,13 +73,10 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 			}
 		}
 
-		createdOrRestored, err := dbservice.RestoreOrCreateUnique(tx, dbservice.UniqueWriteOptions{
-			Value: &models.UserTopArticleModel{
-				UserID:    claims.UserID,
-				ArticleID: article.ID,
-			},
-			Match: []string{"user_id", "article_id"},
-		})
+		createdOrRestored, err := dbservice.RestoreOrCreateUnique(tx, &models.UserTopArticleModel{
+			UserID:    claims.UserID,
+			ArticleID: article.ID,
+		}, []string{"user_id", "article_id"})
 		if err != nil {
 			return err
 		}

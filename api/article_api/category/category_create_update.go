@@ -7,7 +7,6 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
-	dbservice "myblogx/service/db_service"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -21,20 +20,16 @@ func (CategoryApi) CategoryCreateUpdateView(c *gin.Context) {
 
 	// 创建
 	if cr.ID == 0 {
-		// 创建分类时只看本次恢复/新建是否真正命中，避免并发下双成功。
-		createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
-			Value: &models.CategoryModel{
-				Title:  cr.Title,
-				UserID: claims.UserID,
-			},
-			Match: []string{"user_id", "title"},
-		})
-		if err != nil {
+		// 分类创建改为直接创建新记录，不再恢复同名软删数据。
+		if err := global.DB.Create(&models.CategoryModel{
+			Title:  cr.Title,
+			UserID: claims.UserID,
+		}).Error; err != nil {
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				res.FailWithMsg("分类名称重复", c)
+				return
+			}
 			res.FailWithMsg(fmt.Sprintf("创建分类失败 %v", err), c)
-			return
-		}
-		if !createdOrRestored {
-			res.FailWithMsg("分类名称重复", c)
 			return
 		}
 		res.OkWithMsg("创建成功", c)

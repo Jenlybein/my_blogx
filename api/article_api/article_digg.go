@@ -51,13 +51,10 @@ func (ArticleApi) ArticleDiggView(c *gin.Context) {
 	}
 
 	// 点赞成功与否只看本次恢复/新建是否真的写入，不能再依赖前置查询快照。
-	createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
-		Value: &models.ArticleDiggModel{
-			ArticleID: id.ID,
-			UserID:    claims.UserID,
-		},
-		Match: []string{"article_id", "user_id"},
-	})
+	createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, &models.ArticleDiggModel{
+		ArticleID: id.ID,
+		UserID:    claims.UserID,
+	}, []string{"article_id", "user_id"})
 	if err != nil {
 		res.FailWithMsg("点赞失败", c)
 		return

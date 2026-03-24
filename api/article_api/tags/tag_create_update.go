@@ -7,7 +7,6 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
-	dbservice "myblogx/service/db_service"
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
 	"strings"
@@ -32,23 +31,19 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 	}
 
 	if cr.ID == 0 {
-		// 标签创建也要以本次真实写入结果为准，避免并发下双成功。
-		createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
-			Value: &models.TagModel{
-				Title:       title,
-				Sort:        cr.Sort,
-				Description: cr.Description,
-				IsEnabled:   isEnabled,
-				CreatedBy:   claims.UserID,
-			},
-			Match: []string{"title"},
-		})
-		if err != nil {
+		// 标签创建改为直接创建新记录，不再恢复同名软删数据。
+		if err := global.DB.Create(&models.TagModel{
+			Title:       title,
+			Sort:        cr.Sort,
+			Description: cr.Description,
+			IsEnabled:   isEnabled,
+			CreatedBy:   claims.UserID,
+		}).Error; err != nil {
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				res.FailWithMsg("标签名称重复", c)
+				return
+			}
 			res.FailWithMsg(fmt.Sprintf("创建标签失败: %v", err), c)
-			return
-		}
-		if !createdOrRestored {
-			res.FailWithMsg("标签名称重复", c)
 			return
 		}
 		res.OkWithMsg("创建标签成功", c)

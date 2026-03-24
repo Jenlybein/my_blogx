@@ -157,17 +157,25 @@ func TestTagCRUDAndOptions(t *testing.T) {
 			IsEnabled: &enabled,
 		})
 		api.TagCreateUpdateView(c)
-		if code := readCode(t, w); code != 0 {
-			t.Fatalf("软删后复用同名标签应成功, body=%s", w.Body.String())
+		if code := readCode(t, w); code == 0 {
+			t.Fatalf("软删后同名标签不应恢复原记录, body=%s", w.Body.String())
 		}
 	}
 
-	var restored models.TagModel
-	if err := global.DB.Where("title = ?", "Go").Take(&restored).Error; err != nil {
-		t.Fatalf("查询恢复后的标签失败: %v", err)
+	var deleted models.TagModel
+	if err := global.DB.Unscoped().Take(&deleted, tag.ID).Error; err != nil {
+		t.Fatalf("查询已删除标签失败: %v", err)
 	}
-	if restored.ID != tag.ID {
-		t.Fatalf("同名标签应恢复原记录, got=%d want=%d", restored.ID, tag.ID)
+	if !deleted.DeletedAt.Valid {
+		t.Fatal("同名标签创建失败后，原标签应保持软删除状态")
+	}
+
+	var activeCount int64
+	if err := global.DB.Model(&models.TagModel{}).Where("title = ?", "Go").Count(&activeCount).Error; err != nil {
+		t.Fatalf("统计活跃标签失败: %v", err)
+	}
+	if activeCount != 0 {
+		t.Fatalf("软删后同名标签不应被自动恢复, count=%d", activeCount)
 	}
 }
 

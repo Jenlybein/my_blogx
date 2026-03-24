@@ -25,13 +25,10 @@ func (FollowApi) FollowUserView(c *gin.Context) {
 	// TODO：考虑每天关注量上限和取关量上限
 
 	// 这里不能再依赖“先查一次”来判断是否成功，而是要看本次写入是否真的生效。
-	createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
-		Value: &models.UserFollowModel{
-			FollowedUserID: cr.ID,
-			FansUserID:     claims.UserID,
-		},
-		Match: []string{"followed_user_id", "fans_user_id"},
-	})
+	createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, &models.UserFollowModel{
+		FollowedUserID: cr.ID,
+		FansUserID:     claims.UserID,
+	}, []string{"followed_user_id", "fans_user_id"})
 	if err != nil {
 		res.FailWithMsg("关注失败", c)
 		return

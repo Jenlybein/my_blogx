@@ -20,14 +20,11 @@ func TestRestoreOrCreateUnique(t *testing.T) {
 	db := testutil.SetupSQLite(t, &softDeleteUniqueTestModel{})
 
 	t.Run("创建新记录", func(t *testing.T) {
-		ok, err := RestoreOrCreateUnique(db, UniqueWriteOptions{
-			Value: &softDeleteUniqueTestModel{
-				UserID: 1,
-				Title:  "created",
-				Remark: "v1",
-			},
-			Match: []string{"user_id", "title"},
-		})
+		ok, err := RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
+			UserID: 1,
+			Title:  "created",
+			Remark: "v1",
+		}, []string{"user_id", "title"})
 		if err != nil {
 			t.Fatalf("创建新记录失败: %v", err)
 		}
@@ -51,16 +48,13 @@ func TestRestoreOrCreateUnique(t *testing.T) {
 			t.Fatalf("软删记录失败: %v", err)
 		}
 
-		ok, err := RestoreOrCreateUnique(db, UniqueWriteOptions{
-			Value: &softDeleteUniqueTestModel{
-				UserID:    2,
-				Title:     "restored",
-				Remark:    "",
-				Sort:      0,
-				IsEnabled: false,
-			},
-			Match: []string{"user_id", "title"},
-		})
+		ok, err := RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
+			UserID:    2,
+			Title:     "restored",
+			Remark:    "",
+			Sort:      0,
+			IsEnabled: false,
+		}, []string{"user_id", "title"})
 		if err != nil {
 			t.Fatalf("恢复软删记录失败: %v", err)
 		}
@@ -96,14 +90,11 @@ func TestRestoreOrCreateUnique(t *testing.T) {
 			t.Fatalf("准备活记录失败: %v", err)
 		}
 
-		ok, err := RestoreOrCreateUnique(db, UniqueWriteOptions{
-			Value: &softDeleteUniqueTestModel{
-				UserID: 3,
-				Title:  "existing",
-				Remark: "new",
-			},
-			Match: []string{"user_id", "title"},
-		})
+		ok, err := RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
+			UserID: 3,
+			Title:  "existing",
+			Remark: "new",
+		}, []string{"user_id", "title"})
 		if err != nil {
 			t.Fatalf("existing 分支失败: %v", err)
 		}
@@ -113,18 +104,26 @@ func TestRestoreOrCreateUnique(t *testing.T) {
 	})
 
 	t.Run("空匹配字段应报错", func(t *testing.T) {
-		ok, err := RestoreOrCreateUnique(db, UniqueWriteOptions{
-			Value: &softDeleteUniqueTestModel{
-				UserID: 4,
-				Title:  "invalid",
-			},
-			Match: nil,
-		})
+		ok, err := RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
+			UserID: 4,
+			Title:  "invalid",
+		}, nil)
 		if err == nil {
 			t.Fatal("空匹配字段应返回错误")
 		}
 		if ok {
 			t.Fatal("空匹配字段不应返回成功")
+		}
+	})
+
+	t.Run("空指针应报错", func(t *testing.T) {
+		var row *softDeleteUniqueTestModel
+		ok, err := RestoreOrCreateUnique(db, row, []string{"user_id", "title"})
+		if err == nil {
+			t.Fatal("空指针应返回错误")
+		}
+		if ok {
+			t.Fatal("空指针不应返回成功")
 		}
 	})
 }

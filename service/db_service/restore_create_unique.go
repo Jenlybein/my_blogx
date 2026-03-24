@@ -11,15 +11,10 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-type UniqueWriteOptions struct {
-	Value any
-	Match []string
-}
-
 // RestoreOrCreateUnique 按“先恢复软删，再尝试创建”的顺序执行。
 // 返回 true 表示本次请求真正完成了“恢复”或“创建”，返回 false 表示活记录已存在。
-func RestoreOrCreateUnique(tx *gorm.DB, opts UniqueWriteOptions) (bool, error) {
-	model, matchConditions, restoreAssignments, err := buildUniqueWriteData(tx, opts)
+func RestoreOrCreateUnique[T any](tx *gorm.DB, value *T, match []string) (bool, error) {
+	model, matchConditions, restoreAssignments, err := buildUniqueWriteData(tx, value, match)
 	if err != nil {
 		return false, err
 	}
@@ -38,7 +33,7 @@ func RestoreOrCreateUnique(tx *gorm.DB, opts UniqueWriteOptions) (bool, error) {
 	}
 
 	// 如果创建时活记录已存在，或并发下别人刚创建成功，就返回 false。
-	createResult := tx.Create(opts.Value)
+	createResult := tx.Create(value)
 	if createResult.Error != nil {
 		if errors.Is(createResult.Error, gorm.ErrDuplicatedKey) {
 			return false, nil
@@ -50,14 +45,12 @@ func RestoreOrCreateUnique(tx *gorm.DB, opts UniqueWriteOptions) (bool, error) {
 
 // buildUniqueWriteData 从 Value 中提取模型、匹配条件和恢复赋值。
 // Match 中声明的字段会参与 where 条件生成，但不会在恢复时再次更新。
-func buildUniqueWriteData(tx *gorm.DB, opts UniqueWriteOptions) (any, map[string]any, map[string]any, error) {
-	sourceValue := reflect.ValueOf(opts.Value)
-	if sourceValue.Kind() == reflect.Ptr {
-		if sourceValue.IsNil() {
-			return nil, nil, nil, errors.New("value 不能为空指针")
-		}
-		sourceValue = sourceValue.Elem()
+func buildUniqueWriteData[T any](tx *gorm.DB, value *T, match []string) (any, map[string]any, map[string]any, error) {
+	if value == nil {
+		return nil, nil, nil, errors.New("value 不能为空指针")
 	}
+
+	sourceValue := reflect.ValueOf(value).Elem()
 	if sourceValue.Kind() != reflect.Struct {
 		return nil, nil, nil, errors.New("value 必须是结构体或结构体指针")
 	}
@@ -68,7 +61,7 @@ func buildUniqueWriteData(tx *gorm.DB, opts UniqueWriteOptions) (any, map[string
 		return nil, nil, nil, err
 	}
 
-	matchConditions, err := buildMatchConditions(stmt.Schema, sourceValue, opts.Match)
+	matchConditions, err := buildMatchConditions(stmt.Schema, sourceValue, match)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -90,6 +83,10 @@ func buildUniqueWriteData(tx *gorm.DB, opts UniqueWriteOptions) (any, map[string
 
 // buildMatchConditions 生成匹配条件。
 func buildMatchConditions(s *schema.Schema, sourceValue reflect.Value, matchFields []string) (map[string]any, error) {
+	if len(matchFields) == 0 {
+		return nil, errors.New("match 不能为空")
+	}
+
 	matchConditions := make(map[string]any, len(matchFields))
 	ctx := context.Background()
 	for _, name := range matchFields {
