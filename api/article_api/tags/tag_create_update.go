@@ -1,11 +1,13 @@
 package tags
 
 import (
+	"errors"
 	"fmt"
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	dbservice "myblogx/service/db_service"
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
 	"strings"
@@ -13,7 +15,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func (TagsApi) TagCreateUpdateView(c *gin.Context) {
@@ -32,29 +33,34 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 	}
 
 	if cr.ID == 0 {
-		if err := ensureTagUnique(0, title); err != nil {
-			res.FailWithMsg(err.Error(), c)
-			return
-		}
-
-		if err := global.DB.Clauses(clause.OnConflict{
-			Columns: []clause.Column{{Name: "title"}},
-			DoUpdates: clause.Assignments(map[string]any{
+		// 标签创建也要以本次真实写入结果为准，避免并发下双成功。
+		createdOrRestored, err := dbservice.RestoreOrCreateUnique(global.DB, dbservice.UniqueWriteOptions{
+			Model: &models.TagModel{},
+			CreateValue: &models.TagModel{
+				Title:       title,
+				Sort:        cr.Sort,
+				Description: cr.Description,
+				IsEnabled:   isEnabled,
+				CreatedBy:   claims.UserID,
+			},
+			Match: map[string]any{
+				"title": title,
+			},
+			RestoreAssignments: map[string]any{
 				"sort":        cr.Sort,
 				"description": cr.Description,
 				"is_enabled":  isEnabled,
 				"created_by":  claims.UserID,
 				"deleted_at":  nil,
 				"updated_at":  time.Now(),
-			}),
-		}).Create(&models.TagModel{
-			Title:       title,
-			Sort:        cr.Sort,
-			Description: cr.Description,
-			IsEnabled:   isEnabled,
-			CreatedBy:   claims.UserID,
-		}).Error; err != nil {
+			},
+		})
+		if err != nil {
 			res.FailWithMsg(fmt.Sprintf("创建标签失败: %v", err), c)
+			return
+		}
+		if !createdOrRestored {
+			res.FailWithMsg("标签名称重复", c)
 			return
 		}
 		res.OkWithMsg("创建标签成功", c)
@@ -86,6 +92,9 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 			"description": cr.Description,
 			"is_enabled":  isEnabled,
 		}).Error; err != nil {
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				return fmt.Errorf("标签名称重复")
+			}
 			return err
 		}
 		if oldTitle != title {

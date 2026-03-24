@@ -43,41 +43,47 @@ func (GlobalNotifApi) GlobalNotifReadView(c *gin.Context) {
 	err = global.DB.Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 		for _, notif := range notifList {
-			userNotif, ok := state.UserNotifMap[notif.ID]
-			if ok {
-				if userNotif.DeletedAt.Valid || userNotif.IsRead {
-					continue
-				}
-				if err := tx.Model(&userNotif).Updates(map[string]any{
-					"is_read": true,
-					"read_at": &now,
-				}).Error; err != nil {
-					return err
-				}
+			match := map[string]any{
+				"msg_id":  notif.ID,
+				"user_id": claims.UserID,
+			}
+
+			// 已存在未读记录时，只在本次更新真正命中时才累计成功数。
+			updateResult := tx.Model(&models.UserGlobalNotifModel{}).
+				Where(match).
+				Where("deleted_at IS NULL AND is_read = ?", false).
+				Updates(map[string]any{
+					"is_read":    true,
+					"read_at":    &now,
+					"updated_at": now,
+				})
+			if updateResult.Error != nil {
+				return updateResult.Error
+			}
+			if updateResult.RowsAffected > 0 {
 				successCount++
 				continue
 			}
 
-			userNotif = models.UserGlobalNotifModel{
+			userNotif := models.UserGlobalNotifModel{
 				MsgID:  notif.ID,
 				UserID: claims.UserID,
 				IsRead: true,
 				ReadAt: &now,
 			}
-			if err := tx.Clauses(clause.OnConflict{
+			createResult := tx.Clauses(clause.OnConflict{
 				Columns: []clause.Column{
 					{Name: "msg_id"},
 					{Name: "user_id"},
 				},
-				DoUpdates: clause.Assignments(map[string]any{
-					"is_read":    true,
-					"read_at":    &now,
-					"updated_at": now,
-				}),
-			}).Create(&userNotif).Error; err != nil {
-				return err
+				DoNothing: true,
+			}).Create(&userNotif)
+			if createResult.Error != nil {
+				return createResult.Error
 			}
-			successCount++
+			if createResult.RowsAffected > 0 {
+				successCount++
+			}
 		}
 		return nil
 	})

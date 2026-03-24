@@ -7,6 +7,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	dbservice "myblogx/service/db_service"
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
 	"time"
@@ -49,6 +50,11 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 	}
 
 	err := global.DB.Transaction(func(tx *gorm.DB) error {
+		// 用户级行锁用于串行化“置顶数量限制 + 当前文章置顶状态”这组组合判断。
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id").Take(&models.UserModel{}, claims.UserID).Error; err != nil {
+			return err
+		}
+
 		var count int64
 		if err := tx.Take(&models.UserTopArticleModel{}, "user_id = ? AND article_id = ?", claims.UserID, article.ID).Error; err == nil {
 			return errors.New("文章已被置顶")
@@ -68,19 +74,28 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 			}
 		}
 
-		return tx.Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "user_id"},
-				{Name: "article_id"},
+		createdOrRestored, err := dbservice.RestoreOrCreateUnique(tx, dbservice.UniqueWriteOptions{
+			Model: &models.UserTopArticleModel{},
+			CreateValue: &models.UserTopArticleModel{
+				UserID:    claims.UserID,
+				ArticleID: article.ID,
 			},
-			DoUpdates: clause.Assignments(map[string]any{
+			Match: map[string]any{
+				"user_id":    claims.UserID,
+				"article_id": article.ID,
+			},
+			RestoreAssignments: map[string]any{
 				"deleted_at": nil,
 				"updated_at": time.Now(),
-			}),
-		}).Create(&models.UserTopArticleModel{
-			UserID:    claims.UserID,
-			ArticleID: article.ID,
-		}).Error
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if !createdOrRestored {
+			return errors.New("文章已被置顶")
+		}
+		return nil
 	})
 	if err != nil {
 		global.Logger.Errorf("文章置顶失败 article_id=%d user_id=%d type=%d err=%v", article.ID, claims.UserID, cr.Type, err)

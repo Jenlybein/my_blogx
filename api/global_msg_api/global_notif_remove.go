@@ -68,15 +68,23 @@ func (GlobalNotifApi) GlobalNotifUserRemoveView(c *gin.Context) {
 	err = global.DB.Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 		for _, notif := range notifList {
-			userNotif, ok := state.UserNotifMap[notif.ID]
-			if ok {
-				// 执行软删除
-				if userNotif.DeletedAt.Valid {
-					continue
-				}
-				if err := tx.Model(&userNotif).Update("deleted_at", now).Error; err != nil {
-					return err
-				}
+			match := map[string]any{
+				"msg_id":  notif.ID,
+				"user_id": claims.UserID,
+			}
+
+			// 先尝试软删当前活记录，只有真正删掉时才计入成功数。
+			updateResult := tx.Unscoped().Model(&models.UserGlobalNotifModel{}).
+				Where(match).
+				Where("deleted_at IS NULL").
+				Updates(map[string]any{
+					"deleted_at": now,
+					"updated_at": now,
+				})
+			if updateResult.Error != nil {
+				return updateResult.Error
+			}
+			if updateResult.RowsAffected > 0 {
 				successCount++
 				continue
 			}
@@ -84,26 +92,26 @@ func (GlobalNotifApi) GlobalNotifUserRemoveView(c *gin.Context) {
 			// 如果用户此前从未产生过这条通知的个人态记录，
 			// 直接创建一条带 deleted_at 的墓碑记录即可。
 			// 这样后续列表查询时，仍然能识别“这条通知用户已经删过”。
-			userNotif = models.UserGlobalNotifModel{
+			userNotif := models.UserGlobalNotifModel{
 				Model: models.Model{
 					DeletedAt: gorm.DeletedAt{Time: now, Valid: true},
 				},
 				MsgID:  notif.ID,
 				UserID: claims.UserID,
 			}
-			if err := tx.Clauses(clause.OnConflict{
+			createResult := tx.Clauses(clause.OnConflict{
 				Columns: []clause.Column{
 					{Name: "msg_id"},
 					{Name: "user_id"},
 				},
-				DoUpdates: clause.Assignments(map[string]any{
-					"deleted_at": now,
-					"updated_at": now,
-				}),
-			}).Create(&userNotif).Error; err != nil {
-				return err
+				DoNothing: true,
+			}).Create(&userNotif)
+			if createResult.Error != nil {
+				return createResult.Error
 			}
-			successCount++
+			if createResult.RowsAffected > 0 {
+				successCount++
+			}
 		}
 		return nil
 	})

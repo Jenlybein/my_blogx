@@ -43,3 +43,6 @@ AI 博客助手
 7.中危：鉴权语义不一致，部分“可选登录态”接口直接解析 JWT，绕过黑名单检查。article_detail.go、article_search.go、favorite_list.go 都直接 ParseTokenByGin。这会导致“强鉴权接口已退出，弱鉴权接口仍把你识别成登录用户”的不一致行为。
 8.中危：密码登录、邮箱验证码发送缺少真正的限流和风控，且验证码默认可关闭。pwd_login.go、send_email.go、captcha_middleware.go、settings.yaml 组合起来意味着当前系统对撞库、爆破、验证码轰炸的抵抗力不足。
 9.中危：存在账号枚举问题。密码登录会区分“用户名不存在”和“密码错误”(pwd_login.go)；邮箱验证码发送会区分“邮箱已注册/未注册”(send_email.go)。这会帮助攻击者探测有效账号。
+
+
+并发安全：先查再建这种非原子操作，在并发环境下，有概率导致重复建数据。

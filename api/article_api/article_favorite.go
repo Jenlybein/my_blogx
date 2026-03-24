@@ -7,6 +7,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	dbservice "myblogx/service/db_service"
 	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
@@ -36,8 +36,17 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 
 		var articleFavorite models.UserArticleFavorModel
 		if err = tx.Take(&articleFavorite, "article_id = ? and user_id = ? and favor_id = ?", cr.ArticleID, claims.UserID, favorite.ID).Error; err == nil {
-			if err = tx.Delete(&articleFavorite).Error; err != nil {
-				return err
+			// 取消收藏必须看本次 Delete 是否真的删掉了活记录，避免并发下双成功。
+			deleteResult := tx.Where(map[string]any{
+				"article_id": cr.ArticleID,
+				"user_id":    claims.UserID,
+				"favor_id":   favorite.ID,
+			}).Delete(&models.UserArticleFavorModel{})
+			if deleteResult.Error != nil {
+				return deleteResult.Error
+			}
+			if deleteResult.RowsAffected == 0 {
+				return errors.New("收藏状态已变化，请刷新后重试")
 			}
 
 			isFavorited = false
@@ -47,22 +56,29 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 			return err
 		}
 
-		if err = tx.Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "article_id"},
-				{Name: "user_id"},
-				{Name: "favor_id"},
+		// 收藏成功与否只看本次恢复/新建是否真正生效。
+		createdOrRestored, err := dbservice.RestoreOrCreateUnique(tx, dbservice.UniqueWriteOptions{
+			Model: &models.UserArticleFavorModel{},
+			CreateValue: &models.UserArticleFavorModel{
+				ArticleID: cr.ArticleID,
+				UserID:    claims.UserID,
+				FavorID:   favorite.ID,
 			},
-			DoUpdates: clause.Assignments(map[string]any{
+			Match: map[string]any{
+				"article_id": cr.ArticleID,
+				"user_id":    claims.UserID,
+				"favor_id":   favorite.ID,
+			},
+			RestoreAssignments: map[string]any{
 				"deleted_at": nil,
 				"updated_at": time.Now(),
-			}),
-		}).Create(&models.UserArticleFavorModel{
-			ArticleID: cr.ArticleID,
-			UserID:    claims.UserID,
-			FavorID:   favorite.ID,
-		}).Error; err != nil {
+			},
+		})
+		if err != nil {
 			return err
+		}
+		if !createdOrRestored {
+			return errors.New("请勿重复收藏")
 		}
 
 		isFavorited = true
@@ -98,22 +114,24 @@ func getOrCreateFavoriteID(db *gorm.DB, favorID, userID uint) (*models.FavoriteM
 		err := db.Take(&favorite, "is_default = ? and user_id = ?", true, userID).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				favorite = models.FavoriteModel{
-					UserID:    userID,
-					Title:     "默认收藏夹",
-					IsDefault: true,
-				}
-				if err := db.Clauses(clause.OnConflict{
-					Columns: []clause.Column{
-						{Name: "user_id"},
-						{Name: "title"},
+				_, err := dbservice.RestoreOrCreateUnique(db, dbservice.UniqueWriteOptions{
+					Model: &models.FavoriteModel{},
+					CreateValue: &models.FavoriteModel{
+						UserID:    userID,
+						Title:     "默认收藏夹",
+						IsDefault: true,
 					},
-					DoUpdates: clause.Assignments(map[string]any{
+					Match: map[string]any{
+						"user_id": userID,
+						"title":   "默认收藏夹",
+					},
+					RestoreAssignments: map[string]any{
 						"is_default": true,
 						"deleted_at": nil,
 						"updated_at": time.Now(),
-					}),
-				}).Create(&favorite).Error; err != nil {
+					},
+				})
+				if err != nil {
 					return nil, errors.New("创建默认收藏夹失败")
 				}
 				if err := db.Take(&favorite, "is_default = ? and user_id = ?", true, userID).Error; err != nil {
