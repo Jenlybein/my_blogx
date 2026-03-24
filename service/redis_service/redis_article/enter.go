@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"myblogx/global"
+	"myblogx/models/ctype"
 	"strconv"
 	"time"
 )
@@ -13,10 +14,10 @@ type ArticleCacheType string
 // BatchCounters 汇总文章在 Redis 中的实时计数增量。
 // 这些值会叠加到数据库或 ES 中的基础值上，用于列表实时展示。
 type BatchCounters struct {
-	ViewMap    map[uint]int
-	DiggMap    map[uint]int
-	FavorMap   map[uint]int
-	CommentMap map[uint]int
+	ViewMap    map[ctype.ID]int
+	DiggMap    map[ctype.ID]int
+	FavorMap   map[ctype.ID]int
+	CommentMap map[ctype.ID]int
 }
 
 // 文章缓存的Key
@@ -28,67 +29,67 @@ const (
 )
 
 // 设置缓存
-func set(t ArticleCacheType, articleID uint, increase int) error {
-	return global.Redis.HIncrBy(context.Background(), string(t), strconv.Itoa(int(articleID)), int64(increase)).Err()
+func set(t ArticleCacheType, articleID ctype.ID, increase int) error {
+	return global.Redis.HIncrBy(context.Background(), string(t), articleID.String(), int64(increase)).Err()
 }
 
-func get(t ArticleCacheType, articleID uint) int {
-	num, _ := global.Redis.HGet(context.Background(), string(t), strconv.Itoa(int(articleID))).Int()
+func get(t ArticleCacheType, articleID ctype.ID) int {
+	num, _ := global.Redis.HGet(context.Background(), string(t), articleID.String()).Int()
 	return num
 }
 
 // 浏览量缓存
-func SetCacheView(articleID uint, increase int) error {
+func SetCacheView(articleID ctype.ID, increase int) error {
 	return set(ArticleCacheView, articleID, increase)
 }
-func GetCacheView(articleID uint) int {
+func GetCacheView(articleID ctype.ID) int {
 	return get(ArticleCacheView, articleID)
 }
 
 // 点赞缓存
-func SetCacheDigg(articleID uint, increase int) error {
+func SetCacheDigg(articleID ctype.ID, increase int) error {
 	return set(ArticleCacheDigg, articleID, increase)
 }
-func GetCacheDigg(articleID uint) int {
+func GetCacheDigg(articleID ctype.ID) int {
 	return get(ArticleCacheDigg, articleID)
 }
 
 // 收藏缓存
-func SetCacheFavorite(articleID uint, increase int) error {
+func SetCacheFavorite(articleID ctype.ID, increase int) error {
 	return set(ArticleCacheFavorite, articleID, increase)
 }
-func GetCacheFavorite(articleID uint) int {
+func GetCacheFavorite(articleID ctype.ID) int {
 	return get(ArticleCacheFavorite, articleID)
 }
 
 // 评论缓存
-func SetCacheComment(articleID uint, increase int) error {
+func SetCacheComment(articleID ctype.ID, increase int) error {
 	return set(ArticleCacheComment, articleID, increase)
 }
-func GetCacheComment(articleID uint) int {
+func GetCacheComment(articleID ctype.ID) int {
 	return get(ArticleCacheComment, articleID)
 }
 
-func GetAll(t ArticleCacheType) map[uint]int {
+func GetAll(t ArticleCacheType) map[ctype.ID]int {
 	res, err := global.Redis.HGetAll(context.Background(), string(t)).Result()
 	if err != nil {
 		return nil
 	}
-	numMap := make(map[uint]int)
+	numMap := make(map[ctype.ID]int)
 	for k, v := range res {
 		ik, err := strconv.Atoi(k)
 		num, err := strconv.Atoi(v)
 		if err != nil {
 			continue
 		}
-		numMap[uint(ik)] = num
+		numMap[ctype.ID(ik)] = num
 	}
 
 	return numMap
 }
 
-func getBatch(t ArticleCacheType, articleIDs []uint) map[uint]int {
-	result := make(map[uint]int, len(articleIDs))
+func getBatch(t ArticleCacheType, articleIDs []ctype.ID) map[ctype.ID]int {
+	result := make(map[ctype.ID]int, len(articleIDs))
 	if global.Redis == nil || len(articleIDs) == 0 {
 		return result
 	}
@@ -100,27 +101,27 @@ func getBatch(t ArticleCacheType, articleIDs []uint) map[uint]int {
 	return decodeBatchValues(articleIDs, values)
 }
 
-func GetBatchCacheView(articleIDs []uint) map[uint]int {
+func GetBatchCacheView(articleIDs []ctype.ID) map[ctype.ID]int {
 	return getBatch(ArticleCacheView, articleIDs)
 }
-func GetBatchCacheDigg(articleIDs []uint) map[uint]int {
+func GetBatchCacheDigg(articleIDs []ctype.ID) map[ctype.ID]int {
 	return getBatch(ArticleCacheDigg, articleIDs)
 }
-func GetBatchCacheFavorite(articleIDs []uint) map[uint]int {
+func GetBatchCacheFavorite(articleIDs []ctype.ID) map[ctype.ID]int {
 	return getBatch(ArticleCacheFavorite, articleIDs)
 }
-func GetBatchCacheComment(articleIDs []uint) map[uint]int {
+func GetBatchCacheComment(articleIDs []ctype.ID) map[ctype.ID]int {
 	return getBatch(ArticleCacheComment, articleIDs)
 }
 
 // GetBatchCounters 通过一次 Redis Pipeline 批量读取文章的四类计数增量，
 // 减少搜索列表阶段的 Redis 往返次数。
-func GetBatchCounters(articleIDs []uint) BatchCounters {
+func GetBatchCounters(articleIDs []ctype.ID) BatchCounters {
 	counters := BatchCounters{
-		ViewMap:    make(map[uint]int),
-		DiggMap:    make(map[uint]int),
-		FavorMap:   make(map[uint]int),
-		CommentMap: make(map[uint]int),
+		ViewMap:    make(map[ctype.ID]int),
+		DiggMap:    make(map[ctype.ID]int),
+		FavorMap:   make(map[ctype.ID]int),
+		CommentMap: make(map[ctype.ID]int),
 	}
 	if global.Redis == nil || len(articleIDs) == 0 {
 		return counters
@@ -156,16 +157,16 @@ func GetBatchCounters(articleIDs []uint) BatchCounters {
 	return counters
 }
 
-func buildBatchFields(articleIDs []uint) []string {
+func buildBatchFields(articleIDs []ctype.ID) []string {
 	fields := make([]string, 0, len(articleIDs))
 	for _, articleID := range articleIDs {
-		fields = append(fields, strconv.Itoa(int(articleID)))
+		fields = append(fields, articleID.String())
 	}
 	return fields
 }
 
-func decodeBatchValues(articleIDs []uint, values []any) map[uint]int {
-	result := make(map[uint]int, len(articleIDs))
+func decodeBatchValues(articleIDs []ctype.ID, values []any) map[ctype.ID]int {
+	result := make(map[ctype.ID]int, len(articleIDs))
 	for i, raw := range values {
 		if raw == nil || i >= len(articleIDs) {
 			continue
@@ -179,16 +180,16 @@ func decodeBatchValues(articleIDs []uint, values []any) map[uint]int {
 	return result
 }
 
-func GetAllCacheView() map[uint]int {
+func GetAllCacheView() map[ctype.ID]int {
 	return GetAll(ArticleCacheView)
 }
-func GetAllCacheDigg() map[uint]int {
+func GetAllCacheDigg() map[ctype.ID]int {
 	return GetAll(ArticleCacheDigg)
 }
-func GetAllCacheFavorite() map[uint]int {
+func GetAllCacheFavorite() map[ctype.ID]int {
 	return GetAll(ArticleCacheFavorite)
 }
-func GetAllCacheComment() map[uint]int {
+func GetAllCacheComment() map[ctype.ID]int {
 	return GetAll(ArticleCacheComment)
 }
 

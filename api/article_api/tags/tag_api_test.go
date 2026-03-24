@@ -6,6 +6,7 @@ import (
 	"myblogx/conf"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
@@ -140,7 +141,7 @@ func TestTagCRUDAndOptions(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{tag.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{tag.ID}})
 		api.TagDeleteView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("删除标签失败, body=%s", w.Body.String())

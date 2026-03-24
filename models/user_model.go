@@ -3,6 +3,7 @@
 package models
 
 import (
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"time"
 
@@ -53,14 +54,14 @@ func (u *UserModel) CodeAge() int {
 }
 
 type UserConfModel struct {
-	UserID                   uint       `gorm:"primaryKey" json:"user_id"`
+	UserID                   ctype.ID   `gorm:"primaryKey;autoIncrement:false" json:"user_id"`
 	UserModel                UserModel  `gorm:"foreignKey:UserID;references:ID" json:"-"`
-	LikeTags                 []uint     `gorm:"type:longtext;serializer:json" json:"like_tags"` // 用户偏好标签，关联公共文章标签 ID
+	LikeTags                 []ctype.ID `gorm:"type:longtext;serializer:json" json:"like_tags"` // 用户偏好标签，关联公共文章标签 ID
 	UpdatedUsernameDate      *time.Time `json:"updated_username_date"`                          // 上次修改用户名的时间
 	FavoritesVisibility      bool       `json:"favorites_visibility"`                           // 收藏夹是否可见
 	FollowVisibility         bool       `json:"followers_visibility"`                           // 关注是否可见
 	FansVisibility           bool       `json:"fans_visibility"`                                // 粉丝是否可见
-	HomeStyleID              uint       `json:"home_style_id"`                                  // 首页样式ID
+	HomeStyleID              ctype.ID   `json:"home_style_id"`                                  // 首页样式ID
 	DiggNoticeEnabled        bool       `json:"digg_notice_enabled"`                            // 是否开启点赞通知
 	CommentNoticeEnabled     bool       `json:"comment_notice_enabled"`                         // 是否开启评论通知
 	FavorNoticeEnabled       bool       `json:"favor_notice_enabled"`                           // 是否开启收藏通知

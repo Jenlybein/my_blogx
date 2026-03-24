@@ -1,16 +1,18 @@
-package db_service
+package db_service_test
 
 import (
 	"testing"
 
 	"myblogx/models"
+	"myblogx/models/ctype"
+	dbservice "myblogx/service/db_service"
 	"myblogx/test/testutil"
 )
 
 type softDeleteUniqueTestModel struct {
 	models.Model
-	UserID    uint   `gorm:"uniqueIndex:uk_soft_delete_unique_test,priority:1"`
-	Title     string `gorm:"size:64;uniqueIndex:uk_soft_delete_unique_test,priority:2"`
+	UserID    ctype.ID `gorm:"uniqueIndex:uk_soft_delete_unique_test,priority:1"`
+	Title     string   `gorm:"size:64;uniqueIndex:uk_soft_delete_unique_test,priority:2"`
 	Remark    string
 	Sort      int
 	IsEnabled bool
@@ -20,7 +22,7 @@ func TestRestoreOrCreateUnique(t *testing.T) {
 	db := testutil.SetupSQLite(t, &softDeleteUniqueTestModel{})
 
 	t.Run("创建新记录", func(t *testing.T) {
-		ok, err := RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
+		ok, err := dbservice.RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
 			UserID: 1,
 			Title:  "created",
 			Remark: "v1",
@@ -48,7 +50,7 @@ func TestRestoreOrCreateUnique(t *testing.T) {
 			t.Fatalf("软删记录失败: %v", err)
 		}
 
-		ok, err := RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
+		ok, err := dbservice.RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
 			UserID:    2,
 			Title:     "restored",
 			Remark:    "",
@@ -90,7 +92,7 @@ func TestRestoreOrCreateUnique(t *testing.T) {
 			t.Fatalf("准备活记录失败: %v", err)
 		}
 
-		ok, err := RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
+		ok, err := dbservice.RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
 			UserID: 3,
 			Title:  "existing",
 			Remark: "new",
@@ -104,7 +106,7 @@ func TestRestoreOrCreateUnique(t *testing.T) {
 	})
 
 	t.Run("空匹配字段应报错", func(t *testing.T) {
-		ok, err := RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
+		ok, err := dbservice.RestoreOrCreateUnique(db, &softDeleteUniqueTestModel{
 			UserID: 4,
 			Title:  "invalid",
 		}, nil)
@@ -118,7 +120,7 @@ func TestRestoreOrCreateUnique(t *testing.T) {
 
 	t.Run("空指针应报错", func(t *testing.T) {
 		var row *softDeleteUniqueTestModel
-		ok, err := RestoreOrCreateUnique(db, row, []string{"user_id", "title"})
+		ok, err := dbservice.RestoreOrCreateUnique(db, row, []string{"user_id", "title"})
 		if err == nil {
 			t.Fatal("空指针应返回错误")
 		}

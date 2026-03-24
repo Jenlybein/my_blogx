@@ -5,6 +5,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
@@ -71,8 +72,8 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 
 	var (
 		tagList   []models.TagModel
-		oldTagIDs []uint
-		newTagIDs []uint
+		oldTagIDs []ctype.ID
+		newTagIDs []ctype.ID
 		err       error
 	)
 	if cr.TagIDs != nil {
@@ -114,11 +115,11 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 
 	if cr.TagIDs != nil {
 		applyTagArticleCountDelta(buildTagArticleCountDelta(oldTagIDs, newTagIDs))
-		if err := es_service.UpdateESDocsTags([]uint{article.ID}); err != nil {
+		if err := es_service.UpdateESDocsTags([]ctype.ID{article.ID}); err != nil {
 			global.Logger.Errorf("更新文章标签后刷新 ES 标签失败 article_id=%d err=%v", article.ID, err)
 		}
 	} else if cr.Content != nil {
-		if err := es_service.UpdateESDocsContent([]uint{article.ID}); err != nil {
+		if err := es_service.UpdateESDocsContent([]ctype.ID{article.ID}); err != nil {
 			global.Logger.Errorf("更新文章正文后刷新 ES 文档失败 article_id=%d err=%v", article.ID, err)
 		}
 	}

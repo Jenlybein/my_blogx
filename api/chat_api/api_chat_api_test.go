@@ -10,6 +10,7 @@ import (
 	"myblogx/common"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/models/enum/chat_msg_enum"
 	"myblogx/service/chat_service"
@@ -371,7 +372,7 @@ func TestChatMsgDeleteUserView(t *testing.T) {
 	}
 
 	c, w := newChatMsgDeleteCtx(t, users.owner, ChatMsgDeleteUserRequest{
-		MsgIDList: []uint{msgs[0].ID, msgs[1].ID, msgs[2].ID, 99999},
+		MsgIDList: []ctype.ID{msgs[0].ID, msgs[1].ID, msgs[2].ID, 99999},
 	})
 	api.ChatMsgDeleteUserView(c)
 
@@ -413,7 +414,7 @@ func TestChatMsgReadUserView(t *testing.T) {
 	}
 
 	c, w := newChatMsgReadCtx(t, users.owner, ChatMsgReadUserRequest{
-		MsgIDList: []uint{msgs[0].ID, msgs[1].ID, msgs[3].ID, msgs[4].ID, 99999},
+		MsgIDList: []ctype.ID{msgs[0].ID, msgs[1].ID, msgs[3].ID, msgs[4].ID, 99999},
 	})
 	api.ChatMsgReadUserView(c)
 
@@ -423,7 +424,7 @@ func TestChatMsgReadUserView(t *testing.T) {
 	}
 
 	var readMsgs []models.ChatMsgModel
-	if err := global.DB.Find(&readMsgs, "id IN ?", []uint{msgs[0].ID, msgs[3].ID}).Error; err != nil {
+	if err := global.DB.Find(&readMsgs, "id IN ?", []ctype.ID{msgs[0].ID, msgs[3].ID}).Error; err != nil {
 		t.Fatalf("查询已读消息失败: %v", err)
 	}
 	for _, item := range readMsgs {
@@ -496,7 +497,7 @@ func TestChatMsgReadUserViewPushesReadReceiptToSender(t *testing.T) {
 	}
 
 	c, w := newChatMsgReadCtx(t, users.owner, ChatMsgReadUserRequest{
-		MsgIDList: []uint{msg.ID},
+		MsgIDList: []ctype.ID{msg.ID},
 	})
 	api.ChatMsgReadUserView(c)
 
@@ -578,7 +579,7 @@ func TestChatMsgReadUserViewDecreasesUnreadCountByMatchedMessages(t *testing.T) 
 	}
 
 	c, w := newChatMsgReadCtx(t, users.owner, ChatMsgReadUserRequest{
-		MsgIDList: []uint{msgs[2].ID},
+		MsgIDList: []ctype.ID{msgs[2].ID},
 	})
 	api.ChatMsgReadUserView(c)
 
@@ -1260,7 +1261,7 @@ func createChatWSPermissionUser(t *testing.T, username string) models.UserModel 
 	return user
 }
 
-func createFollowRelation(t *testing.T, fansUserID, followedUserID uint) {
+func createFollowRelation(t *testing.T, fansUserID, followedUserID ctype.ID) {
 	t.Helper()
 
 	row := models.UserFollowModel{
@@ -1272,6 +1273,6 @@ func createFollowRelation(t *testing.T, fansUserID, followedUserID uint) {
 	}
 }
 
-func validateChatSendPermission(senderID uint, receiver *models.UserModel) (*chat_service.ChatSendReservation, error) {
+func validateChatSendPermission(senderID ctype.ID, receiver *models.UserModel) (*chat_service.ChatSendReservation, error) {
 	return chat_service.CheckAndReserveChatSend(senderID, receiver)
 }

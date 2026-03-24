@@ -4,6 +4,7 @@ package models
 
 import (
 	"myblogx/global"
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_article"
 
 	"gorm.io/gorm"
@@ -12,7 +13,7 @@ import (
 // 收藏表
 type FavoriteModel struct {
 	Model
-	UserID      uint                    `gorm:"uniqueIndex:uk_favorite_user_title,priority:1;index" json:"user_id"`
+	UserID      ctype.ID                `gorm:"uniqueIndex:uk_favorite_user_title,priority:1;index" json:"user_id"`
 	Title       string                  `gorm:"size:32;uniqueIndex:uk_favorite_user_title,priority:2" json:"title"`
 	Cover       string                  `gorm:"size:256" json:"cover"`
 	Abstract    string                  `gorm:"size:256" json:"abstract"`

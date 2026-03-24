@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"myblogx/global"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +18,7 @@ var (
 )
 
 type Claims struct {
-	UserID   uint          `json:"user_id"`
+	UserID   ctype.ID      `json:"user_id"`
 	Role     enum.RoleType `json:"role"`
 	Username string        `json:"username"`
 }

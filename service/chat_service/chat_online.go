@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"myblogx/models/ctype"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -14,12 +16,12 @@ const chatPushWriteWait = 10 * time.Second
 // 写锁和连接绑定，避免心跳和业务推送并发写同一条连接。
 type ChatConn struct {
 	Conn        *websocket.Conn
-	UserID      uint
+	UserID      ctype.ID
 	ConnectedAt time.Time
 	writeMu     sync.Mutex
 }
 
-func NewChatConn(userID uint, conn *websocket.Conn) *ChatConn {
+func NewChatConn(userID ctype.ID, conn *websocket.Conn) *ChatConn {
 	return &ChatConn{
 		Conn:        conn,
 		UserID:      userID,
@@ -106,12 +108,12 @@ func (c *ChatConn) RunPingLoop(done <-chan struct{}, pingPeriod, writeWait time.
 // 一个用户可能同时有多条连接，例如多个标签页或多个设备。
 type OnlineUserStore struct {
 	mu    sync.RWMutex
-	users map[uint]map[*ChatConn]struct{}
+	users map[ctype.ID]map[*ChatConn]struct{}
 }
 
 func NewOnlineUserStore() *OnlineUserStore {
 	return &OnlineUserStore{
-		users: make(map[uint]map[*ChatConn]struct{}),
+		users: make(map[ctype.ID]map[*ChatConn]struct{}),
 	}
 }
 
@@ -141,13 +143,13 @@ func (s *OnlineUserStore) Unregister(conn *ChatConn) {
 	}
 }
 
-func (s *OnlineUserStore) IsOnline(userID uint) bool {
+func (s *OnlineUserStore) IsOnline(userID ctype.ID) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.users[userID]) > 0
 }
 
-func (s *OnlineUserStore) Count(userID uint) int {
+func (s *OnlineUserStore) Count(userID ctype.ID) int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.users[userID])
@@ -156,7 +158,7 @@ func (s *OnlineUserStore) Count(userID uint) int {
 // Snapshot 返回某个用户当前连接列表的快照。
 // 作用是避免“拿着全局锁去给每条连接发消息”，即避免锁住整个在线池，遍历用户所有连接，一条条写 socket。只要某条连接很慢，全局锁就会被拖住
 // 正确做法是：先加读锁，把当前连接列表复制出来后立刻解锁，再慢慢给这些连接发消息
-func (s *OnlineUserStore) Snapshot(userID uint) []*ChatConn {
+func (s *OnlineUserStore) Snapshot(userID ctype.ID) []*ChatConn {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -169,7 +171,7 @@ func (s *OnlineUserStore) Snapshot(userID uint) []*ChatConn {
 }
 
 // 给某个用户的所有在线连接发一条消息。
-func (s *OnlineUserStore) PushToUser(userID uint, messageType int, data []byte) (successCount int) {
+func (s *OnlineUserStore) PushToUser(userID ctype.ID, messageType int, data []byte) (successCount int) {
 	for _, conn := range s.Snapshot(userID) {
 		_ = conn.SetWriteDeadline(time.Now().Add(chatPushWriteWait))
 		if err := conn.WriteMessage(messageType, data); err != nil {
@@ -182,7 +184,7 @@ func (s *OnlineUserStore) PushToUser(userID uint, messageType int, data []byte) 
 	return successCount
 }
 
-func (s *OnlineUserStore) PushJSONToUser(userID uint, v any) (successCount int) {
+func (s *OnlineUserStore) PushJSONToUser(userID ctype.ID, v any) (successCount int) {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return 0

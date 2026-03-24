@@ -3,6 +3,7 @@ package chat_service
 import (
 	"errors"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/chat_msg_enum"
 	"strings"
 	"time"
@@ -11,8 +12,8 @@ import (
 // ToTextChatRequest 用于创建纯文本消息。
 // 文本消息直接把文本存进 Content，便于后续搜索和预览。
 type ToTextChatRequest struct {
-	SenderID   uint
-	ReceiverID uint
+	SenderID   ctype.ID
+	ReceiverID ctype.ID
 	Text       string
 	SendTime   time.Time
 }
@@ -37,8 +38,8 @@ func ToTextChat(req ToTextChatRequest) (*models.ChatMsgModel, error) {
 // ToImageChat 创建图片消息
 // 图片消息暂时以 JSON 字符串存入 Content，兼容现有单字段模型。
 type ToImageChatRequest struct {
-	SenderID    uint
-	ReceiverID  uint
+	SenderID    ctype.ID
+	ReceiverID  ctype.ID
 	ImageURL    string // 必填，原图或主展示图地址
 	PreviewURL  string // 可选，缩略图地址
 	FileName    string // 可选，原始文件名
@@ -101,8 +102,8 @@ func ToImageChat(req ToImageChatRequest) (*models.ChatMsgModel, error) {
 // ToMarkdownChatRequest 用于创建 Markdown 消息。
 // Markdown 原文与摘要一起序列化，方便后续列表页直接复用摘要。
 type ToMarkdownChatRequest struct {
-	SenderID   uint
-	ReceiverID uint
+	SenderID   ctype.ID
+	ReceiverID ctype.ID
 	Title      string
 	Markdown   string
 	Summary    string

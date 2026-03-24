@@ -6,6 +6,7 @@ import (
 	"myblogx/conf"
 	"myblogx/global"
 	blogmodels "myblogx/models"
+	"myblogx/service/db_service"
 	"net/http"
 	"reflect"
 	"strings"
@@ -26,6 +27,12 @@ func InitGlobals() {
 
 	if global.Config == nil {
 		global.Config = &conf.Config{}
+	}
+	if global.Config.System.ServerID == 0 {
+		global.Config.System.ServerID = 1
+	}
+	if err := db_service.InitSnowflake(global.Config.System.ServerID); err != nil {
+		panic(fmt.Errorf("初始化测试雪花 ID 生成器失败: %w", err))
 	}
 }
 

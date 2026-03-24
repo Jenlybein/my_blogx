@@ -4,12 +4,13 @@ import (
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (TagsApi) ArticleTagOptionsView(c *gin.Context) {
-	var list []models.OptionsResponse[uint]
+	var list []models.OptionsResponse[ctype.ID]
 	if err := global.DB.Model(&models.TagModel{}).
 		Where("is_enabled = ?", true).
 		Order("sort desc, id asc").

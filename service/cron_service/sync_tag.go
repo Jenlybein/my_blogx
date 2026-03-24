@@ -6,6 +6,7 @@ import (
 
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_tag"
 
 	"gorm.io/gorm"
@@ -29,7 +30,7 @@ func SyncTag() {
 	})
 }
 
-func applyTagArticleCountDeltaToDB(tagID uint, delta int) error {
+func applyTagArticleCountDeltaToDB(tagID ctype.ID, delta int) error {
 	expr := "CASE WHEN article_count + ? < 0 THEN 0 ELSE article_count + ? END"
 	db := global.DB.Model(&models.TagModel{}).
 		Where("id = ?", tagID).

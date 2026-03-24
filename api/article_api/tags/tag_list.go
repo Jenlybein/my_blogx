@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_tag"
 
 	"github.com/gin-gonic/gin"
@@ -32,7 +33,7 @@ func (TagsApi) TagListView(c *gin.Context) {
 		return
 	}
 
-	tagIDs := make([]uint, 0, len(list))
+	tagIDs := make([]ctype.ID, 0, len(list))
 	for _, item := range list {
 		tagIDs = append(tagIDs, item.ID)
 	}

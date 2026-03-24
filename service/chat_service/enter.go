@@ -5,6 +5,7 @@ import (
 
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/chat_msg_enum"
 
 	"gorm.io/gorm"
@@ -15,8 +16,8 @@ type ChatService struct {
 
 // ToChat 创建一条聊天消息
 type ToChatRequest struct {
-	SenderID   uint
-	ReceiverID uint
+	SenderID   ctype.ID
+	ReceiverID ctype.ID
 	MsgType    chat_msg_enum.MsgType
 	Content    string
 	SendTime   time.Time

@@ -7,6 +7,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/utils/info_check"
 	"myblogx/utils/jwts"
 	"myblogx/utils/maps"
@@ -20,11 +21,11 @@ type UserInfoUpdateRequest struct {
 	Nickname            *string `json:"nickname"`
 	Avatar              *string `json:"avatar"`
 	Abstract            *string `json:"abstract"`
-	LikeTags            *[]uint `json:"like_tags"`
+	LikeTags            *[]ctype.ID `json:"like_tags"`
 	FavoritesVisibility *bool   `json:"favorites_visibility"`
 	FollowVisibility    *bool   `json:"followers_visibility"`
 	FansVisibility      *bool   `json:"fans_visibility"`
-	HomeStyleID         *uint   `json:"home_style_id"`
+	HomeStyleID         *ctype.ID `json:"home_style_id"`
 }
 
 func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
@@ -120,10 +121,10 @@ func (ProfileApi) UserInfoUpdateView(c *gin.Context) {
 	res.OkWithMsg("用户信息更新成功", c)
 }
 
-func validateLikeTagIDs(tagIDs []uint) ([]uint, error) {
-	normalized := normalizeUintIDs(tagIDs)
+func validateLikeTagIDs(tagIDs []ctype.ID) ([]ctype.ID, error) {
+	normalized := normalizeIDs(tagIDs)
 	if len(normalized) == 0 {
-		return []uint{}, nil
+		return []ctype.ID{}, nil
 	}
 
 	var count int64
@@ -138,9 +139,9 @@ func validateLikeTagIDs(tagIDs []uint) ([]uint, error) {
 	return normalized, nil
 }
 
-func normalizeUintIDs(ids []uint) []uint {
-	result := make([]uint, 0, len(ids))
-	seen := make(map[uint]struct{}, len(ids))
+func normalizeIDs(ids []ctype.ID) []ctype.ID {
+	result := make([]ctype.ID, 0, len(ids))
+	seen := make(map[ctype.ID]struct{}, len(ids))
 	for _, id := range ids {
 		if id == 0 {
 			continue

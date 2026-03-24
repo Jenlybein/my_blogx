@@ -5,6 +5,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/utils/maps"
 
@@ -12,7 +13,7 @@ import (
 )
 
 type AdminUserInfoUpdateRequest struct {
-	UserID   uint           `json:"user_id" binding:"required"`
+	UserID   ctype.ID       `json:"user_id" binding:"required"`
 	Username *string        `json:"username"`
 	Nickname *string        `json:"nickname"`
 	Avatar   *string        `json:"avatar"`

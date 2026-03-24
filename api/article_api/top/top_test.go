@@ -5,6 +5,7 @@ import (
 	"myblogx/conf"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
@@ -58,7 +59,7 @@ func setupTopEnv(t *testing.T) (models.UserModel, models.UserModel) {
 	return user, admin
 }
 
-func createTopArticle(t *testing.T, authorID uint, title string, status enum.ArticleStatus) models.ArticleModel {
+func createTopArticle(t *testing.T, authorID ctype.ID, title string, status enum.ArticleStatus) models.ArticleModel {
 	t.Helper()
 	article := models.ArticleModel{
 		Title:    title,
@@ -263,8 +264,8 @@ func TestArticleTopListViewByAuthor(t *testing.T) {
 	}
 
 	first := list[0].(map[string]any)
-	if got := uint(first["id"].(float64)); got != article2.ID {
-		t.Fatalf("作者置顶应按最新置顶时间倒序, got=%d want=%d", got, article2.ID)
+	if got := first["id"].(string); got != article2.ID.String() {
+		t.Fatalf("作者置顶应按最新置顶时间倒序, got=%s want=%s", got, article2.ID.String())
 	}
 	if top, ok := first["user_top"].(bool); !ok || !top {
 		t.Fatalf("作者置顶标记错误, got=%#v", first["user_top"])
@@ -333,8 +334,8 @@ func TestArticleTopListViewByAdminDeduplicatesArticles(t *testing.T) {
 	}
 
 	first := list[0].(map[string]any)
-	if got := uint(first["id"].(float64)); got != article1.ID {
-		t.Fatalf("管理员置顶应按最新置顶时间倒序, got=%d want=%d", got, article1.ID)
+	if got := first["id"].(string); got != article1.ID.String() {
+		t.Fatalf("管理员置顶应按最新置顶时间倒序, got=%s want=%s", got, article1.ID.String())
 	}
 	if top, ok := first["admin_top"].(bool); !ok || !top {
 		t.Fatalf("管理员置顶标记错误, got=%#v", first["admin_top"])

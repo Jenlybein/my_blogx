@@ -108,7 +108,7 @@ func TestCommentReplyListView(t *testing.T) {
 		if reply1Item == nil {
 			t.Fatalf("未返回 reply1: %+v", list)
 		}
-		if int(reply1Item["reply_id"].(float64)) != int(root.ID) {
+		if reply1Item["reply_id"].(string) != root.ID.String() {
 			t.Fatalf("reply_id 错误: %+v", reply1Item)
 		}
 		if int(reply1Item["reply_count"].(float64)) != 4 {
@@ -116,6 +116,9 @@ func TestCommentReplyListView(t *testing.T) {
 		}
 		if int(reply1Item["digg_count"].(float64)) != 3 {
 			t.Fatalf("二级评论 digg_count 未叠加缓存: %+v", reply1Item)
+		}
+		if reply1Item["user_id"].(string) != user2.ID.String() {
+			t.Fatalf("user_id 应按字符串返回: %+v", reply1Item)
 		}
 	})
 

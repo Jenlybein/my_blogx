@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/chat_msg_enum"
 	"myblogx/service/chat_service"
 	"myblogx/utils/jwts"
@@ -40,7 +41,7 @@ func (ChatApi) ChatMsgReadUserView(c *gin.Context) {
 	now := time.Now()
 
 	// 从消息列表中提取主键 id，供批量更新消息状态使用
-	msgIDList := make([]uint, 0, len(msgList))
+	msgIDList := make([]ctype.ID, 0, len(msgList))
 
 	// 统计本次每个会话实际减少的未读数量
 	sessionUnreadDelta := make(map[string]int, len(msgList))
@@ -81,18 +82,18 @@ func (ChatApi) ChatMsgReadUserView(c *gin.Context) {
 }
 
 // buildChatMsgReadPushMap 按发送方和会话维度整理已读回执，避免一条消息触发一条 ws 推送。
-func buildChatMsgReadPushMap(msgList []models.ChatMsgModel, readerID uint, readAt time.Time) map[uint][]ChatMsgReadPush {
-	groupMap := make(map[uint]map[string][]uint)
+func buildChatMsgReadPushMap(msgList []models.ChatMsgModel, readerID ctype.ID, readAt time.Time) map[ctype.ID][]ChatMsgReadPush {
+	groupMap := make(map[ctype.ID]map[string][]ctype.ID)
 	for _, item := range msgList {
 		sessionMap, ok := groupMap[item.SenderID]
 		if !ok {
-			sessionMap = make(map[string][]uint)
+			sessionMap = make(map[string][]ctype.ID)
 			groupMap[item.SenderID] = sessionMap
 		}
 		sessionMap[item.SessionID] = append(sessionMap[item.SessionID], item.ID)
 	}
 
-	pushMap := make(map[uint][]ChatMsgReadPush, len(groupMap))
+	pushMap := make(map[ctype.ID][]ChatMsgReadPush, len(groupMap))
 	for senderID, sessionMap := range groupMap {
 		pushList := make([]ChatMsgReadPush, 0, len(sessionMap))
 		for sessionID, msgIDList := range sessionMap {
@@ -110,7 +111,7 @@ func buildChatMsgReadPushMap(msgList []models.ChatMsgModel, readerID uint, readA
 }
 
 // 按本次批量已读命中的消息数量递减会话未读数，保证未读数不会减成负数。
-func decreaseChatSessionUnreadCount(tx *gorm.DB, userID uint, sessionUnreadDelta map[string]int) error {
+func decreaseChatSessionUnreadCount(tx *gorm.DB, userID ctype.ID, sessionUnreadDelta map[string]int) error {
 	if len(sessionUnreadDelta) == 0 {
 		return nil
 	}

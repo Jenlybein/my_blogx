@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/service/redis_service/redis_comment"
@@ -199,7 +200,7 @@ func TestCommentCreateView(t *testing.T) {
 	})
 
 	t.Run("回复评论不存在", func(t *testing.T) {
-		missing := uint(123456)
+		missing := ctype.ID(123456)
 		c, w := newCommentCtx()
 		c.Set("claims", claims)
 		c.Set("requestJson", CommentCreateRequest{

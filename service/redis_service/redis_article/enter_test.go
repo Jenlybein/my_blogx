@@ -1,6 +1,7 @@
 package redis_article_test
 
 import (
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/test/testutil"
 	"testing"
@@ -69,7 +70,7 @@ func TestGetBatchCounters(t *testing.T) {
 		t.Fatalf("SetCacheComment 失败: %v", err)
 	}
 
-	counters := redis_article.GetBatchCounters([]uint{1, 2, 3})
+	counters := redis_article.GetBatchCounters([]ctype.ID{1, 2, 3})
 	if counters.ViewMap[1] != 3 || counters.ViewMap[2] != 5 {
 		t.Fatalf("view 批量计数异常: %+v", counters.ViewMap)
 	}

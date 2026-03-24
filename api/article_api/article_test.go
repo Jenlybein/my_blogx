@@ -8,6 +8,7 @@ import (
 	confsite "myblogx/conf/site"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/models/enum/message_enum"
 	"myblogx/test/testutil"
@@ -252,7 +253,7 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 			Title:          "t1",
 			Content:        "content",
 			CategoryID:     &cat.ID,
-			TagIDs:         []uint{tag.ID},
+			TagIDs:         []ctype.ID{tag.ID},
 			CommentsToggle: true,
 			Status:         enum.ArticleStatusExamining,
 		})
@@ -288,7 +289,7 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 			Title:          ptrOf("t1-updated"),
 			Content:        ptrOf("new content"),
 			CategoryID:     &cat.ID,
-			TagIDs:         &[]uint{tag.ID},
+			TagIDs:         &[]ctype.ID{tag.ID},
 			CommentsToggle: ptrOf(false),
 		})
 		api.ArticleUpdateView(c)
@@ -329,7 +330,7 @@ func TestArticleCreateUpdateExamineAndRemove(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{created.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{created.ID}})
 		api.ArticleRemoveView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("删除文章失败, code=%d body=%s", code, w.Body.String())
@@ -441,7 +442,7 @@ func TestArticleUpdateViewCategoryIDZeroClearsCategory(t *testing.T) {
 
 	api := ArticleApi{}
 	claims := &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Role: enum.RoleUser, Username: user.Username}}
-	clearID := uint(0)
+	clearID := ctype.ID(0)
 
 	{
 		c, w := newCtx()
@@ -456,11 +457,12 @@ func TestArticleUpdateViewCategoryIDZeroClearsCategory(t *testing.T) {
 		}
 	}
 
-	if err := db.Take(&article, article.ID).Error; err != nil {
+	var updated models.ArticleModel
+	if err := db.Take(&updated, article.ID).Error; err != nil {
 		t.Fatalf("回查清空分类后的文章失败: %v", err)
 	}
-	if article.CategoryID != nil {
-		t.Fatalf("传 category_id=0 应清空分类, got=%v", *article.CategoryID)
+	if updated.CategoryID != nil {
+		t.Fatalf("传 category_id=0 应清空分类, got=%v", *updated.CategoryID)
 	}
 }
 

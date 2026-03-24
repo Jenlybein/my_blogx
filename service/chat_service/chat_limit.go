@@ -3,6 +3,7 @@ package chat_service
 import (
 	"errors"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/relationship_enum"
 	"myblogx/service/follow_service"
 	"myblogx/service/redis_service/redis_chat"
@@ -15,8 +16,8 @@ type ChatSendReservation struct {
 	minuteReservation *redis_chat.MinuteReservation
 	weekReservation   *redis_chat.WeekQuotaReservation
 	resetWeekQuota    bool
-	senderID          uint
-	receiverID        uint
+	senderID          ctype.ID
+	receiverID        ctype.ID
 	now               time.Time
 }
 
@@ -48,7 +49,7 @@ func (r *ChatSendReservation) Rollback() error {
 }
 
 // CheckAndReserveChatSend 统一处理聊天发送前的权限校验与 Redis 额度预占。
-func CheckAndReserveChatSend(senderID uint, receiver *models.UserModel) (*ChatSendReservation, error) {
+func CheckAndReserveChatSend(senderID ctype.ID, receiver *models.UserModel) (*ChatSendReservation, error) {
 	// 关系权限校验
 	// 陌生人：如果用户设置接收陌生人消息才允许发送，每周只允许发一条消息
 	// 好友：好友之间可以互发消息

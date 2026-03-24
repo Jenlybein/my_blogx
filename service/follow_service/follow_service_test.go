@@ -5,6 +5,7 @@ import (
 
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/relationship_enum"
 	"myblogx/test/testutil"
 )
@@ -68,7 +69,7 @@ func TestCalUserRelationshipBatch(t *testing.T) {
 	createFollow(t, users.owner.ID, users.followedA.ID)
 	createFollow(t, users.followedA.ID, users.owner.ID)
 
-	got := CalUserRelationshipBatch(users.owner.ID, []uint{
+	got := CalUserRelationshipBatch(users.owner.ID, []ctype.ID{
 		users.fansA.ID,
 		users.fansB.ID,
 		users.followedA.ID,
@@ -90,7 +91,7 @@ func TestCalUserRelationshipBatchKeepsUnknownUsersAsStranger(t *testing.T) {
 	users := setupFollowEnv(t)
 	createFollow(t, users.owner.ID, users.followedA.ID)
 
-	got := CalUserRelationshipBatch(users.owner.ID, []uint{
+	got := CalUserRelationshipBatch(users.owner.ID, []ctype.ID{
 		users.followedA.ID,
 		users.followedA.ID,
 		users.outsider.ID,
@@ -129,7 +130,7 @@ func createFollowUser(t *testing.T, username string) models.UserModel {
 	return user
 }
 
-func createFollow(t *testing.T, fansUserID, followedUserID uint) {
+func createFollow(t *testing.T, fansUserID, followedUserID ctype.ID) {
 	t.Helper()
 
 	row := models.UserFollowModel{
@@ -141,7 +142,7 @@ func createFollow(t *testing.T, fansUserID, followedUserID uint) {
 	}
 }
 
-func assertRelation(t *testing.T, relationMap map[uint]relationship_enum.Relation, userID uint, expect relationship_enum.Relation) {
+func assertRelation(t *testing.T, relationMap map[ctype.ID]relationship_enum.Relation, userID ctype.ID, expect relationship_enum.Relation) {
 	t.Helper()
 
 	got, ok := relationMap[userID]

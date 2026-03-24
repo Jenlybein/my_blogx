@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/message_service"
 	"myblogx/service/redis_service/redis_article"
@@ -18,8 +19,8 @@ import (
 
 type CommentCreateRequest struct {
 	Content   string `json:"content" binding:"required"`
-	ArticleID uint   `json:"article_id" binding:"required"`
-	ReplyId   *uint  `json:"reply_id"`
+	ArticleID ctype.ID `json:"article_id" binding:"required"`
+	ReplyId   *ctype.ID `json:"reply_id"`
 }
 
 func (CommentApi) CommentCreateView(c *gin.Context) {
@@ -44,7 +45,7 @@ func (CommentApi) CommentCreateView(c *gin.Context) {
 		ArticleID: cr.ArticleID,
 		Status:    status,
 	}
-	var rootCommentID uint
+	var rootCommentID ctype.ID
 
 	// 只做两级评论：回复二级评论时，仍挂到同一个一级评论下
 	var replyComment models.CommentModel

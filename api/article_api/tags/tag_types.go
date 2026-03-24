@@ -3,10 +3,11 @@ package tags
 import (
 	"myblogx/common"
 	"myblogx/models"
+	"myblogx/models/ctype"
 )
 
 type TagRequest struct {
-	ID          uint   `json:"id"`
+	ID          ctype.ID `json:"id"`
 	Title       string `json:"title" binding:"required,min=1,max=64"`
 	Sort        int    `json:"sort" default:"0"`
 	Description string `json:"description" binding:"max=255"`

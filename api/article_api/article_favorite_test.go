@@ -5,6 +5,7 @@ import (
 	"myblogx/common"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/utils/jwts"
 	"net/http"
@@ -109,7 +110,7 @@ func TestFavoriteCreateUpdateListDelete(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{}})
 		req := httptest.NewRequest(http.MethodDelete, "/favorites", nil)
 		token, _ := jwts.GetToken(jwts.Claims{UserID: user.ID, Role: enum.RoleUser, Username: user.Username})
 		req.Header.Set("token", token)
@@ -139,7 +140,7 @@ func TestFavoriteCreateUpdateListDelete(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{fav.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{fav.ID}})
 		req := httptest.NewRequest(http.MethodDelete, "/favorites", nil)
 		token, _ := jwts.GetToken(jwts.Claims{UserID: user.ID, Role: enum.RoleUser, Username: user.Username})
 		req.Header.Set("token", token)

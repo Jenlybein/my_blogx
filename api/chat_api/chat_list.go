@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/chat_msg_enum"
 	"myblogx/utils/jwts"
 	"time"
@@ -145,12 +146,12 @@ func (a *ChatApi) ChatMsgListView(c *gin.Context) {
 	res.OkWithList(respList, count, c)
 }
 
-func loadChatMsgDeletedAtMap(userID uint, sessionID string, allowUnscoped bool, msgList []models.ChatMsgModel) (map[uint]time.Time, error) {
+func loadChatMsgDeletedAtMap(userID ctype.ID, sessionID string, allowUnscoped bool, msgList []models.ChatMsgModel) (map[ctype.ID]time.Time, error) {
 	if !allowUnscoped || len(msgList) == 0 {
 		return nil, nil
 	}
 
-	msgIDList := make([]uint, 0, len(msgList))
+	msgIDList := make([]ctype.ID, 0, len(msgList))
 	for _, item := range msgList {
 		msgIDList = append(msgIDList, item.ID)
 	}
@@ -162,7 +163,7 @@ func loadChatMsgDeletedAtMap(userID uint, sessionID string, allowUnscoped bool, 
 		return nil, err
 	}
 
-	stateMap := make(map[uint]time.Time, len(stateList))
+	stateMap := make(map[ctype.ID]time.Time, len(stateList))
 	for _, item := range stateList {
 		if item.DeletedAt.Valid {
 			stateMap[item.MsgID] = item.DeletedAt.Time

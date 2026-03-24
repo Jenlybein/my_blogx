@@ -7,6 +7,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
@@ -87,7 +88,7 @@ func (FavoriteApi) FavoriteArticlesView(c *gin.Context) {
 		return
 	}
 
-	favorMap := make(map[uint]models.UserArticleFavorModel, len(favorArticles))
+	favorMap := make(map[ctype.ID]models.UserArticleFavorModel, len(favorArticles))
 	for _, item := range favorArticles {
 		favorMap[item.ArticleID] = item
 	}
@@ -128,7 +129,7 @@ func (FavoriteApi) FavoriteArticlesView(c *gin.Context) {
 	res.OkWithList(list, count, c)
 }
 
-func getAccessibleFavorite(c *gin.Context, favoriteID uint, claims *jwts.MyClaims) (*models.FavoriteModel, error) {
+func getAccessibleFavorite(c *gin.Context, favoriteID ctype.ID, claims *jwts.MyClaims) (*models.FavoriteModel, error) {
 	var favoriteModel models.FavoriteModel
 	if err := global.DB.Take(&favoriteModel, "id = ?", favoriteID).Error; err != nil {
 		res.FailWithMsg("收藏夹不存在", c)

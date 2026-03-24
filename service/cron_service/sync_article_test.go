@@ -4,9 +4,9 @@ import (
 	"context"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/cron_service"
 	"myblogx/test/testutil"
-	"strconv"
 	"testing"
 )
 
@@ -117,8 +117,8 @@ func TestSyncArticleNotBelowZeroAndLockSkip(t *testing.T) {
 	}
 }
 
-func testutilSetupCounter(key string, articleID uint, delta int) error {
-	return global.Redis.HIncrBy(context.Background(), key, strconv.Itoa(int(articleID)), int64(delta)).Err()
+func testutilSetupCounter(key string, articleID ctype.ID, delta int) error {
+	return global.Redis.HIncrBy(context.Background(), key, articleID.String(), int64(delta)).Err()
 }
 
 func testutilSetKey(key, value string) error {

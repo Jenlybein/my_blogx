@@ -5,6 +5,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/service/redis_service/redis_comment"
@@ -58,7 +59,7 @@ func (CommentApi) CommentRemoveView(c *gin.Context) {
 		return
 	}
 
-	deleteIDs := make([]uint, 0, len(deleteList))
+	deleteIDs := make([]ctype.ID, 0, len(deleteList))
 	articleDelta := 0
 	for _, item := range deleteList {
 		deleteIDs = append(deleteIDs, item.ID)

@@ -6,6 +6,7 @@ import (
 	"myblogx/conf"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
@@ -155,7 +156,7 @@ func TestFavoriteCRUD(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/favorite", nil)
 		req.Header.Set("token", token)
 		c.Request = req
@@ -184,7 +185,7 @@ func TestFavoriteCRUD(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{fav.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{fav.ID}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/favorite", nil)
 		req.Header.Set("token", token)
 		c.Request = req
@@ -438,7 +439,7 @@ func TestFavoriteRemovePatchView(t *testing.T) {
 		}})
 		c.Set("requestJson", FavoriteRemovePatchModel{
 			FavoriteID: favoriteOne.ID,
-			Articles:   []uint{articles[0].ID},
+			Articles:   []ctype.ID{articles[0].ID},
 		})
 		api.FavoriteRemovePatchView(c)
 		if code := readCode(t, w); code == 0 {
@@ -455,7 +456,7 @@ func TestFavoriteRemovePatchView(t *testing.T) {
 		}})
 		c.Set("requestJson", FavoriteRemovePatchModel{
 			FavoriteID: favoriteOne.ID,
-			Articles:   []uint{articles[0].ID, articles[1].ID, articles[2].ID},
+			Articles:   []ctype.ID{articles[0].ID, articles[1].ID, articles[2].ID},
 		})
 		api.FavoriteRemovePatchView(c)
 		if code := readCode(t, w); code != 0 {
@@ -490,7 +491,7 @@ func TestFavoriteRemovePatchView(t *testing.T) {
 		}})
 		c2.Set("requestJson", FavoriteRemovePatchModel{
 			FavoriteID: favoriteOne.ID,
-			Articles:   []uint{articles[0].ID},
+			Articles:   []ctype.ID{articles[0].ID},
 		})
 		api.FavoriteRemovePatchView(c2)
 		if code := readCode(t, w2); code == 0 {

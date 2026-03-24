@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/utils/jwts"
 	"time"
 
@@ -49,7 +50,7 @@ func (ChatApi) ChatMsgDeleteUserView(c *gin.Context) {
 // 1. 会话清空水位之前的旧消息
 // 2. 当前用户单独删除过的消息
 // 管理员查看时不做用户侧删除过滤，只保留会话范围条件。
-func buildChatMsgVisibleWhere(userID uint, sessionID string, clearBeforeMsgID uint, allowUnscoped bool) *gorm.DB {
+func buildChatMsgVisibleWhere(userID ctype.ID, sessionID string, clearBeforeMsgID ctype.ID, allowUnscoped bool) *gorm.DB {
 	query := global.DB
 	if clearBeforeMsgID > 0 {
 		// 会话清空后，只返回水位之后的新消息。
@@ -67,7 +68,7 @@ func buildChatMsgVisibleWhere(userID uint, sessionID string, clearBeforeMsgID ui
 
 // insertChatMsgUserStates 批量写入“用户删除消息”状态。
 // 如果状态已存在，则覆盖删除时间，保证重复删除请求幂等。
-func insertChatMsgUserStates(tx *gorm.DB, userID uint, msgList []models.ChatMsgModel) error {
+func insertChatMsgUserStates(tx *gorm.DB, userID ctype.ID, msgList []models.ChatMsgModel) error {
 	if len(msgList) == 0 {
 		return nil
 	}

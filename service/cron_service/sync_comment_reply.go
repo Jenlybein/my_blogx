@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_comment"
 	"time"
 
@@ -29,7 +30,7 @@ func SyncCommentReply() {
 	})
 }
 
-func applyCommentReplyDelta(commentID uint, delta int) error {
+func applyCommentReplyDelta(commentID ctype.ID, delta int) error {
 	expr := fmt.Sprintf("CASE WHEN %s + ? < 0 THEN 0 ELSE %s + ? END", "reply_count", "reply_count")
 
 	db := global.DB.Model(&models.CommentModel{}).

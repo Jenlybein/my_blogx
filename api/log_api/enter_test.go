@@ -5,6 +5,7 @@ import (
 	"myblogx/api/log_api"
 	"myblogx/common"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/test/testutil"
 	"net/http/httptest"
@@ -76,7 +77,7 @@ func TestLogListReadRemove(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{log.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{log.ID}})
 		api.LogRemoveView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("日志删除失败, code=%d body=%s", code, w.Body.String())

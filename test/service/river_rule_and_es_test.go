@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"myblogx/models/ctype"
 	"myblogx/service/es_service"
 	river_service "myblogx/service/river_service"
 	"myblogx/service/river_service/rule"
@@ -63,7 +64,7 @@ func TestExtractArticles(t *testing.T) {
 	if len(articles) != 1 {
 		t.Fatalf("数量错误: %d", len(articles))
 	}
-	if articles[0].ID != uint(1) || articles[0].Title != "title-1" {
+	if articles[0].ID != ctype.ID(1) || articles[0].Title != "title-1" {
 		t.Fatalf("解析结果异常: %+v", articles[0])
 	}
 }

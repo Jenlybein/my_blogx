@@ -11,6 +11,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
@@ -58,7 +59,7 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 		}
 
 		// 验证文章是否存在并已发布
-		var articleID uint
+		var articleID ctype.ID
 		err := global.DB.Model(&models.ArticleModel{}).
 			Where("id = ? and status = ?", cr.ArticleID, enum.ArticleStatusPublished).
 			Select("id").Take(&articleID).Error

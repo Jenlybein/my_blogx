@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/utils/markdown"
 	"slices"
@@ -57,7 +58,7 @@ func BuildArticleESDocument(article models.ArticleModel, adminTop, authorTop boo
 
 // SyncESDocs 按文章 ID 批量重建 ES 文档。
 // 这里会从数据库重新读取文章、标签和置顶信息，再统一索引到 ES。
-func SyncESDocs(articleIDs []uint) error {
+func SyncESDocs(articleIDs []ctype.ID) error {
 	if global.DB == nil || global.ESClient == nil {
 		return nil
 	}
@@ -107,7 +108,7 @@ func SyncESDocs(articleIDs []uint) error {
 }
 
 // UpdateESDocsTags 在文章标签关系变化后刷新对应文章的 ES 文档。
-func UpdateESDocsTags(articleIDs []uint) error {
+func UpdateESDocsTags(articleIDs []ctype.ID) error {
 	articleIDs = normalizeArticleIDs(articleIDs)
 	if len(articleIDs) == 0 || global.DB == nil || global.ESClient == nil {
 		return nil
@@ -141,7 +142,7 @@ func UpdateESDocsTags(articleIDs []uint) error {
 }
 
 // UpdateESDocsContent 在文章正文变化后刷新对应文章的 ES 文档。
-func UpdateESDocsContent(articleIDs []uint) error {
+func UpdateESDocsContent(articleIDs []ctype.ID) error {
 	articleIDs = normalizeArticleIDs(articleIDs)
 	if len(articleIDs) == 0 || global.DB == nil || global.ESClient == nil {
 		return nil
@@ -179,7 +180,7 @@ func UpdateESDocsContent(articleIDs []uint) error {
 }
 
 // UpdateESDocsTop 在文章置顶状态变化后刷新对应文章的 ES 文档。
-func UpdateESDocsTop(articleIDs []uint) error {
+func UpdateESDocsTop(articleIDs []ctype.ID) error {
 	articleIDs = normalizeArticleIDs(articleIDs)
 	if len(articleIDs) == 0 || global.DB == nil || global.ESClient == nil {
 		return nil
@@ -223,13 +224,13 @@ func applyArticlePartialBulkUpdate(reqs []*BulkRequest, errPrefix string) error 
 	return nil
 }
 
-func normalizeArticleIDs(articleIDs []uint) []uint {
+func normalizeArticleIDs(articleIDs []ctype.ID) []ctype.ID {
 	if len(articleIDs) == 0 {
 		return nil
 	}
 
-	result := make([]uint, 0, len(articleIDs))
-	seen := make(map[uint]struct{}, len(articleIDs))
+	result := make([]ctype.ID, 0, len(articleIDs))
+	seen := make(map[ctype.ID]struct{}, len(articleIDs))
 	for _, articleID := range articleIDs {
 		if articleID == 0 {
 			continue
@@ -244,7 +245,7 @@ func normalizeArticleIDs(articleIDs []uint) []uint {
 	return result
 }
 
-func loadArticlesForES(db *gorm.DB, articleIDs []uint) ([]models.ArticleModel, error) {
+func loadArticlesForES(db *gorm.DB, articleIDs []ctype.ID) ([]models.ArticleModel, error) {
 	var articleList []models.ArticleModel
 	err := db.Select(
 		"id",
@@ -272,7 +273,7 @@ func loadArticlesForES(db *gorm.DB, articleIDs []uint) ([]models.ArticleModel, e
 	return articleList, err
 }
 
-func loadArticlesForESContentUpdate(db *gorm.DB, articleIDs []uint) ([]models.ArticleModel, error) {
+func loadArticlesForESContentUpdate(db *gorm.DB, articleIDs []ctype.ID) ([]models.ArticleModel, error) {
 	var articleList []models.ArticleModel
 	err := db.Select(
 		"id",
@@ -291,7 +292,7 @@ func loadArticlesForESContentUpdate(db *gorm.DB, articleIDs []uint) ([]models.Ar
 	return articleList, err
 }
 
-func loadArticlesForESTags(db *gorm.DB, articleIDs []uint) ([]models.ArticleModel, error) {
+func loadArticlesForESTags(db *gorm.DB, articleIDs []ctype.ID) ([]models.ArticleModel, error) {
 	var articleList []models.ArticleModel
 	err := db.Select("id", "updated_at").
 		Where("id IN ?", articleIDs).
@@ -303,16 +304,16 @@ func loadArticlesForESTags(db *gorm.DB, articleIDs []uint) ([]models.ArticleMode
 	return articleList, err
 }
 
-func loadArticleESTopMap(db *gorm.DB, articleIDs []uint) (map[uint]articleESTop, error) {
-	topMap := make(map[uint]articleESTop, len(articleIDs))
+func loadArticleESTopMap(db *gorm.DB, articleIDs []ctype.ID) (map[ctype.ID]articleESTop, error) {
+	topMap := make(map[ctype.ID]articleESTop, len(articleIDs))
 	if len(articleIDs) == 0 {
 		return topMap, nil
 	}
 
 	type topRow struct {
-		ArticleID uint
-		TopUserID uint
-		AuthorID  uint
+		ArticleID ctype.ID
+		TopUserID ctype.ID
+		AuthorID  ctype.ID
 		Role      enum.RoleType
 	}
 

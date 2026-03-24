@@ -3,6 +3,7 @@ package search_service
 import (
 	"encoding/json"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/test/testutil"
@@ -92,7 +93,7 @@ func TestBuildLikeTagsQueryWithLikeTags(t *testing.T) {
 		t.Fatalf("查询用户配置失败: %v", err)
 	}
 	if err := db.Model(&userConf).Updates(models.UserConfModel{
-		LikeTags: []uint{3, 8},
+		LikeTags: []ctype.ID{3, 8},
 	}).Error; err != nil {
 		t.Fatalf("更新偏好标签失败: %v", err)
 	}
@@ -161,7 +162,7 @@ func TestBuildCategoryIDQuery(t *testing.T) {
 		t.Fatalf("分类 term 结构错误: %#v", filters[1])
 	}
 	categoryTerm, ok := term["term"].(map[string]any)
-	if !ok || categoryTerm["category_id"] != uint(12) {
+	if !ok || categoryTerm["category_id"] != ctype.ID(12) {
 		t.Fatalf("分类过滤条件错误: %#v", term)
 	}
 }
@@ -186,7 +187,7 @@ func TestBuildUserAndCategoryFilters(t *testing.T) {
 		t.Fatalf("作者过滤结构错误: %#v", filters[1])
 	}
 	authorTerm, ok := authorFilter["term"].(map[string]any)
-	if !ok || authorTerm["author_id"] != uint(88) {
+	if !ok || authorTerm["author_id"] != ctype.ID(88) {
 		t.Fatalf("作者过滤条件错误: %#v", authorFilter)
 	}
 
@@ -195,7 +196,7 @@ func TestBuildUserAndCategoryFilters(t *testing.T) {
 		t.Fatalf("分类过滤结构错误: %#v", filters[2])
 	}
 	categoryTerm, ok := categoryFilter["term"].(map[string]any)
-	if !ok || categoryTerm["category_id"] != uint(12) {
+	if !ok || categoryTerm["category_id"] != ctype.ID(12) {
 		t.Fatalf("分类过滤条件错误: %#v", categoryFilter)
 	}
 }
@@ -219,7 +220,7 @@ func TestBuildUserIDQuery(t *testing.T) {
 		t.Fatalf("作者 term 结构错误: %#v", filters[1])
 	}
 	authorTerm, ok := term["term"].(map[string]any)
-	if !ok || authorTerm["author_id"] != uint(88) {
+	if !ok || authorTerm["author_id"] != ctype.ID(88) {
 		t.Fatalf("作者过滤条件错误: %#v", term)
 	}
 }
@@ -241,7 +242,7 @@ func TestBuildSelfArticleSearchQueryDefaultStatus(t *testing.T) {
 		t.Fatalf("作者 term 结构错误: %#v", filters[0])
 	}
 	authorTerm, ok := term["term"].(map[string]any)
-	if !ok || authorTerm["author_id"] != uint(99) {
+	if !ok || authorTerm["author_id"] != ctype.ID(99) {
 		t.Fatalf("我的文章作者过滤错误: %#v", term)
 	}
 

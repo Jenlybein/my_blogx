@@ -2,6 +2,7 @@ package article_api
 
 import (
 	"myblogx/common"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"time"
 )
@@ -10,15 +11,15 @@ type ArticleCreateRequest struct {
 	Title          string             `json:"title" binding:"required"`
 	Abstract       string             `json:"abstract"`
 	Content        string             `json:"content" binding:"required"`
-	CategoryID     *uint              `json:"category_id"`
-	TagIDs         []uint             `json:"tag_ids"`
+	CategoryID     *ctype.ID          `json:"category_id"`
+	TagIDs         []ctype.ID         `json:"tag_ids"`
 	Cover          string             `json:"cover"`
 	CommentsToggle bool               `json:"comments_toggle"`
 	Status         enum.ArticleStatus `json:"status" binding:"required,oneof=1 2"`
 }
 
 type ArticleDetailResponse struct {
-	ID             uint               `gorm:"primaryKey" json:"id"`
+	ID             ctype.ID           `gorm:"primaryKey" json:"id"`
 	CreatedAt      time.Time          `json:"created_at"`
 	UpdatedAt      time.Time          `json:"updated_at"`
 	Title          string             `json:"title"`
@@ -44,22 +45,22 @@ type ArticleExamineRequest struct {
 }
 
 type ArticleFavoriteRequest struct {
-	ArticleID uint `json:"article_id" binding:"required"`
-	FavorID   uint `json:"favor_id"`
+	ArticleID ctype.ID `json:"article_id" binding:"required"`
+	FavorID   ctype.ID `json:"favor_id"`
 }
 
 type ArticleListRequest struct {
 	common.PageInfo
 	// 1 查自己的文章，2 查别人的文章，3 管理员查文章
 	Type       int8               `form:"type" binding:"required,oneof=1 2 3"`
-	UserID     uint               `form:"user_id"`
-	CategoryID *uint              `form:"category_id"`
-	TagID      *uint              `form:"tag_id"`
+	UserID     ctype.ID           `form:"user_id"`
+	CategoryID *ctype.ID          `form:"category_id"`
+	TagID      *ctype.ID          `form:"tag_id"`
 	Status     enum.ArticleStatus `form:"status"`
 }
 
 type ArticleListResponse struct {
-	ID             uint               `json:"id"`
+	ID             ctype.ID           `json:"id"`
 	CreatedAt      time.Time          `json:"created_at"`
 	UpdatedAt      time.Time          `json:"updated_at"`
 	Title          string             `json:"title"`
@@ -84,12 +85,12 @@ type ArticleUpdateRequest struct {
 	Title          *string `json:"title"`
 	Abstract       *string `json:"abstract"`
 	Content        *string `json:"content"`
-	CategoryID     *uint   `json:"category_id"`
-	TagIDs         *[]uint `json:"tag_ids"`
+	CategoryID     *ctype.ID   `json:"category_id"`
+	TagIDs         *[]ctype.ID `json:"tag_ids"`
 	Cover          *string `json:"cover"`
 	CommentsToggle *bool   `json:"comments_toggle"`
 }
 
 type ArticleViewCountRequest struct {
-	ArticleID uint `json:"article_id" binding:"required"`
+	ArticleID ctype.ID `json:"article_id" binding:"required"`
 }

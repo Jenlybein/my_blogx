@@ -2,6 +2,7 @@ package chat_api
 
 import (
 	"myblogx/common"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/chat_msg_enum"
 	"time"
 )
@@ -9,14 +10,14 @@ import (
 type ChatMsgListRequest struct {
 	common.PageInfo
 	SessionID string `form:"session_id" binding:"required"`
-	UserID    uint   `form:"user_id"`
-	Type      int8   `form:"type" binding:"required,oneof=1 2"`
+	UserID    ctype.ID `form:"user_id"`
+	Type      int8     `form:"type" binding:"required,oneof=1 2"`
 }
 
 type ChatSessionListRequest struct {
 	common.PageInfo
-	UserID uint `form:"user_id"`
-	Type   int8 `form:"type" binding:"required,oneof=1 2"`
+	UserID ctype.ID `form:"user_id"`
+	Type   int8     `form:"type" binding:"required,oneof=1 2"`
 }
 
 type ChatSessionDeleteUserRequest struct {
@@ -24,16 +25,16 @@ type ChatSessionDeleteUserRequest struct {
 }
 
 type ChatMsgDeleteUserRequest struct {
-	MsgIDList []uint `json:"msg_id_list" binding:"required"`
+	MsgIDList []ctype.ID `json:"msg_id_list" binding:"required"`
 }
 
 type ChatMsgReadUserRequest struct {
-	MsgIDList []uint `json:"msg_id_list" binding:"required"`
+	MsgIDList []ctype.ID `json:"msg_id_list" binding:"required"`
 }
 
 type ChatSessionListResponse struct {
 	SessionID        string     `json:"session_id"`
-	ReceiverID       uint       `json:"receiver_id"`
+	ReceiverID       ctype.ID   `json:"receiver_id"`
 	ReceiverNickname string     `json:"receiver_nickname"`
 	ReceiverAvatar   string     `json:"receiver_avatar"`
 	LastMsgContent   string     `json:"last_msg_content"`
@@ -45,15 +46,15 @@ type ChatSessionListResponse struct {
 }
 
 type ChatRequest struct {
-	ReceiverID uint                  `json:"receiver_id" binding:"required"`
+	ReceiverID ctype.ID             `json:"receiver_id" binding:"required"`
 	MsgType    chat_msg_enum.MsgType `json:"msg_type" binding:"required,oneof=1 2 7"` // 1 文本 2 图片 7 Markdown
 	Content    string                `json:"content" binding:"required"`
 }
 
 type ChatMsgResponse struct {
-	ID         uint                    `json:"id"`
-	SenderID   uint                    `json:"sender_id"`
-	ReceiverID uint                    `json:"receiver_id"`
+	ID         ctype.ID               `json:"id"`
+	SenderID   ctype.ID               `json:"sender_id"`
+	ReceiverID ctype.ID               `json:"receiver_id"`
 	SessionID  string                  `json:"session_id"`
 	Content    string                  `json:"content"`
 	SendTime   time.Time               `json:"send_time"`
@@ -67,7 +68,7 @@ type ChatMsgResponse struct {
 type ChatMsgReadPush struct {
 	MsgType   chat_msg_enum.MsgType `json:"msg_type"`
 	SessionID string                `json:"session_id"`
-	ReaderID  uint                  `json:"reader_id"`
-	MsgIDList []uint                `json:"msg_id_list"`
+	ReaderID  ctype.ID              `json:"reader_id"`
+	MsgIDList []ctype.ID            `json:"msg_id_list"`
 	ReadAt    time.Time             `json:"read_at"`
 }

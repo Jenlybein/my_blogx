@@ -3,6 +3,7 @@ package message_service_test
 import (
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/message_enum"
 	"myblogx/service/message_service"
 	"myblogx/test/testutil"
@@ -111,16 +112,16 @@ func TestInsertDiggAndFavorMessagesDeduplicate(t *testing.T) {
 	cases := []struct {
 		name        string
 		wantType    message_enum.Type
-		wantArticle uint
-		wantComment uint
+		wantArticle ctype.ID
+		wantComment ctype.ID
 		wantContent string
-		insertTwice func(receiverID, actionUserID uint)
+		insertTwice func(receiverID, actionUserID ctype.ID)
 	}{
 		{
 			name:        "article digg",
 			wantType:    message_enum.DiggArticleType,
 			wantArticle: 31,
-			insertTwice: func(receiverID, actionUserID uint) {
+			insertTwice: func(receiverID, actionUserID ctype.ID) {
 				content := message_service.ArticleDiggMessage{
 					ReceiverID:   receiverID,
 					ActionUserID: actionUserID,
@@ -137,7 +138,7 @@ func TestInsertDiggAndFavorMessagesDeduplicate(t *testing.T) {
 			wantArticle: 32,
 			wantComment: 41,
 			wantContent: "评论被点赞",
-			insertTwice: func(receiverID, actionUserID uint) {
+			insertTwice: func(receiverID, actionUserID ctype.ID) {
 				content := message_service.CommentDiggMessage{
 					CommentID:    41,
 					Content:      "评论被点赞",
@@ -154,7 +155,7 @@ func TestInsertDiggAndFavorMessagesDeduplicate(t *testing.T) {
 			name:        "article favor",
 			wantType:    message_enum.FavorArticleType,
 			wantArticle: 33,
-			insertTwice: func(receiverID, actionUserID uint) {
+			insertTwice: func(receiverID, actionUserID ctype.ID) {
 				content := message_service.ArticleFavorMessage{
 					ReceiverID:   receiverID,
 					ActionUserID: actionUserID,

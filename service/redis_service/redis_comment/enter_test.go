@@ -1,6 +1,7 @@
 package redis_comment_test
 
 import (
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_comment"
 	"myblogx/test/testutil"
 	"testing"
@@ -23,7 +24,7 @@ func TestReplyCacheCounters(t *testing.T) {
 		t.Fatalf("reply 计数错误: %d", redis_comment.GetCacheReply(1))
 	}
 
-	batch := redis_comment.GetBatchCacheReply([]uint{1, 2, 3})
+	batch := redis_comment.GetBatchCacheReply([]ctype.ID{1, 2, 3})
 	if batch[1] != 2 || batch[2] != 5 {
 		t.Fatalf("批量读取结果异常: %+v", batch)
 	}
@@ -58,7 +59,7 @@ func TestDiggCacheCounters(t *testing.T) {
 		t.Fatalf("digg 计数错误: %d", redis_comment.GetCacheDigg(1))
 	}
 
-	batch := redis_comment.GetBatchCacheDigg([]uint{1, 2, 3})
+	batch := redis_comment.GetBatchCacheDigg([]ctype.ID{1, 2, 3})
 	if batch[1] != 1 || batch[2] != 4 {
 		t.Fatalf("digg 批量读取异常: %+v", batch)
 	}

@@ -6,6 +6,7 @@ import (
 	"myblogx/conf"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
@@ -114,7 +115,7 @@ func TestViewHistoryListAndDelete(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{article.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{article.ID}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/history", nil)
 		req.Header.Set("token", token)
 		c.Request = req

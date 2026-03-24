@@ -7,6 +7,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/log_service"
 
@@ -20,7 +21,7 @@ type LogListRequest struct {
 	common.PageInfo
 	LogType     enum.LogType      `form:"log_type"`     // 日志类型
 	Level       enum.LogLevelType `form:"level"`        // 日志级别
-	UserID      uint              `form:"user_id"`      // 用户ID
+	UserID      ctype.ID          `form:"user_id"`      // 用户ID
 	IP          string            `form:"ip"`           // 操作IP
 	LoginStatus bool              `form:"login_status"` // 登录状态
 	ServiceName string            `form:"service_name"` // 服务名称

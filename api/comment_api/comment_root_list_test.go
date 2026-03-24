@@ -5,6 +5,7 @@ import (
 	"myblogx/common"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_comment"
 	"testing"
@@ -96,7 +97,7 @@ func TestCommentRootListView(t *testing.T) {
 		if root1Item == nil {
 			t.Fatalf("未返回 root1: %+v", list)
 		}
-		if uint(root1Item["reply_id"].(float64)) != 0 {
+		if replyID := ctype.ID(0); root1Item["reply_id"].(string) != replyID.String() {
 			t.Fatalf("返回了非一级评论: %+v", root1Item)
 		}
 		if int(root1Item["reply_count"].(float64)) != 3 {

@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"myblogx/global"
+	"myblogx/models/ctype"
 
 	"gorm.io/gorm"
 )
@@ -161,7 +162,7 @@ func ResolveOrder(order string, orderMap map[string]string, defaultOrder string)
 // 2. 再按排序规则取出当前页主键 ID
 //
 // 适合文章列表这类需要 join/filter 后，再回表查询完整详情的场景。
-func PageIDQuery(query *gorm.DB, option IDPageOptions) (ids []uint, count int, err error) {
+func PageIDQuery(query *gorm.DB, option IDPageOptions) (ids []ctype.ID, count int, err error) {
 	if option.Unscoped {
 		query = query.Unscoped()
 	}

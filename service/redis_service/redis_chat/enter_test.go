@@ -68,7 +68,7 @@ func TestReserveChatMinuteRateSlidingWindow(t *testing.T) {
 // TestReserveChatWeekQuotaAndReset 验证自然周配额上限以及被回复后的重置行为。
 func TestReserveChatWeekQuotaAndReset(t *testing.T) {
 	_ = testutil.SetupMiniRedis(t)
-	now := time.Date(2026, 3, 11, 10, 0, 0, 0, time.Local)
+	now := time.Now().In(time.Local)
 
 	for i := 0; i < 3; i++ {
 		reservation, allowed, err := redis_chat.ReserveChatWeekQuota(1, 2, 3, now)
@@ -104,7 +104,7 @@ func TestReserveChatWeekQuotaAndReset(t *testing.T) {
 // TestReserveChatWeekQuotaWithStrangerLimit 验证陌生人自然周额度为 1 条。
 func TestReserveChatWeekQuotaWithStrangerLimit(t *testing.T) {
 	_ = testutil.SetupMiniRedis(t)
-	now := time.Date(2026, 3, 11, 10, 0, 0, 0, time.Local)
+	now := time.Now().In(time.Local)
 
 	reservation, allowed, err := redis_chat.ReserveChatWeekQuota(1, 2, 1, now)
 	if err != nil {

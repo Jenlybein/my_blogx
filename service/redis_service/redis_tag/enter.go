@@ -3,6 +3,7 @@ package redis_tag
 import (
 	"context"
 	"fmt"
+	"myblogx/models/ctype"
 	"strconv"
 
 	"myblogx/global"
@@ -10,23 +11,23 @@ import (
 
 const TagCacheArticleCount = "tag_article_count"
 
-func SetCacheArticleCount(tagID uint, increase int) error {
+func SetCacheArticleCount(tagID ctype.ID, increase int) error {
 	if global.Redis == nil {
 		return nil
 	}
-	return global.Redis.HIncrBy(context.Background(), TagCacheArticleCount, strconv.Itoa(int(tagID)), int64(increase)).Err()
+	return global.Redis.HIncrBy(context.Background(), TagCacheArticleCount, tagID.String(), int64(increase)).Err()
 }
 
-func GetCacheArticleCount(tagID uint) int {
+func GetCacheArticleCount(tagID ctype.ID) int {
 	if global.Redis == nil {
 		return 0
 	}
-	num, _ := global.Redis.HGet(context.Background(), TagCacheArticleCount, strconv.Itoa(int(tagID))).Int()
+	num, _ := global.Redis.HGet(context.Background(), TagCacheArticleCount, tagID.String()).Int()
 	return num
 }
 
-func GetBatchCacheArticleCount(tagIDs []uint) map[uint]int {
-	result := make(map[uint]int, len(tagIDs))
+func GetBatchCacheArticleCount(tagIDs []ctype.ID) map[ctype.ID]int {
+	result := make(map[ctype.ID]int, len(tagIDs))
 	if len(tagIDs) == 0 {
 		return result
 	}
@@ -36,7 +37,7 @@ func GetBatchCacheArticleCount(tagIDs []uint) map[uint]int {
 
 	fields := make([]string, 0, len(tagIDs))
 	for _, tagID := range tagIDs {
-		fields = append(fields, strconv.Itoa(int(tagID)))
+		fields = append(fields, tagID.String())
 	}
 
 	values, err := global.Redis.HMGet(context.Background(), TagCacheArticleCount, fields...).Result()
@@ -57,16 +58,16 @@ func GetBatchCacheArticleCount(tagIDs []uint) map[uint]int {
 	return result
 }
 
-func GetAllCacheArticleCount() map[uint]int {
+func GetAllCacheArticleCount() map[ctype.ID]int {
 	if global.Redis == nil {
-		return map[uint]int{}
+		return map[ctype.ID]int{}
 	}
 	res, err := global.Redis.HGetAll(context.Background(), TagCacheArticleCount).Result()
 	if err != nil {
 		return nil
 	}
 
-	numMap := make(map[uint]int, len(res))
+	numMap := make(map[ctype.ID]int, len(res))
 	for k, v := range res {
 		tagID, err := strconv.Atoi(k)
 		if err != nil {
@@ -76,7 +77,7 @@ func GetAllCacheArticleCount() map[uint]int {
 		if err != nil {
 			continue
 		}
-		numMap[uint(tagID)] = num
+		numMap[ctype.ID(tagID)] = num
 	}
 	return numMap
 }

@@ -5,6 +5,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
@@ -53,7 +54,7 @@ func (ArticleApi) ArticleDetailView(c *gin.Context) {
 		return
 	}
 
-	counters := redis_article.GetBatchCounters([]uint{article.ID})
+	counters := redis_article.GetBatchCounters([]ctype.ID{article.ID})
 	article.DiggCount += counters.DiggMap[article.ID]
 	article.ViewCount += counters.ViewMap[article.ID]
 	article.FavorCount += counters.FavorMap[article.ID]

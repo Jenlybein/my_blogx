@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"myblogx/api/user_api/profile_api"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
@@ -89,7 +90,7 @@ func TestProfileHandlers(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		likeTags := []uint{tag.ID, tag.ID, 0}
+		likeTags := []ctype.ID{tag.ID, tag.ID, 0}
 		c.Set("claims", &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Role: user.Role}})
 		c.Set("requestJson", profile_api.UserInfoUpdateRequest{
 			LikeTags: &likeTags,
@@ -110,7 +111,7 @@ func TestProfileHandlers(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		likeTags := []uint{disabledTag.ID}
+		likeTags := []ctype.ID{disabledTag.ID}
 		c.Set("claims", &jwts.MyClaims{Claims: jwts.Claims{UserID: user.ID, Role: user.Role}})
 		c.Set("requestJson", profile_api.UserInfoUpdateRequest{
 			LikeTags: &likeTags,

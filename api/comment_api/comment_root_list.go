@@ -7,6 +7,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_comment"
 	"time"
@@ -16,16 +17,16 @@ import (
 
 type CommentRootListRequest struct {
 	common.PageInfo
-	ArticleID uint `form:"article_id" binding:"required"`
+	ArticleID ctype.ID `form:"article_id" binding:"required"`
 }
 
 type CommentRootListResponse struct {
-	ID           uint               `json:"id"`
+	ID           ctype.ID           `json:"id"`
 	CreatedAt    time.Time          `json:"created_at"`
 	Content      string             `json:"content"`
-	UserID       uint               `json:"user_id"`
-	ReplyId      uint               `json:"reply_id"`
-	RootID       uint               `json:"root_id"`
+	UserID       ctype.ID           `json:"user_id"`
+	ReplyId      ctype.ID           `json:"reply_id"`
+	RootID       ctype.ID           `json:"root_id"`
 	DiggCount    int                `json:"digg_count"`
 	ReplyCount   int                `json:"reply_count"`
 	Status       enum.CommentStatus `json:"status"`
@@ -71,12 +72,12 @@ func (CommentApi) CommentRootListView(c *gin.Context) {
 		return
 	}
 
-	commentIDs := make([]uint, 0, len(list))
+	commentIDs := make([]ctype.ID, 0, len(list))
 	for _, item := range list {
 		commentIDs = append(commentIDs, item.ID)
 	}
-	replyCountMap := map[uint]int{}
-	diggCountMap := map[uint]int{}
+	replyCountMap := map[ctype.ID]int{}
+	diggCountMap := map[ctype.ID]int{}
 	if len(commentIDs) > 0 {
 		replyCountMap = redis_comment.GetBatchCacheReply(commentIDs)
 		diggCountMap = redis_comment.GetBatchCacheDigg(commentIDs)

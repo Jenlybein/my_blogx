@@ -1,22 +1,23 @@
 package top
 
 import (
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"time"
 )
 
 type ArticleTopSetRequest struct {
-	ArticleID uint `json:"article_id"`
-	Type      int  `json:"type" binding:"required,oneof=1 2"`
+	ArticleID ctype.ID `json:"article_id"`
+	Type      int      `json:"type" binding:"required,oneof=1 2"`
 }
 
 type ArticleTopListRequest struct {
-	Type   int  `json:"type" form:"type" binding:"required,oneof=1 2"`
-	UserID uint `json:"user_id" form:"user_id"`
+	Type   int      `json:"type" form:"type" binding:"required,oneof=1 2"`
+	UserID ctype.ID `json:"user_id" form:"user_id"`
 }
 
 type ArticleTopListResponse struct {
-	ID             uint               `json:"id"`
+	ID             ctype.ID           `json:"id"`
 	CreatedAt      time.Time          `json:"created_at"`
 	UpdatedAt      time.Time          `json:"updated_at"`
 	Title          string             `json:"title"`

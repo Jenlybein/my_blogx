@@ -4,10 +4,10 @@ import (
 	"context"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/cron_service"
 	"myblogx/service/redis_service/redis_comment"
 	"myblogx/test/testutil"
-	"strconv"
 	"testing"
 )
 
@@ -115,8 +115,8 @@ func TestSyncCommentReplyNotBelowZeroAndLockSkip(t *testing.T) {
 	}
 }
 
-func setupReplyCounter(commentID uint, delta int) error {
-	return global.Redis.HIncrBy(context.Background(), redis_comment.ReplyCountCacheKey, strconv.Itoa(int(commentID)), int64(delta)).Err()
+func setupReplyCounter(commentID ctype.ID, delta int) error {
+	return global.Redis.HIncrBy(context.Background(), redis_comment.ReplyCountCacheKey, commentID.String(), int64(delta)).Err()
 }
 
 func setKey(key, value string) error {

@@ -4,6 +4,7 @@ import (
 	"myblogx/common"
 	"myblogx/common/res"
 	"myblogx/middleware"
+	"myblogx/models/ctype"
 	"myblogx/service/ai_service"
 	"myblogx/service/search_service"
 	"strings"
@@ -122,7 +123,7 @@ func buildAIArticleSearchKey(queryList []string) string {
 
 func appendUniqueSearchResults(
 	list []search_service.SearchListResponse,
-	seen map[uint]struct{},
+	seen map[ctype.ID]struct{},
 	appendList []search_service.SearchListResponse,
 ) []search_service.SearchListResponse {
 	for _, item := range appendList {
@@ -142,7 +143,7 @@ func searchAIArticleList(rewrite *ai_service.ArticleSearchRewrite) ([]search_ser
 	}
 
 	list := make([]search_service.SearchListResponse, 0, 20)
-	seen := make(map[uint]struct{}, 20)
+	seen := make(map[ctype.ID]struct{}, 20)
 
 	if len(rewrite.TagList) > 0 {
 		tagList, _, err := search_service.SearchArticles(search_service.ArticleSearchRequest{

@@ -5,6 +5,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
 
@@ -21,7 +22,7 @@ func (TopApi) ArticleTopListView(c *gin.Context) {
 	}
 
 	baseQuery := buildArticleTopListQuery(cr)
-	var articleIDs []uint
+	var articleIDs []ctype.ID
 	if err := baseQuery.
 		Order("top_list.top_created_at desc, article_models.id desc").
 		Pluck("article_models.id", &articleIDs).Error; err != nil {
@@ -40,7 +41,7 @@ func (TopApi) ArticleTopListView(c *gin.Context) {
 		return
 	}
 
-	articleMap := make(map[uint]models.ArticleModel, len(articleList))
+	articleMap := make(map[ctype.ID]models.ArticleModel, len(articleList))
 	for _, item := range articleList {
 		articleMap[item.ID] = item
 	}
@@ -127,7 +128,7 @@ func buildArticleTopListQuery(cr ArticleTopListRequest) *gorm.DB {
 		Where("article_models.status = ?", enum.ArticleStatusPublished)
 }
 
-func loadTopArticlesByIDs(articleIDs []uint) ([]models.ArticleModel, error) {
+func loadTopArticlesByIDs(articleIDs []ctype.ID) ([]models.ArticleModel, error) {
 	var articleList []models.ArticleModel
 	err := global.DB.Select(
 		"id",
@@ -152,14 +153,14 @@ func loadTopArticlesByIDs(articleIDs []uint) ([]models.ArticleModel, error) {
 	return articleList, err
 }
 
-func loadExtraTopMap(topType int, articleIDs []uint) (map[uint]bool, error) {
-	extraTopMap := make(map[uint]bool, len(articleIDs))
+func loadExtraTopMap(topType int, articleIDs []ctype.ID) (map[ctype.ID]bool, error) {
+	extraTopMap := make(map[ctype.ID]bool, len(articleIDs))
 	if len(articleIDs) == 0 {
 		return extraTopMap, nil
 	}
 
 	var rows []struct {
-		ArticleID uint
+		ArticleID ctype.ID
 	}
 
 	query := global.DB.Model(&models.UserTopArticleModel{}).

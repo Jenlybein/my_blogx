@@ -3,6 +3,7 @@ package redis_tag_test
 import (
 	"testing"
 
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_tag"
 	"myblogx/test/testutil"
 )
@@ -27,7 +28,7 @@ func TestTagArticleCountCache(t *testing.T) {
 		t.Fatalf("tag 2 计数错误: %d", redis_tag.GetCacheArticleCount(2))
 	}
 
-	batch := redis_tag.GetBatchCacheArticleCount([]uint{1, 2, 3})
+	batch := redis_tag.GetBatchCacheArticleCount([]ctype.ID{1, 2, 3})
 	if batch[1] != 2 || batch[2] != 5 || batch[3] != 0 {
 		t.Fatalf("批量读取异常: %+v", batch)
 	}

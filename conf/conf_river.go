@@ -5,7 +5,7 @@ import "myblogx/service/river_service/rule"
 type River struct {
 	Enabled bool `yaml:"enabled"`
 
-	ServerID uint32 `yaml:"server_id"`
+	ServerID uint32 `yaml:"server_id"` // canal 模拟 MySQL 从库时用的 server-id
 	Flavor   string `yaml:"flavor"`
 	DataDir  string `yaml:"data_dir"`
 

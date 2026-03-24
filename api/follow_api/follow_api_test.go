@@ -6,6 +6,7 @@ import (
 	"myblogx/conf"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/models/enum/relationship_enum"
 	"myblogx/test/testutil"
@@ -266,12 +267,12 @@ func createUser(t *testing.T, name string) models.UserModel {
 	return user
 }
 
-func createFollow(t *testing.T, fansUserID, followedUserID uint) {
+func createFollow(t *testing.T, fansUserID, followedUserID ctype.ID) {
 	t.Helper()
 	createFollowAt(t, fansUserID, followedUserID, time.Now())
 }
 
-func createFollowAt(t *testing.T, fansUserID, followedUserID uint, createdAt time.Time) {
+func createFollowAt(t *testing.T, fansUserID, followedUserID ctype.ID, createdAt time.Time) {
 	t.Helper()
 	row := models.UserFollowModel{
 		Model: models.Model{
@@ -285,7 +286,7 @@ func createFollowAt(t *testing.T, fansUserID, followedUserID uint, createdAt tim
 	}
 }
 
-func assertFollowCount(t *testing.T, fansUserID, followedUserID uint, expected int64) {
+func assertFollowCount(t *testing.T, fansUserID, followedUserID ctype.ID, expected int64) {
 	t.Helper()
 	var count int64
 	if err := global.DB.Model(&models.UserFollowModel{}).
@@ -298,7 +299,7 @@ func assertFollowCount(t *testing.T, fansUserID, followedUserID uint, expected i
 	}
 }
 
-func setFollowVisibility(t *testing.T, userID uint, visible bool) {
+func setFollowVisibility(t *testing.T, userID ctype.ID, visible bool) {
 	t.Helper()
 	if err := global.DB.Model(&models.UserConfModel{}).
 		Where("user_id = ?", userID).
@@ -307,7 +308,7 @@ func setFollowVisibility(t *testing.T, userID uint, visible bool) {
 	}
 }
 
-func setFansVisibility(t *testing.T, userID uint, visible bool) {
+func setFansVisibility(t *testing.T, userID ctype.ID, visible bool) {
 	t.Helper()
 	if err := global.DB.Model(&models.UserConfModel{}).
 		Where("user_id = ?", userID).
@@ -316,7 +317,7 @@ func setFansVisibility(t *testing.T, userID uint, visible bool) {
 	}
 }
 
-func assertRelation(t *testing.T, got map[uint]relationship_enum.Relation, userID uint, expected relationship_enum.Relation) {
+func assertRelation(t *testing.T, got map[ctype.ID]relationship_enum.Relation, userID ctype.ID, expected relationship_enum.Relation) {
 	t.Helper()
 	if got[userID] != expected {
 		t.Fatalf("关系错误 user=%d got=%v want=%v", userID, got[userID], expected)

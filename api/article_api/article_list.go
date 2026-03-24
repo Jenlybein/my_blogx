@@ -8,6 +8,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/utils/jwts"
@@ -99,7 +100,7 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 	}
 
 	// 回表查询不保证和 articleIDs 顺序完全一致，因此先转成 map，再按 articleIDs 顺序组装响应。
-	articleMap := make(map[uint]models.ArticleModel, len(articleList))
+	articleMap := make(map[ctype.ID]models.ArticleModel, len(articleList))
 	for _, item := range articleList {
 		articleMap[item.ID] = item
 	}
@@ -214,13 +215,13 @@ func buildArticleListQuery(cr ArticleListRequest) *gorm.DB {
 
 // handleTopArticles 计算作者置顶 / 管理员置顶的状态映射和默认排序表达式。
 // 默认情况下管理员置顶优先；查看某位作者的文章时，再叠加该作者自己的置顶顺序。
-func handleTopArticles(userID uint) (map[uint]bool, map[uint]bool, string) {
-	userTopMap := make(map[uint]bool)
-	adminTopMap := make(map[uint]bool)
+func handleTopArticles(userID ctype.ID) (map[ctype.ID]bool, map[ctype.ID]bool, string) {
+	userTopMap := make(map[ctype.ID]bool)
+	adminTopMap := make(map[ctype.ID]bool)
 	orderParts := make([]string, 0)
-	orderedArticleMap := make(map[uint]struct{})
+	orderedArticleMap := make(map[ctype.ID]struct{})
 
-	appendOrder := func(articleID uint) {
+	appendOrder := func(articleID ctype.ID) {
 		if articleID == 0 {
 			return
 		}
@@ -232,7 +233,7 @@ func handleTopArticles(userID uint) (map[uint]bool, map[uint]bool, string) {
 	}
 
 	var adminTopRows []struct {
-		ArticleID uint
+		ArticleID ctype.ID
 	}
 	if err := global.DB.Model(&models.UserTopArticleModel{}).
 		Select("user_top_article_models.article_id").
@@ -248,7 +249,7 @@ func handleTopArticles(userID uint) (map[uint]bool, map[uint]bool, string) {
 
 	if userID != 0 {
 		var userTopRows []struct {
-			ArticleID uint
+			ArticleID ctype.ID
 		}
 		if err := global.DB.Model(&models.UserTopArticleModel{}).
 			Select("user_top_article_models.article_id").

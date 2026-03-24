@@ -1,4 +1,5 @@
 system:
+  server_id: 1
   ip: ""
   port: ******_port1
   env: dev

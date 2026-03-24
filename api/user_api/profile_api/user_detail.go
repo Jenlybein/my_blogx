@@ -4,6 +4,7 @@ import (
 	"myblogx/common/res"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/utils/jwts"
 	"time"
@@ -12,7 +13,7 @@ import (
 )
 
 type UserDetailResponse struct {
-	ID             uint                    `gorm:"primaryKey" json:"id"`
+	ID             ctype.ID                `gorm:"primaryKey" json:"id"`
 	CreatedAt      time.Time               `json:"created_at"`
 	Username       string                  `gorm:"size:32" json:"username"`
 	Nickname       string                  `gorm:"size:32" json:"nickname"`

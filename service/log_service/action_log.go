@@ -8,6 +8,7 @@ import (
 	"myblogx/core"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	io_utils "myblogx/utils/io_util"
 	"myblogx/utils/jwts"
@@ -143,7 +144,7 @@ func (ac *ActionLog) MiddlewareSave() {
 	ac.Save()
 }
 
-func (ac *ActionLog) Save() (id uint) {
+func (ac *ActionLog) Save() (id ctype.ID) {
 	if ac.log != nil {
 		// 日志已存在，直接更新
 		newContent := strings.Join(ac.itemList, "\n")
@@ -188,12 +189,12 @@ func (ac *ActionLog) Save() (id uint) {
 	addr := core.GetIpAddr(ip)
 
 	// 解析 jwt token 中的 userID
-	userID := uint(0)
+	userID := ctype.ID(0)
 	claims, err := jwts.ParseTokenByGin(ac.c)
 	if err != nil {
 		global.Logger.Errorf("解析 token 失败: %v", err)
 	} else {
-		userID = uint(claims.UserID)
+		userID = claims.UserID
 	}
 
 	log := models.LogModel{

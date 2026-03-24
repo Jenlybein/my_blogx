@@ -3,17 +3,18 @@ package category
 import (
 	"myblogx/common"
 	"myblogx/models"
+	"myblogx/models/ctype"
 )
 
 type CategoryRequest struct {
-	ID    uint   `json:"id"`
+	ID    ctype.ID `json:"id"`
 	Title string `json:"title" binding:"required,min=2,max=20"`
 }
 
 type CategoryListRequest struct {
 	common.PageInfo
-	UserID uint `form:"user_id"`
-	Type   int8 `form:"type" binding:"required,oneof=1 2 3"` // 1:查自己 2:查别人 3:管理员后台查
+	UserID ctype.ID `form:"user_id"`
+	Type   int8     `form:"type" binding:"required,oneof=1 2 3"` // 1:查自己 2:查别人 3:管理员后台查
 }
 
 type CategoryListResponse struct {

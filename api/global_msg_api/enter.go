@@ -3,6 +3,7 @@ package global_notif_api
 import (
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/global_notif_enum"
 	"time"
 
@@ -14,8 +15,8 @@ type GlobalNotifApi struct {
 
 type UserGlobalNotifState struct {
 	User             models.UserModel
-	UserNotifMap     map[uint]models.UserGlobalNotifModel
-	DeletedMsgIDList []uint
+	UserNotifMap     map[ctype.ID]models.UserGlobalNotifModel
+	DeletedMsgIDList []ctype.ID
 }
 
 func BuildUserVisibleGlobalNotifQuery(user models.UserModel) *gorm.DB {
@@ -37,7 +38,7 @@ func BuildUserVisibleGlobalNotifQuery(user models.UserModel) *gorm.DB {
 			)))
 }
 
-func LoadUserGlobalNotifState(userID uint, msgIDList []uint) (state UserGlobalNotifState, err error) {
+func LoadUserGlobalNotifState(userID ctype.ID, msgIDList []ctype.ID) (state UserGlobalNotifState, err error) {
 	if err = global.DB.Take(&state.User, userID).Error; err != nil {
 		return state, err
 	}
@@ -52,8 +53,8 @@ func LoadUserGlobalNotifState(userID uint, msgIDList []uint) (state UserGlobalNo
 		return state, err
 	}
 
-	state.UserNotifMap = make(map[uint]models.UserGlobalNotifModel, len(userNotifList))
-	state.DeletedMsgIDList = make([]uint, 0)
+	state.UserNotifMap = make(map[ctype.ID]models.UserGlobalNotifModel, len(userNotifList))
+	state.DeletedMsgIDList = make([]ctype.ID, 0)
 	for _, item := range userNotifList {
 		state.UserNotifMap[item.MsgID] = item
 		if item.DeletedAt.Valid {

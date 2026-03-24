@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	dbservice "myblogx/service/db_service"
 	"myblogx/service/es_service"
@@ -91,7 +92,7 @@ func (TopApi) ArticleTopSetView(c *gin.Context) {
 		return
 	}
 
-	if err := es_service.UpdateESDocsTop([]uint{article.ID}); err != nil {
+	if err := es_service.UpdateESDocsTop([]ctype.ID{article.ID}); err != nil {
 		global.Logger.Errorf("更新文章置顶后刷新 ES 失败 article_id=%d err=%v", article.ID, err)
 	}
 

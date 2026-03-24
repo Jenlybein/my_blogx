@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/utils/jwts"
 	"time"
@@ -15,7 +16,7 @@ import (
 
 type UserLoginListRequest struct {
 	common.PageInfo
-	UserID  uint   `form:"user_id"`
+	UserID  ctype.ID `form:"user_id"`
 	IP      string `form:"ip"`
 	Addr    string `form:"addr"`
 	StartAt string `form:"start_at"` // 起止时间，年月日分秒格式

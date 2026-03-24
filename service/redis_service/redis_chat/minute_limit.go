@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"myblogx/global"
+	"myblogx/models/ctype"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -91,7 +92,7 @@ func (r *MinuteReservation) Release() error {
 // 1. reservation 非空：预占成功；
 // 2. reservation 为空且 limitedBy 非空：被限流；
 // 3. err 非空：Redis 执行异常。
-func ReserveChatMinuteRate(senderID uint, sessionID string, now time.Time) (*MinuteReservation, string, error) {
+func ReserveChatMinuteRate(senderID ctype.ID, sessionID string, now time.Time) (*MinuteReservation, string, error) {
 	if global.Redis == nil {
 		return nil, "", fmt.Errorf("redis 未初始化")
 	}
@@ -138,16 +139,16 @@ func ReserveChatMinuteRate(senderID uint, sessionID string, now time.Time) (*Min
 }
 
 // buildChatRateMember 生成本次消息在滑动窗口内的唯一成员值。
-func buildChatRateMember(senderID uint, now time.Time) string {
+func buildChatRateMember(senderID ctype.ID, now time.Time) string {
 	// atomic 包提供原子操作函数 AddInt64，专门用于对 int64 类型变量执行原子加法
 	seq := atomic.AddInt64(&chatRateSeq, 1)
 	// 根据 senderID 和时间戳生成唯一成员值
-	return strconv.FormatUint(uint64(senderID), 10) + ":" + strconv.FormatInt(now.UnixNano(), 10) + ":" + strconv.FormatInt(seq, 10)
+	return senderID.String() + ":" + strconv.FormatInt(now.UnixNano(), 10) + ":" + strconv.FormatInt(seq, 10)
 }
 
 // chatUserMinuteKey 返回用户级分钟限流 key。
-func chatUserMinuteKey(senderID uint) string {
-	return "chat:rate:user:" + strconv.FormatUint(uint64(senderID), 10)
+func chatUserMinuteKey(senderID ctype.ID) string {
+	return "chat:rate:user:" + senderID.String()
 }
 
 // chatSessionMinuteKey 返回会话级分钟限流 key。

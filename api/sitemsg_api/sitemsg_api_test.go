@@ -5,6 +5,7 @@ import (
 	"myblogx/api/sitemsg_api"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/models/enum/global_notif_enum"
 	"myblogx/models/enum/message_enum"
@@ -390,7 +391,7 @@ func TestSitemsgReadViewSingleAndBatch(t *testing.T) {
 	}
 
 	var batchCheck []models.ArticleMessageModel
-	if err := db.Where("id in ?", []uint{batchA.ID, batchB.ID, otherUserMsg.ID}).Order("id asc").Find(&batchCheck).Error; err != nil {
+	if err := db.Where("id in ?", []ctype.ID{batchA.ID, batchB.ID, otherUserMsg.ID}).Order("id asc").Find(&batchCheck).Error; err != nil {
 		t.Fatalf("查询批量消息失败: %v", err)
 	}
 	if !batchCheck[0].IsRead || !batchCheck[1].IsRead {

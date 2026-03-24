@@ -2,11 +2,11 @@ package cron_service_test
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/cron_service"
 	"myblogx/test/testutil"
 )
@@ -86,6 +86,6 @@ func TestSyncTagNotBelowZeroAndLockSkip(t *testing.T) {
 	}
 }
 
-func setupTagCounter(tagID uint, delta int) error {
-	return global.Redis.HIncrBy(context.Background(), "tag_article_count", strconv.Itoa(int(tagID)), int64(delta)).Err()
+func setupTagCounter(tagID ctype.ID, delta int) error {
+	return global.Redis.HIncrBy(context.Background(), "tag_article_count", tagID.String(), int64(delta)).Err()
 }

@@ -2,6 +2,7 @@ package global_notif_api
 
 import (
 	"myblogx/common"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/global_notif_enum"
 	"time"
 )
@@ -22,7 +23,7 @@ type GlobalNotifListRequest struct {
 }
 
 type GlobalNotifListResponse struct {
-	ID       uint      `json:"id"`
+	ID       ctype.ID  `json:"id"`
 	CreateAt time.Time `json:"create_at"`
 	Title    string    `json:"title"`   // 通知标题
 	Icon     string    `json:"icon"`    // 通知图标

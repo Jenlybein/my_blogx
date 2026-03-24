@@ -5,6 +5,7 @@ import (
 	"myblogx/api/banner_api"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/test/testutil"
 	"net/http/httptest"
 	"testing"
@@ -78,7 +79,7 @@ func TestBannerCreateListUpdateRemove(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{created.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{created.ID}})
 		api.BannerRemoveView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("删除失败, code=%d body=%s", code, w.Body.String())

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_article"
 	"time"
 
@@ -43,7 +44,7 @@ func SyncArticle() {
 				activeKey:  metric.activeKey,
 				syncKey:    metric.syncKey,
 				idName:     "article_id",
-				applyDelta: func(articleID uint, delta int) error {
+				applyDelta: func(articleID ctype.ID, delta int) error {
 					return applyArticleDelta(metric.column, articleID, delta)
 				},
 			})
@@ -61,7 +62,7 @@ func SyncArticle() {
 }
 
 // applyArticleDelta 对单篇文章执行增量更新。
-func applyArticleDelta(column string, articleID uint, delta int) error {
+func applyArticleDelta(column string, articleID ctype.ID, delta int) error {
 	// 使用 CASE 防止减到负数（如点赞/收藏取消过多）。
 	expr := fmt.Sprintf("CASE WHEN %s + ? < 0 THEN 0 ELSE %s + ? END", column, column)
 

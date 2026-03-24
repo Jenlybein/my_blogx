@@ -2,65 +2,74 @@ package search_service
 
 import (
 	"encoding/json"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/utils/markdown"
 	"time"
 )
 
-// sourceUintValue 从 ES _source 中提取 uint 字段。
-func sourceUintValue(sourceMap map[string]any, key string) uint {
+// sourceIDValue 从 ES _source 中提取雪花 ID 字段。
+func sourceIDValue(sourceMap map[string]any, key string) ctype.ID {
 	switch value := sourceMap[key].(type) {
-	case uint:
+	case ctype.ID:
 		return value
+	case uint:
+		return ctype.ID(value)
 	case uint8:
-		return uint(value)
+		return ctype.ID(value)
 	case uint16:
-		return uint(value)
+		return ctype.ID(value)
 	case uint32:
-		return uint(value)
+		return ctype.ID(value)
 	case uint64:
-		return uint(value)
+		return ctype.ID(value)
 	case int:
 		if value < 0 {
 			return 0
 		}
-		return uint(value)
+		return ctype.ID(value)
 	case int8:
 		if value < 0 {
 			return 0
 		}
-		return uint(value)
+		return ctype.ID(value)
 	case int16:
 		if value < 0 {
 			return 0
 		}
-		return uint(value)
+		return ctype.ID(value)
 	case int32:
 		if value < 0 {
 			return 0
 		}
-		return uint(value)
+		return ctype.ID(value)
 	case int64:
 		if value < 0 {
 			return 0
 		}
-		return uint(value)
+		return ctype.ID(value)
 	case float32:
 		if value < 0 {
 			return 0
 		}
-		return uint(value)
+		return ctype.ID(value)
 	case float64:
 		if value < 0 {
 			return 0
 		}
-		return uint(value)
+		return ctype.ID(value)
 	case json.Number:
 		intValue, err := value.Int64()
 		if err != nil || intValue < 0 {
 			return 0
 		}
-		return uint(intValue)
+		return ctype.ID(intValue)
+	case string:
+		var id ctype.ID
+		if err := id.UnmarshalText([]byte(value)); err != nil {
+			return 0
+		}
+		return id
 	default:
 		return 0
 	}

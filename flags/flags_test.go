@@ -155,7 +155,7 @@ func writeESJSON(w http.ResponseWriter, code int, body string) {
 }
 
 func TestBuildArticleESDocument(t *testing.T) {
-	categoryID := uint(7)
+	categoryID := models.Model{ID: 7}.ID
 	article := models.ArticleModel{
 		Model: models.Model{
 			ID:        1,

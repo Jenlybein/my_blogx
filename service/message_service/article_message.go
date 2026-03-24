@@ -3,6 +3,7 @@ package message_service
 import (
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 
 	"myblogx/models/enum/message_enum"
 )
@@ -167,7 +168,7 @@ func InsertSystemMessage(content SystemMessage) {
 	}
 }
 
-func getActionUserInfo(actionUserID uint) (nickname string, avatar string) {
+func getActionUserInfo(actionUserID ctype.ID) (nickname string, avatar string) {
 	info := models.UserModel{}
 	if err := global.DB.Select("nickname", "avatar").Take(&info, "id = ?", actionUserID).Error; err != nil {
 		global.Logger.Errorf("获取用户信息失败: %v", err)

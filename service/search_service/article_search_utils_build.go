@@ -3,6 +3,7 @@ package search_service
 import (
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"strings"
 )
@@ -22,7 +23,7 @@ func buildDefaultArticleSearchQuery(key string) map[string]any {
 
 // buildSelfArticleSearchQuery 构建“我的文章”搜索查询。
 // 默认查询当前用户除已删除外的全部文章；如果显式传入状态，则按指定状态精确筛选。
-func buildSelfArticleSearchQuery(key string, userID uint, status enum.ArticleStatus) map[string]any {
+func buildSelfArticleSearchQuery(key string, userID ctype.ID, status enum.ArticleStatus) map[string]any {
 	boolQuery := map[string]any{
 		"filter": []any{
 			map[string]any{
@@ -148,7 +149,7 @@ func buildArticleSearchQuery(key string, boolQuery map[string]any) map[string]an
 }
 
 // buildLikeTagsQuery 构建喜欢标签查询
-func buildLikeTagsQuery(query map[string]any, userID uint) map[string]any {
+func buildLikeTagsQuery(query map[string]any, userID ctype.ID) map[string]any {
 	var userConf models.UserConfModel
 	if err := global.DB.Select("user_id", "like_tags").Take(&userConf, userID).Error; err != nil {
 		return query
@@ -175,7 +176,7 @@ func buildLikeTagsQuery(query map[string]any, userID uint) map[string]any {
 }
 
 // buildUserIDQuery 构建用户 ID 查询
-func buildUserIDQuery(query map[string]any, userID uint) map[string]any {
+func buildUserIDQuery(query map[string]any, userID ctype.ID) map[string]any {
 	if userID == 0 {
 		return query
 	}
@@ -229,7 +230,7 @@ func buildTagListQuery(query map[string]any, tagList []string) map[string]any {
 }
 
 // buildCategoryIDQuery 构建分类查询
-func buildCategoryIDQuery(query map[string]any, categoryID uint) map[string]any {
+func buildCategoryIDQuery(query map[string]any, categoryID ctype.ID) map[string]any {
 	if categoryID == 0 {
 		return query
 	}

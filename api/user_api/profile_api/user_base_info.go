@@ -5,12 +5,13 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 
 	"github.com/gin-gonic/gin"
 )
 
 type UserBaseInfoResponse struct {
-	ID          uint   `gorm:"primaryKey" json:"id"`
+	ID          ctype.ID `gorm:"primaryKey" json:"id"`
 	CodeAge     int    `json:"code_age"`
 	Avatar      string `gorm:"size:256" json:"avatar"`
 	Nickname    string `gorm:"size:32" json:"nickname"`

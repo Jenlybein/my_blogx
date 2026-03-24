@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/utils/markdown"
 	"strings"
 )
@@ -38,13 +39,13 @@ var (
 
 // ArticleMetainfo 是文章元信息推荐时使用的候选项。
 type Metainfos struct {
-	ID    uint   `json:"id"`
+	ID    ctype.ID `json:"id"`
 	Title string `json:"title"`
 }
 
 // MetainfoRequest 是生成文章元信息时的请求参数。
 type MetainfoRequest struct {
-	UserID  uint   `json:"user_id"`
+	UserID  ctype.ID `json:"user_id"`
 	Content string `json:"content"`
 }
 
@@ -57,7 +58,7 @@ type MetainfoResponse struct {
 }
 
 // GenerateArticleMetainfo 根据文章内容生成标题、摘要、分类和标签建议。
-func GenerateArticleMetainfo(uid uint, content string) (*MetainfoResponse, error) {
+func GenerateArticleMetainfo(uid ctype.ID, content string) (*MetainfoResponse, error) {
 	if uid == 0 {
 		return nil, errors.New("用户 ID 不能为空")
 	}
@@ -166,7 +167,7 @@ func normalizeArticleMetainfoReply(
 
 	// 校验返回的 Tags ID 是否存在
 	var validTags []Metainfos
-	tagMap := make(map[uint]struct{}, len(tagOptions))
+	tagMap := make(map[ctype.ID]struct{}, len(tagOptions))
 	for _, tag := range tagOptions {
 		tagMap[tag.ID] = struct{}{}
 	}
@@ -189,5 +190,4 @@ func normalizeArticleMetainfoReply(
 
 	return result, nil
 }
-
 

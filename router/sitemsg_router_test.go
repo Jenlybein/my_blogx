@@ -2,6 +2,7 @@ package router_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"myblogx/conf"
 	"myblogx/global"
 	"myblogx/models"
@@ -156,7 +157,7 @@ func TestSitemsgRouterPostSupportsReadByID(t *testing.T) {
 		t.Fatalf("创建消息失败: %v", err)
 	}
 
-	req := testutil.NewJSONRequest(http.MethodPost, "/api/sitemsg", `{"id":1}`)
+	req := testutil.NewJSONRequest(http.MethodPost, "/api/sitemsg", fmt.Sprintf(`{"id":"%s"}`, msg.ID.String()))
 	req.Header.Set("token", token)
 
 	w := httptest.NewRecorder()
@@ -223,7 +224,7 @@ func TestSitemsgRouterDeleteSupportsRemoveByID(t *testing.T) {
 		t.Fatalf("创建消息失败: %v", err)
 	}
 
-	req := testutil.NewJSONRequest(http.MethodDelete, "/api/sitemsg", `{"id":1}`)
+	req := testutil.NewJSONRequest(http.MethodDelete, "/api/sitemsg", fmt.Sprintf(`{"id":"%s"}`, msg.ID.String()))
 	req.Header.Set("token", token)
 
 	w := httptest.NewRecorder()

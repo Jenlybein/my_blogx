@@ -64,8 +64,8 @@ func TestArticleListViewMarksAdminTopAndSortsFirst(t *testing.T) {
 	}
 
 	first := list[0].(map[string]any)
-	if got := uint(first["id"].(float64)); got != adminTopArticle.ID {
-		t.Fatalf("管理员置顶文章应排在第一位, got=%d want=%d", got, adminTopArticle.ID)
+	if got := first["id"].(string); got != adminTopArticle.ID.String() {
+		t.Fatalf("管理员置顶文章应排在第一位, got=%s want=%s", got, adminTopArticle.ID.String())
 	}
 	if top, ok := first["admin_top"].(bool); !ok || !top {
 		t.Fatalf("管理员置顶标记错误, got=%#v", first["admin_top"])

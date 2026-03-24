@@ -7,6 +7,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_comment"
 	"myblogx/utils/jwts"
@@ -16,23 +17,23 @@ import (
 
 type CommentManListRequest struct {
 	common.PageInfo
-	ArticleID uint               `form:"article_id"`
-	UserID    uint               `form:"user_id"`
+	ArticleID ctype.ID           `form:"article_id"`
+	UserID    ctype.ID           `form:"user_id"`
 	Status    enum.CommentStatus `form:"status" binding:"oneof=1 2 3"`
 	Type      int8               `form:"type" binding:"required,oneof=1 2 3"`
 	// 1 查我文章下的评论 2 查我发的评论 3 管理员查所有评论
 }
 
 type CommentManListResponse struct {
-	ID           uint   `json:"id"`
+	ID           ctype.ID `json:"id"`
 	CreatedAt    string `json:"created_at"`
 	Content      string `json:"content"`
 	DiggCount    int    `json:"digg_count"`
 	ReplyCount   int    `json:"reply_count"`
-	UserID       uint   `json:"user_id"`
+	UserID       ctype.ID `json:"user_id"`
 	UserNickname string `json:"user_nickname"`
 	UserAvatar   string `json:"user_avatar"`
-	ArticleID    uint   `json:"article_id"`
+	ArticleID    ctype.ID `json:"article_id"`
 	ArticleTitle string `json:"article_title"`
 	ArticleCover string `json:"article_cover"`
 }
@@ -93,7 +94,7 @@ func (CommentApi) CommentManListView(c *gin.Context) {
 		return
 	}
 
-	commentIDs := make([]uint, 0, len(commentList))
+	commentIDs := make([]ctype.ID, 0, len(commentList))
 	for _, item := range commentList {
 		commentIDs = append(commentIDs, item.ID)
 	}

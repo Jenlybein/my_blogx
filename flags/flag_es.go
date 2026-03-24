@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/es_service"
 
 	"gorm.io/gorm"
@@ -118,7 +119,7 @@ func syncArticleDocuments(db *gorm.DB, index string, batchSize int) (int, error)
 		Select("id").
 		Order("id asc").
 		FindInBatches(&articles, batchSize, func(tx *gorm.DB, batch int) error {
-			articleIDs := make([]uint, 0, len(articles))
+			articleIDs := make([]ctype.ID, 0, len(articles))
 			for _, article := range articles {
 				articleIDs = append(articleIDs, article.ID)
 			}

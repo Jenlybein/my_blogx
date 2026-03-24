@@ -3,6 +3,7 @@ package comment_api
 import (
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
 	"myblogx/service/redis_service/redis_comment"
@@ -84,7 +85,7 @@ func TestCommentRemoveView(t *testing.T) {
 
 		var count int64
 		if err := global.DB.Model(&models.CommentModel{}).
-			Where("id IN ?", []uint{root.ID, reply.ID, pendingReply.ID}).
+			Where("id IN ?", []ctype.ID{root.ID, reply.ID, pendingReply.ID}).
 			Count(&count).Error; err != nil {
 			t.Fatalf("查询删除结果失败: %v", err)
 		}

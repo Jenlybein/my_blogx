@@ -5,6 +5,7 @@ import (
 	"myblogx/api/image_api"
 	"myblogx/common"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/test/testutil"
 	"net/http/httptest"
 	"os"
@@ -61,7 +62,7 @@ func TestImageListAndRemove(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{m.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{m.ID}})
 		// 缺省 log 时 GetLog 会创建临时日志对象，满足调用路径
 		api.ImageRemoveView(c)
 		if code := readCode(t, w); code != 0 {

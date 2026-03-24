@@ -4,10 +4,10 @@ import (
 	"context"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/cron_service"
 	"myblogx/service/redis_service/redis_comment"
 	"myblogx/test/testutil"
-	"strconv"
 	"testing"
 )
 
@@ -115,8 +115,8 @@ func TestSyncCommentDiggNotBelowZeroAndLockSkip(t *testing.T) {
 	}
 }
 
-func setupDiggCounter(commentID uint, delta int) error {
-	return global.Redis.HIncrBy(context.Background(), redis_comment.DiggCountCacheKey, strconv.Itoa(int(commentID)), int64(delta)).Err()
+func setupDiggCounter(commentID ctype.ID, delta int) error {
+	return global.Redis.HIncrBy(context.Background(), redis_comment.DiggCountCacheKey, commentID.String(), int64(delta)).Err()
 }
 
 func setDiggLockKey(key, value string) error {

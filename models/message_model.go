@@ -1,6 +1,7 @@
 package models
 
 import (
+	"myblogx/models/ctype"
 	"myblogx/models/enum/message_enum"
 	"time"
 )
@@ -9,17 +10,17 @@ type ArticleMessageModel struct {
 	Model
 	Type message_enum.Type `json:"type"`
 
-	ReceiverID         uint    `gorm:"index:idx_msg_receiver_read_created,priority:1" json:"receiver_id"`
-	ActionUserID       *uint   `gorm:"index" json:"action_user_id"`
-	ActionUserNickname *string `json:"action_user_nickname"`
-	ActionUserAvatar   *string `json:"action_user_avatar"`
+	ReceiverID         ctype.ID  `gorm:"index:idx_msg_receiver_read_created,priority:1" json:"receiver_id"`
+	ActionUserID       *ctype.ID `gorm:"index" json:"action_user_id"`
+	ActionUserNickname *string   `json:"action_user_nickname"`
+	ActionUserAvatar   *string   `json:"action_user_avatar"`
 
 	Content string `gorm:"type:text" json:"content"`
 
 	// 记录触发的业务对象
-	ArticleID    uint   `json:"article_id"`
-	CommentID    uint   `json:"comment_id"`
-	ArticleTitle string `json:"article_title"`
+	ArticleID    ctype.ID `json:"article_id"`
+	CommentID    ctype.ID `json:"comment_id"`
+	ArticleTitle string   `json:"article_title"`
 
 	// 额外提示的链接
 	LinkTitle string `gorm:"size:128" json:"link_title"`

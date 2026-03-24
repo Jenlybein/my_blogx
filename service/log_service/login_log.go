@@ -7,6 +7,7 @@ import (
 	"myblogx/core"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/utils/jwts"
 
@@ -21,14 +22,14 @@ func NewLoginSuccess(c *gin.Context, loginType enum.LoginType) {
 	fmt.Println(token)
 
 	// 解析 jwt token 中的 userID
-	userID := uint(0)
+	userID := ctype.ID(0)
 	username := ""
 	claims, err := jwts.ParseTokenByGin(c)
 	if err != nil {
 		global.Logger.Errorf("解析 token 失败: %v", err)
 	} else {
 		username = claims.Username
-		userID = uint(claims.UserID)
+		userID = claims.UserID
 	}
 
 	global.DB.Create(&models.LogModel{

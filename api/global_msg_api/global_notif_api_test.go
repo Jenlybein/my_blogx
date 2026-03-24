@@ -5,6 +5,7 @@ import (
 	global_notif_api "myblogx/api/global_msg_api"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/models/enum/global_notif_enum"
 	"myblogx/test/testutil"
@@ -216,7 +217,7 @@ func TestGlobalNotifListViewAndUserRemove(t *testing.T) {
 	{
 		c, w := newGlobalNotifCtx()
 		setClaims(c, user)
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{notifs[1].ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{notifs[1].ID}})
 		api.GlobalNotifUserRemoveView(c)
 		if code := readGlobalNotifCode(t, w); code != 0 {
 			t.Fatalf("用户删除通知失败, body=%s", w.Body.String())
@@ -277,7 +278,7 @@ func TestGlobalNotifReadView(t *testing.T) {
 	{
 		c, w := newGlobalNotifCtx()
 		setClaims(c, user)
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{notifs[0].ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{notifs[0].ID}})
 		api.GlobalNotifReadView(c)
 		if code := readGlobalNotifCode(t, w); code != 0 {
 			t.Fatalf("首次标记已读失败, body=%s", w.Body.String())
@@ -295,7 +296,7 @@ func TestGlobalNotifReadView(t *testing.T) {
 	{
 		c, w := newGlobalNotifCtx()
 		setClaims(c, user)
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{notifs[0].ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{notifs[0].ID}})
 		api.GlobalNotifReadView(c)
 		if code := readGlobalNotifCode(t, w); code == 0 {
 			t.Fatalf("重复读取应失败, body=%s", w.Body.String())
@@ -305,7 +306,7 @@ func TestGlobalNotifReadView(t *testing.T) {
 	{
 		c, w := newGlobalNotifCtx()
 		setClaims(c, user)
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{notifs[1].ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{notifs[1].ID}})
 		api.GlobalNotifReadView(c)
 		if code := readGlobalNotifCode(t, w); code == 0 {
 			t.Fatalf("读取已删除通知应失败, body=%s", w.Body.String())

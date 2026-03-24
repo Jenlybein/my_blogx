@@ -1,12 +1,13 @@
 package ai_service
 
 import (
+	"myblogx/models/ctype"
 	"myblogx/utils/markdown"
 	"time"
 )
 
 type AISearchList struct {
-	ID             uint                   `json:"id"`
+	ID             ctype.ID               `json:"id"`
 	CreatedAt      time.Time              `json:"created_at"`
 	Title          string                 `json:"title"`
 	Abstract       string                 `json:"abstract,omitempty"`

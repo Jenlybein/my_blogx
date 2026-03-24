@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"myblogx/global"
-	"strconv"
+	"myblogx/models/ctype"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -67,7 +67,7 @@ func (r *WeekQuotaReservation) Release() error {
 // 1. reservation 非空且 allowed=true：预占成功；
 // 2. reservation 为空且 allowed=false：本周额度已满；
 // 3. err 非空：Redis 执行异常。
-func ReserveChatWeekQuota(senderID, receiverID uint, limit int, now time.Time) (*WeekQuotaReservation, bool, error) {
+func ReserveChatWeekQuota(senderID, receiverID ctype.ID, limit int, now time.Time) (*WeekQuotaReservation, bool, error) {
 	if global.Redis == nil {
 		return nil, false, fmt.Errorf("redis 未初始化")
 	}
@@ -96,7 +96,7 @@ func ReserveChatWeekQuota(senderID, receiverID uint, limit int, now time.Time) (
 
 // ResetChatWeekQuota 清空一个方向在当前自然周内的已用额度。
 // 这个动作在“对方成功回复后”调用，用于恢复反向的周配额。
-func ResetChatWeekQuota(senderID, receiverID uint, now time.Time) error {
+func ResetChatWeekQuota(senderID, receiverID ctype.ID, now time.Time) error {
 	if global.Redis == nil {
 		return fmt.Errorf("redis 未初始化")
 	}
@@ -104,11 +104,11 @@ func ResetChatWeekQuota(senderID, receiverID uint, now time.Time) error {
 }
 
 // chatWeekQuotaKey 返回单向自然周配额 key。
-func chatWeekQuotaKey(senderID, receiverID uint, now time.Time) string {
+func chatWeekQuotaKey(senderID, receiverID ctype.ID, now time.Time) string {
 	weekStart, _ := currentWeekRange(now)
 	return "chat:quota:week:" + weekStart.Format("20060102") + ":" +
-		strconv.FormatUint(uint64(senderID), 10) + ":" +
-		strconv.FormatUint(uint64(receiverID), 10)
+		senderID.String() + ":" +
+		receiverID.String()
 }
 
 // currentWeekRange 返回当前时间所在自然周的开始时间和结束时间。

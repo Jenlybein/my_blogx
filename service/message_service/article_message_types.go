@@ -1,57 +1,59 @@
 package message_service
 
+import "myblogx/models/ctype"
+
 type ArticleCommentMessage struct {
-	CommentID uint
+	CommentID ctype.ID
 	Content   string
 
-	ReceiverID   uint
-	ActionUserID uint
+	ReceiverID   ctype.ID
+	ActionUserID ctype.ID
 
-	ArticleID    uint
+	ArticleID    ctype.ID
 	ArticleTitle string
 }
 
 type ArticleReplyMessage struct {
-	CommentID uint
+	CommentID ctype.ID
 	Content   string
 
-	ReceiverID   uint
-	ActionUserID uint
+	ReceiverID   ctype.ID
+	ActionUserID ctype.ID
 
-	ArticleID    uint
+	ArticleID    ctype.ID
 	ArticleTitle string
 }
 
 type ArticleDiggMessage struct {
-	ReceiverID   uint
-	ActionUserID uint
+	ReceiverID   ctype.ID
+	ActionUserID ctype.ID
 
-	ArticleID    uint
+	ArticleID    ctype.ID
 	ArticleTitle string
 }
 
 type CommentDiggMessage struct {
-	CommentID uint
+	CommentID ctype.ID
 	Content   string
 
-	ReceiverID   uint
-	ActionUserID uint
+	ReceiverID   ctype.ID
+	ActionUserID ctype.ID
 
-	ArticleID    uint
+	ArticleID    ctype.ID
 	ArticleTitle string
 }
 
 type ArticleFavorMessage struct {
-	ReceiverID   uint
-	ActionUserID uint
+	ReceiverID   ctype.ID
+	ActionUserID ctype.ID
 
-	ArticleID    uint
+	ArticleID    ctype.ID
 	ArticleTitle string
 }
 
 type SystemMessage struct {
-	ReceiverID   uint
-	ActionUserID *uint
+	ReceiverID   ctype.ID
+	ActionUserID *ctype.ID
 
 	Content string
 

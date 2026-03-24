@@ -3,6 +3,7 @@ package search_service
 import (
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_article"
 )
 
@@ -40,11 +41,11 @@ func extractSearchBoolQuery(query map[string]any) (map[string]any, bool) {
 
 // loadSearchArticleCounterMaps 批量读取 Redis 中的文章计数增量。
 // 搜索结果里的计数字段以 ES 文档为基础值，再叠加 Redis 中尚未落库的实时增量。
-func loadSearchArticleCounterMaps(articleIDs []uint) (favorMap, diggMap, viewMap, commentMap map[uint]int) {
-	favorMap = make(map[uint]int)
-	diggMap = make(map[uint]int)
-	viewMap = make(map[uint]int)
-	commentMap = make(map[uint]int)
+func loadSearchArticleCounterMaps(articleIDs []ctype.ID) (favorMap, diggMap, viewMap, commentMap map[ctype.ID]int) {
+	favorMap = make(map[ctype.ID]int)
+	diggMap = make(map[ctype.ID]int)
+	viewMap = make(map[ctype.ID]int)
+	commentMap = make(map[ctype.ID]int)
 	if global.Redis == nil || len(articleIDs) == 0 {
 		return favorMap, diggMap, viewMap, commentMap
 	}
@@ -59,14 +60,14 @@ func loadSearchArticleCounterMaps(articleIDs []uint) (favorMap, diggMap, viewMap
 
 // loadSearchArticleDisplayMetaMap 批量读取搜索列表需要的展示信息。
 // 这里只补齐列表页展示字段，避免逐条查询分类和作者信息。
-func loadSearchArticleDisplayMetaMap(articleIDs []uint) map[uint]SearchListResponse {
-	metaMap := make(map[uint]SearchListResponse)
+func loadSearchArticleDisplayMetaMap(articleIDs []ctype.ID) map[ctype.ID]SearchListResponse {
+	metaMap := make(map[ctype.ID]SearchListResponse)
 	if global.DB == nil || len(articleIDs) == 0 {
 		return metaMap
 	}
 
 	type articleDisplayMeta struct {
-		ID            uint
+		ID            ctype.ID
 		CategoryTitle string
 		UserNickname  string
 		UserAvatar    string
@@ -115,7 +116,7 @@ func extractArticleSearchResults(data map[string]any) (list []SearchListResponse
 
 		// 处理高亮，获取第一个高亮字段
 		highlightMap, _ := item["highlight"].(map[string]any)
-		articleID := sourceUintValue(sourceMap, "id")
+		articleID := sourceIDValue(sourceMap, "id")
 		title := sourceStringValue(sourceMap, "title")
 		abstract := sourceStringValue(sourceMap, "abstract")
 		contentHead := sourceStringValue(sourceMap, "content_head")
@@ -155,7 +156,7 @@ func extractArticleSearchResults(data map[string]any) (list []SearchListResponse
 		})
 	}
 
-	articleIDs := make([]uint, 0, len(list))
+	articleIDs := make([]ctype.ID, 0, len(list))
 	for _, item := range list {
 		articleIDs = append(articleIDs, item.ID)
 	}

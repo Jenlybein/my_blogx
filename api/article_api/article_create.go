@@ -5,6 +5,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
@@ -73,7 +74,7 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 
 	applyTagArticleCountDelta(buildTagArticleCountDelta(nil, tagIDs))
 	if len(tagIDs) > 0 {
-		if err := es_service.UpdateESDocsTags([]uint{article.ID}); err != nil {
+		if err := es_service.UpdateESDocsTags([]ctype.ID{article.ID}); err != nil {
 			global.Logger.Errorf("创建文章后刷新 ES 标签失败 article_id=%d err=%v", article.ID, err)
 		}
 	}

@@ -9,6 +9,7 @@ import (
 
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/chat_msg_enum"
 	"myblogx/test/testutil"
 
@@ -159,7 +160,7 @@ func setupChatServiceTestDB(t *testing.T) (*models.UserModel, *models.UserModel)
 	return userA, userB
 }
 
-func mustGetSession(t *testing.T, userID, receiverID uint) models.ChatSessionModel {
+func mustGetSession(t *testing.T, userID, receiverID ctype.ID) models.ChatSessionModel {
 	t.Helper()
 
 	var session models.ChatSessionModel

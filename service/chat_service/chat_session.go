@@ -5,20 +5,21 @@ import (
 	"time"
 
 	"myblogx/models"
+	"myblogx/models/ctype"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 // 为一对聊天用户生成稳定的逻辑会话标识。
-func buildSessionID(a, b uint) string {
+func buildSessionID(a, b ctype.ID) string {
 	if a < b {
 		return fmt.Sprintf("chat:%d:%d", a, b)
 	}
 	return fmt.Sprintf("chat:%d:%d", b, a)
 }
 
-func isSelfChat(senderID, receiverID uint) bool {
+func isSelfChat(senderID, receiverID ctype.ID) bool {
 	return senderID == receiverID
 }
 
@@ -55,7 +56,7 @@ func ensureChatSessions(tx *gorm.DB, req ToChatRequest, sessionID string) error 
 
 // updateLastMsgSession 更新双方会话的最后一条消息。
 // 发送方只更新摘要，接收方同时累加未读数。
-func updateLastMsgSession(tx *gorm.DB, sessionID string, lastMsgID uint, lastMsgContent string, sendTime time.Time, senderID, receiverID uint) error {
+func updateLastMsgSession(tx *gorm.DB, sessionID string, lastMsgID ctype.ID, lastMsgContent string, sendTime time.Time, senderID, receiverID ctype.ID) error {
 	expectedRows := int64(2)
 	updates := map[string]any{
 		"last_msg_id":      lastMsgID,

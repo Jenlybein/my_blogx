@@ -3,12 +3,13 @@ package favorite
 import (
 	"myblogx/common"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"time"
 )
 
 type FavoriteRequest struct {
-	ID       uint   `json:"id"`
+	ID       ctype.ID `json:"id"`
 	Title    string `json:"title" binding:"required,min=2,max=32"`
 	Cover    string `json:"cover"`
 	Abstract string `json:"abstract" binding:"required,max=256"`
@@ -16,8 +17,8 @@ type FavoriteRequest struct {
 
 type FavoriteListRequest struct {
 	common.PageInfo
-	UserID uint `form:"user_id"`
-	Type   int8 `form:"type" binding:"required,oneof=1 2 3"` // 1:查自己 2:查别人 3:管理员后台查
+	UserID ctype.ID `form:"user_id"`
+	Type   int8     `form:"type" binding:"required,oneof=1 2 3"` // 1:查自己 2:查别人 3:管理员后台查
 }
 
 type FavoriteListResponse struct {
@@ -29,12 +30,12 @@ type FavoriteListResponse struct {
 
 type FavoriteArticlesRequest struct {
 	common.PageInfo
-	FavoriteID uint `form:"favorite_id" binding:"required"`
+	FavoriteID ctype.ID `form:"favorite_id" binding:"required"`
 }
 
 type FavoriteArticleResponse struct {
 	FavoritedAt   time.Time          `json:"favorited_at"`
-	ArticleID     uint               `json:"article_id"`
+	ArticleID     ctype.ID           `json:"article_id"`
 	Title         string             `json:"title"`
 	Abstract      string             `json:"abstract"`
 	Cover         string             `json:"cover"`
@@ -48,6 +49,6 @@ type FavoriteArticleResponse struct {
 }
 
 type FavoriteRemovePatchModel struct {
-	FavoriteID uint   `json:"favorite_id" binding:"required"`
-	Articles   []uint `json:"articles" binding:"required"`
+	FavoriteID ctype.ID   `json:"favorite_id" binding:"required"`
+	Articles   []ctype.ID `json:"articles" binding:"required"`
 }

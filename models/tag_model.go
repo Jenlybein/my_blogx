@@ -2,6 +2,7 @@ package models
 
 import (
 	"myblogx/global"
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_tag"
 
 	"gorm.io/gorm"
@@ -15,7 +16,7 @@ type TagModel struct {
 	Description  string         `gorm:"size:255" json:"description"`
 	ArticleCount int            `gorm:"default:0" json:"article_count"`
 	IsEnabled    bool           `gorm:"default:true;index" json:"is_enabled"`
-	CreatedBy    uint           `gorm:"index" json:"created_by"`
+	CreatedBy    ctype.ID       `gorm:"index" json:"created_by"`
 	ArticleList  []ArticleModel `gorm:"many2many:article_tag_models;joinForeignKey:TagID;joinReferences:ArticleID" json:"-"`
 }
 

@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_comment"
 	"time"
@@ -15,15 +16,15 @@ import (
 
 type CommentReplyListRequest struct {
 	common.PageInfo
-	ArticleID uint `form:"article_id" binding:"required"`
-	RootID    uint `form:"root_id" binding:"required"`
+	ArticleID ctype.ID `form:"article_id" binding:"required"`
+	RootID    ctype.ID `form:"root_id" binding:"required"`
 }
 
 type CommentReplyListResponse struct {
 	CreatedAt         time.Time          `json:"created_at"`
 	Content           string             `json:"content"`
-	UserID            uint               `json:"user_id"`
-	ReplyId           uint               `json:"reply_id"`
+	UserID            ctype.ID           `json:"user_id"`
+	ReplyId           ctype.ID           `json:"reply_id"`
 	DiggCount         int                `json:"digg_count"`
 	ReplyCount        int                `json:"reply_count"`
 	Status            enum.CommentStatus `json:"status"`
@@ -77,7 +78,7 @@ func (CommentApi) CommentReplyListView(c *gin.Context) {
 		return
 	}
 
-	commentIDs := make([]uint, 0, len(list))
+	commentIDs := make([]ctype.ID, 0, len(list))
 	for _, item := range list {
 		commentIDs = append(commentIDs, item.ID)
 	}

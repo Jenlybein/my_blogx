@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -65,7 +66,7 @@ func clearChatSessions(tx *gorm.DB, list []models.ChatSessionModel) error {
 		return err
 	}
 
-	idList := make([]uint, 0, len(list))
+	idList := make([]ctype.ID, 0, len(list))
 	caseSQL := "CASE id"
 	args := make([]any, 0, len(list)*2)
 	for _, session := range list {
@@ -99,14 +100,14 @@ func extractSessionIDs(list []models.ChatSessionModel) []string {
 
 type chatSessionMaxMsgRow struct {
 	SessionID string
-	MaxMsgID  uint
+	MaxMsgID  ctype.ID
 }
 
 // loadSessionMaxMsgIDMap 查询每个会话当前最大的消息 ID。
 // 返回值用于计算会话删除后的 clear_before_msg_id。
-func loadSessionMaxMsgIDMap(tx *gorm.DB, sessionIDList []string) (map[string]uint, error) {
+func loadSessionMaxMsgIDMap(tx *gorm.DB, sessionIDList []string) (map[string]ctype.ID, error) {
 	if len(sessionIDList) == 0 {
-		return map[string]uint{}, nil
+		return map[string]ctype.ID{}, nil
 	}
 
 	var rows []chatSessionMaxMsgRow
@@ -119,7 +120,7 @@ func loadSessionMaxMsgIDMap(tx *gorm.DB, sessionIDList []string) (map[string]uin
 		return nil, err
 	}
 
-	result := make(map[string]uint, len(rows))
+	result := make(map[string]ctype.ID, len(rows))
 	for _, row := range rows {
 		result[row.SessionID] = row.MaxMsgID
 	}

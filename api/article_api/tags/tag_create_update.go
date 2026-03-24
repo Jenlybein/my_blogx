@@ -7,6 +7,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/es_service"
 	"myblogx/utils/jwts"
 	"strings"
@@ -67,7 +68,7 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 		return
 	}
 
-	var affectedArticleIDs []uint
+	var affectedArticleIDs []ctype.ID
 	if err := global.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&tag).Updates(map[string]any{
 			"title":       title,
@@ -98,7 +99,7 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 	res.OkWithMsg("更新标签成功", c)
 }
 
-func ensureTagUnique(currentID uint, title string) error {
+func ensureTagUnique(currentID ctype.ID, title string) error {
 	var count int64
 	if err := global.DB.Model(&models.TagModel{}).
 		Where("title = ? AND id <> ?", title, currentID).
@@ -111,7 +112,7 @@ func ensureTagUnique(currentID uint, title string) error {
 	return nil
 }
 
-func loadArticleIDsByTagID(tx *gorm.DB, tagID uint) ([]uint, error) {
+func loadArticleIDsByTagID(tx *gorm.DB, tagID ctype.ID) ([]ctype.ID, error) {
 	var relationList []models.ArticleTagModel
 	if err := tx.Select("article_id").Where("tag_id = ?", tagID).Find(&relationList).Error; err != nil {
 		return nil, err
@@ -120,8 +121,8 @@ func loadArticleIDsByTagID(tx *gorm.DB, tagID uint) ([]uint, error) {
 		return nil, nil
 	}
 
-	articleIDs := make([]uint, 0, len(relationList))
-	seen := make(map[uint]struct{}, len(relationList))
+	articleIDs := make([]ctype.ID, 0, len(relationList))
+	seen := make(map[ctype.ID]struct{}, len(relationList))
 	for _, relation := range relationList {
 		if _, ok := seen[relation.ArticleID]; ok {
 			continue

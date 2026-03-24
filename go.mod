@@ -6,6 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/alicebob/miniredis/v2 v2.37.0
 	github.com/blackstork-io/goldmark-markdown v0.1.3
+	github.com/bwmarrin/snowflake v0.3.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/gabriel-vasile/mimetype v1.4.12
 	github.com/gin-contrib/cors v1.7.6

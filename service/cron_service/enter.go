@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"myblogx/global"
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service"
 
 	"github.com/go-co-op/gocron/v2"
@@ -33,7 +34,7 @@ type hashCounterSyncConfig struct {
 	activeKey  string
 	syncKey    string
 	idName     string
-	applyDelta func(id uint, delta int) error
+	applyDelta func(id ctype.ID, delta int) error
 }
 
 func syncCounters() {
@@ -92,7 +93,7 @@ func syncHashCounterMetric(ctx context.Context, config hashCounterSyncConfig) (i
 		return 0, nil
 	}
 
-	deltaMap := make(map[uint]int, len(rawMap))
+	deltaMap := make(map[ctype.ID]int, len(rawMap))
 	for idStr, deltaStr := range rawMap {
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
@@ -109,7 +110,7 @@ func syncHashCounterMetric(ctx context.Context, config hashCounterSyncConfig) (i
 		if delta == 0 {
 			continue
 		}
-		deltaMap[uint(id)] += delta
+		deltaMap[ctype.ID(id)] += delta
 	}
 
 	if len(deltaMap) == 0 {

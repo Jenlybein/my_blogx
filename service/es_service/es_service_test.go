@@ -8,6 +8,7 @@ import (
 	confsite "myblogx/conf/site"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/test/testutil"
 	"net/http"
@@ -276,7 +277,7 @@ func TestUpdateESDocsContent(t *testing.T) {
 		}
 	})
 
-	if err := UpdateESDocsContent([]uint{article.ID}); err != nil {
+	if err := UpdateESDocsContent([]ctype.ID{article.ID}); err != nil {
 		t.Fatalf("UpdateESDocsContent 失败: %v", err)
 	}
 	if len(bulkDocs) != 1 {
@@ -366,7 +367,7 @@ func TestUpdateESDocsTags(t *testing.T) {
 		}
 	})
 
-	if err := UpdateESDocsTags([]uint{article.ID}); err != nil {
+	if err := UpdateESDocsTags([]ctype.ID{article.ID}); err != nil {
 		t.Fatalf("UpdateESDocsTags 失败: %v", err)
 	}
 	if len(bulkDocs) != 1 {
@@ -442,7 +443,7 @@ func TestUpdateESDocsTop(t *testing.T) {
 		}
 	})
 
-	if err := UpdateESDocsTop([]uint{article.ID}); err != nil {
+	if err := UpdateESDocsTop([]ctype.ID{article.ID}); err != nil {
 		t.Fatalf("UpdateESDocsTop 失败: %v", err)
 	}
 	if len(bulkDocs) != 1 {
@@ -495,7 +496,7 @@ func TestExtractArticles(t *testing.T) {
 	if len(articles) != 1 {
 		t.Fatalf("数量错误: %d", len(articles))
 	}
-	if articles[0].ID != uint(1) || articles[0].Title != "title-1" {
+	if articles[0].ID != ctype.ID(1) || articles[0].Title != "title-1" {
 		t.Fatalf("解析结果异常: %+v", articles[0])
 	}
 }

@@ -3,6 +3,7 @@ package models
 import (
 	_ "embed"
 	"myblogx/global"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_tag"
 
@@ -12,8 +13,8 @@ import (
 // ESTag 是文章写入 ES 时使用的标签结构。
 // 这里保留标签 id 和 title，方便 ES 侧按单字段过滤，也方便列表展示。
 type ESTag struct {
-	ID    uint   `json:"id"`
-	Title string `json:"title"`
+	ID    ctype.ID `json:"id"`
+	Title string   `json:"title"`
 }
 
 // ArticleModel 文章表
@@ -23,9 +24,9 @@ type ArticleModel struct {
 	Abstract       string             `gorm:"size:256" json:"abstract"`
 	Content        string             `gorm:"type:longtext" json:"content"`
 	ContentHead    string             `gorm:"-" json:"content_head,omitempty"` // ES 冗余字段，保存去除 Markdown 格式后的正文前 150 字
-	CategoryID     *uint              `gorm:"index" json:"category_id"`
+	CategoryID     *ctype.ID          `gorm:"index" json:"category_id"`
 	Cover          string             `gorm:"size:256" json:"cover"`
-	AuthorID       uint               `gorm:"index" json:"author_id"`
+	AuthorID       ctype.ID           `gorm:"index" json:"author_id"`
 	ViewCount      int                `gorm:"default:0" json:"view_count"`
 	DiggCount      int                `gorm:"default:0" json:"digg_count"`
 	CommentCount   int                `gorm:"default:0" json:"comment_count"`

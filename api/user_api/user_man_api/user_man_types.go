@@ -2,6 +2,7 @@ package user_man_api
 
 import (
 	"myblogx/common"
+	"myblogx/models/ctype"
 	"time"
 )
 
@@ -10,7 +11,7 @@ type UserListRequest struct {
 }
 
 type UserListResponse struct {
-	ID        uint      `json:"id"`
+	ID        ctype.ID  `json:"id"`
 	Nickname  string    `json:"nickname"`
 	Avatar    string    `json:"avatar"`
 	Username  string    `json:"username"`

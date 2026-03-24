@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ func (GlobalNotifApi) GlobalNotifListView(c *gin.Context) {
 
 	var (
 		whereQuery   = global.DB.Where("")
-		userNotifMap = map[uint]models.UserGlobalNotifModel{}
+		userNotifMap = map[ctype.ID]models.UserGlobalNotifModel{}
 	)
 
 	switch cr.Type {

@@ -6,6 +6,7 @@ import (
 	"myblogx/conf"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
@@ -131,7 +132,7 @@ func TestCategoryCRUD(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/category", nil)
 		req.Header.Set("token", token)
 		c.Request = req
@@ -143,7 +144,7 @@ func TestCategoryCRUD(t *testing.T) {
 
 	{
 		c, w := newCtx()
-		c.Set("requestJson", models.IDListRequest{IDList: []uint{cat.ID}})
+		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{cat.ID}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/category", nil)
 		req.Header.Set("token", token)
 		c.Request = req

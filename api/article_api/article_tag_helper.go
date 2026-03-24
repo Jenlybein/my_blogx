@@ -6,13 +6,14 @@ import (
 
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/redis_service/redis_tag"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-func validateArticleCategory(db *gorm.DB, userID uint, categoryID *uint) error {
+func validateArticleCategory(db *gorm.DB, userID ctype.ID, categoryID *ctype.ID) error {
 	if categoryID == nil {
 		return nil
 	}
@@ -21,7 +22,7 @@ func validateArticleCategory(db *gorm.DB, userID uint, categoryID *uint) error {
 	return db.Take(&category, "id = ? AND user_id = ?", *categoryID, userID).Error
 }
 
-func loadEnabledTagsByIDs(db *gorm.DB, tagIDs []uint) ([]models.TagModel, error) {
+func loadEnabledTagsByIDs(db *gorm.DB, tagIDs []ctype.ID) ([]models.TagModel, error) {
 	uniqueIDs := normalizeTagIDs(tagIDs)
 	if len(uniqueIDs) == 0 {
 		return []models.TagModel{}, nil
@@ -38,9 +39,9 @@ func loadEnabledTagsByIDs(db *gorm.DB, tagIDs []uint) ([]models.TagModel, error)
 	return tagList, nil
 }
 
-func normalizeTagIDs(tagIDs []uint) []uint {
-	uniqueIDs := make([]uint, 0, len(tagIDs))
-	seen := make(map[uint]struct{}, len(tagIDs))
+func normalizeTagIDs(tagIDs []ctype.ID) []ctype.ID {
+	uniqueIDs := make([]ctype.ID, 0, len(tagIDs))
+	seen := make(map[ctype.ID]struct{}, len(tagIDs))
 	for _, tagID := range tagIDs {
 		if tagID == 0 {
 			continue
@@ -54,31 +55,31 @@ func normalizeTagIDs(tagIDs []uint) []uint {
 	return uniqueIDs
 }
 
-func extractTagIDs(tags []models.TagModel) []uint {
-	ids := make([]uint, 0, len(tags))
+func extractTagIDs(tags []models.TagModel) []ctype.ID {
+	ids := make([]ctype.ID, 0, len(tags))
 	for _, tag := range tags {
 		ids = append(ids, tag.ID)
 	}
 	return ids
 }
 
-func loadArticleTagIDs(db *gorm.DB, articleID uint) ([]uint, error) {
+func loadArticleTagIDs(db *gorm.DB, articleID ctype.ID) ([]ctype.ID, error) {
 	var relationList []models.ArticleTagModel
 	if err := db.Select("tag_id").Where("article_id = ?", articleID).Find(&relationList).Error; err != nil {
 		return nil, err
 	}
 
-	tagIDs := make([]uint, 0, len(relationList))
+	tagIDs := make([]ctype.ID, 0, len(relationList))
 	for _, item := range relationList {
 		tagIDs = append(tagIDs, item.TagID)
 	}
 	return tagIDs, nil
 }
 
-func buildTagArticleCountDelta(oldTagIDs, newTagIDs []uint) map[uint]int {
-	deltaMap := make(map[uint]int)
-	oldSet := make(map[uint]struct{}, len(oldTagIDs))
-	newSet := make(map[uint]struct{}, len(newTagIDs))
+func buildTagArticleCountDelta(oldTagIDs, newTagIDs []ctype.ID) map[ctype.ID]int {
+	deltaMap := make(map[ctype.ID]int)
+	oldSet := make(map[ctype.ID]struct{}, len(oldTagIDs))
+	newSet := make(map[ctype.ID]struct{}, len(newTagIDs))
 
 	for _, tagID := range normalizeTagIDs(oldTagIDs) {
 		oldSet[tagID] = struct{}{}
@@ -101,7 +102,7 @@ func buildTagArticleCountDelta(oldTagIDs, newTagIDs []uint) map[uint]int {
 	return deltaMap
 }
 
-func applyTagArticleCountDelta(deltaMap map[uint]int) {
+func applyTagArticleCountDelta(deltaMap map[ctype.ID]int) {
 	for tagID, delta := range deltaMap {
 		if delta == 0 {
 			continue
@@ -112,7 +113,7 @@ func applyTagArticleCountDelta(deltaMap map[uint]int) {
 	}
 }
 
-func syncArticleTags(tx *gorm.DB, articleID uint, newTagIDs []uint) error {
+func syncArticleTags(tx *gorm.DB, articleID ctype.ID, newTagIDs []ctype.ID) error {
 	newTagIDs = normalizeTagIDs(newTagIDs)
 
 	var relationList []models.ArticleTagModel
@@ -122,7 +123,7 @@ func syncArticleTags(tx *gorm.DB, articleID uint, newTagIDs []uint) error {
 		return err
 	}
 
-	currentMap := make(map[uint]models.ArticleTagModel, len(relationList))
+	currentMap := make(map[ctype.ID]models.ArticleTagModel, len(relationList))
 	for _, item := range relationList {
 		currentMap[item.TagID] = item
 	}
@@ -158,7 +159,7 @@ func syncArticleTags(tx *gorm.DB, articleID uint, newTagIDs []uint) error {
 		}
 	}
 
-	newSet := make(map[uint]struct{}, len(newTagIDs))
+	newSet := make(map[ctype.ID]struct{}, len(newTagIDs))
 	for _, tagID := range newTagIDs {
 		newSet[tagID] = struct{}{}
 	}

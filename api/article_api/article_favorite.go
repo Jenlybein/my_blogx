@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	dbservice "myblogx/service/db_service"
 	"myblogx/service/message_service"
@@ -62,7 +63,7 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 }
 
 // getOrCreateFavoriteID 获取收藏夹；如果获取的是默认收藏夹，不存在就新建
-func getOrCreateFavoriteID(db *gorm.DB, favorID, userID uint) (*models.FavoriteModel, error) {
+func getOrCreateFavoriteID(db *gorm.DB, favorID, userID ctype.ID) (*models.FavoriteModel, error) {
 	var favorite models.FavoriteModel
 	if favorID == 0 {
 		if err := db.Where("is_default = ? AND user_id = ?", true, userID).
@@ -71,7 +72,7 @@ func getOrCreateFavoriteID(db *gorm.DB, favorID, userID uint) (*models.FavoriteM
 				Title:     "默认收藏夹",
 				IsDefault: true,
 			}).
-			FirstOrCreate(favorite).Error; err != nil {
+			FirstOrCreate(&favorite).Error; err != nil {
 			return nil, errors.New("创建默认收藏夹失败")
 		}
 	} else {
@@ -83,7 +84,7 @@ func getOrCreateFavoriteID(db *gorm.DB, favorID, userID uint) (*models.FavoriteM
 }
 
 // switchArticleFavorite 只处理单个收藏关系的切换，避免收藏夹解析和副作用逻辑混在一起。
-func switchArticleFavorite(tx *gorm.DB, articleID, userID, favorID uint) (bool, error) {
+func switchArticleFavorite(tx *gorm.DB, articleID, userID, favorID ctype.ID) (bool, error) {
 	var articleFavorite models.UserArticleFavorModel
 	if err := tx.Select("id").
 		Take(&articleFavorite, "article_id = ? and user_id = ? and favor_id = ?", articleID, userID, favorID).Error; err == nil {

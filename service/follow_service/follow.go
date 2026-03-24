@@ -3,21 +3,22 @@ package follow_service
 import (
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/models/enum/relationship_enum"
 )
 
 // CalUserRelationship 计算用户关系
-func CalUserRelationship(A, B uint) relationship_enum.Relation {
+func CalUserRelationship(A, B ctype.ID) relationship_enum.Relation {
 	if A == 0 || B == 0 {
 		return relationship_enum.RelationStranger
 	}
 
-	return CalUserRelationshipBatch(A, []uint{B})[B]
+	return CalUserRelationshipBatch(A, []ctype.ID{B})[B]
 }
 
 // 批量计算用户关系
-func CalUserRelationshipBatch(user uint, userList []uint) map[uint]relationship_enum.Relation {
-	relationMap := make(map[uint]relationship_enum.Relation, len(userList))
+func CalUserRelationshipBatch(user ctype.ID, userList []ctype.ID) map[ctype.ID]relationship_enum.Relation {
+	relationMap := make(map[ctype.ID]relationship_enum.Relation, len(userList))
 	if len(userList) == 0 {
 		return relationMap
 	}
@@ -38,7 +39,7 @@ func CalUserRelationshipBatch(user uint, userList []uint) map[uint]relationship_
 		iFollow  uint8 = 1 // 当前 user 关注了对方
 		heFollow uint8 = 2 // 对方关注了当前 user
 	)
-	state := make(map[uint]uint8, len(userList))
+	state := make(map[ctype.ID]uint8, len(userList))
 
 	for _, row := range rows {
 		switch {
