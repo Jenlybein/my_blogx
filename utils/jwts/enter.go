@@ -3,6 +3,7 @@ package jwts
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"myblogx/global"
@@ -18,9 +19,11 @@ var (
 )
 
 type Claims struct {
-	UserID   ctype.ID      `json:"user_id"`
-	Role     enum.RoleType `json:"role"`
-	Username string        `json:"username"`
+	UserID       ctype.ID      `json:"user_id"`
+	SessionID    ctype.ID      `json:"session_id"`
+	TokenVersion uint32        `json:"token_version"`
+	Role         enum.RoleType `json:"role"`
+	Username     string        `json:"username"`
 }
 
 type MyClaims struct {
@@ -89,17 +92,18 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 }
 
 func GetTokenByGin(c *gin.Context) string {
-	tokenString := c.Request.Header.Get("token")
-
-	if tokenString == "" {
-		tokenString = c.Query("token")
+	authHeader := strings.TrimSpace(c.Request.Header.Get("Authorization"))
+	if authHeader != "" {
+		if len(authHeader) > 7 && strings.EqualFold(authHeader[:7], "Bearer ") {
+			return strings.TrimSpace(authHeader[7:])
+		}
+		return authHeader
 	}
 
-	if tokenString == "" {
-		tokenString = c.Request.Header.Get("Token")
+	if tokenString := strings.TrimSpace(c.Request.Header.Get("token")); tokenString != "" {
+		return tokenString
 	}
-
-	return tokenString
+	return strings.TrimSpace(c.Request.Header.Get("Token"))
 }
 
 func ParseTokenByGin(c *gin.Context) (*MyClaims, error) {
@@ -108,6 +112,11 @@ func ParseTokenByGin(c *gin.Context) (*MyClaims, error) {
 }
 
 func GetClaimsByGin(c *gin.Context) (claims *MyClaims) {
+	if rawClaims, ok := c.Get("claims"); ok {
+		if parsedClaims, ok := rawClaims.(*MyClaims); ok {
+			return parsedClaims
+		}
+	}
 	claims, err := ParseTokenByGin(c)
 	if err != nil {
 		return nil

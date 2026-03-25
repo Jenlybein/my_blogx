@@ -7,14 +7,16 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/service/email_service"
-	redis_email "myblogx/service/redis_service/redis_email"
+	"myblogx/service/redis_service/redis_email"
+	"myblogx/service/redis_service/redis_user"
+	"myblogx/service/user_service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mojocn/base64Captcha"
 )
 
 type SendEmailRequest struct {
-	Type  int8   `json:"type" oneof:"1,2,3"` // 1:注册 2:重置密码 3:绑定邮箱
+	Type  int8   `json:"type"` // 1:注册 2:重置密码 3:绑定邮箱 4:邮箱登录
 	Email string `json:"email" binding:"required,email"`
 }
 
@@ -29,35 +31,43 @@ func (AuthApi) SendEmailView(c *gin.Context) {
 	}
 
 	cr := middleware.GetBindJson[SendEmailRequest](c)
+	meta := user_service.BuildSessionMetaFromGin(c)
+	if !redis_user.AllowEmailSend(cr.Email, meta.IP, cr.Type) {
+		res.FailWithMsg("请求过于频繁，请稍后再试", c)
+		return
+	}
 
 	var user models.UserModel
 	code := base64Captcha.RandText(4, "0123456789")
-	timeout := 5 // 验证码有效期5分钟
+	timeout := global.Config.Site.Login.EmailCodeTimeout
+	if timeout <= 0 {
+		timeout = 5
+	}
 	isEmailExist := global.DB.Take(&user, "email = ?", cr.Email).Error == nil
 
 	var err error
+	shouldSend := false
 	switch cr.Type {
 	case 1:
-		// 注册逻辑
-		if isEmailExist {
-			res.FailWithMsg("注册失败：邮箱已被使用", c)
-			return
+		shouldSend = !isEmailExist
+		if shouldSend {
+			err = email_service.SendRegisterCode(cr.Email, code, timeout)
 		}
-		err = email_service.SendRegisterCode(cr.Email, code, timeout)
 	case 2:
-		// 重置密码逻辑
-		if !isEmailExist {
-			res.FailWithMsg("重置密码失败：邮箱不存在", c)
-			return
+		shouldSend = isEmailExist
+		if shouldSend {
+			err = email_service.SendResetPwdCode(cr.Email, code, timeout)
 		}
-		err = email_service.SendResetPwdCode(cr.Email, code, timeout)
 	case 3:
-		// 绑定邮箱逻辑
-		if isEmailExist {
-			res.FailWithMsg("绑定邮箱失败：邮箱已被使用", c)
-			return
+		shouldSend = !isEmailExist
+		if shouldSend {
+			err = email_service.SendBindEmailCode(cr.Email, code, timeout)
 		}
-		err = email_service.SendBindEmailCode(cr.Email, code, timeout)
+	case 4:
+		shouldSend = isEmailExist
+		if shouldSend {
+			err = email_service.SendLoginCode(cr.Email, code, timeout)
+		}
 	default:
 		res.FailWithMsg("邮件发送失败：不存在的操作类型", c)
 		return
@@ -71,10 +81,12 @@ func (AuthApi) SendEmailView(c *gin.Context) {
 	}
 
 	id := base64Captcha.RandomId()
-	if err = redis_email.Store(id, cr.Email, code, timeout, 3); err != nil {
-		global.Logger.Errorf("邮件验证码存储失败: %v", err)
-		res.FailWithMsg("邮件发送失败", c)
-		return
+	if shouldSend {
+		if err = redis_email.Store(id, cr.Email, code, timeout, 3); err != nil {
+			global.Logger.Errorf("邮件验证码存储失败: %v", err)
+			res.FailWithMsg("邮件发送失败", c)
+			return
+		}
 	}
 
 	res.OkWithData(SendEmailResponse{ID: id}, c)

@@ -19,11 +19,15 @@ func UserRouter(r *gin.RouterGroup) {
 
 	auth := api.App.UserApi.AuthApi
 	Group.POST("email/verify", mw.CaptchaMiddleware, mw.BindJson[auth_api.SendEmailRequest], auth.SendEmailView)
+	Group.POST("email/login", mw.EmailVerifyMiddleware, auth.EmailLoginView)
 	Group.POST("email/register", mw.EmailVerifyMiddleware, mw.BindJson[auth_api.RegisterEmailRequest], auth.RegisterEmailView)
 	Group.POST("qq", mw.BindJson[auth_api.QQLoginRequest], auth.QQLoginView)
 	Group.POST("login", mw.CaptchaMiddleware, mw.BindJson[auth_api.PwdLoginRequest], auth.PwdLoginView)
+	Group.POST("refresh", auth.RefreshTokenView)
 	Group.PUT("password/recovery/email", mw.EmailVerifyMiddleware, mw.BindJson[auth_api.ResetPasswordRequest], auth.ResetPwdByEmailView)
 	authGroup.PUT("password/renewal/email", mw.BindJson[auth_api.UpdatePasswordRequest], auth.UpdatePwdByEmailView)
+	authGroup.POST("logout", auth.UserLogoutView)
+	authGroup.POST("logout/all", auth.UserLogoutAllView)
 	authGroup.PUT("email/bind", mw.EmailVerifyMiddleware, auth.BindEmailView)
 
 	profile := api.App.UserApi.ProfileApi

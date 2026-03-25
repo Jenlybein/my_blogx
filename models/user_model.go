@@ -3,6 +3,7 @@
 package models
 
 import (
+	"errors"
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"time"
@@ -13,19 +14,32 @@ import (
 // 用户表
 type UserModel struct {
 	Model
-	Username       string                  `gorm:"size:32;uniqueIndex:uk_user_username" json:"username"`
-	Nickname       string                  `gorm:"size:32" json:"nickname"`
-	Avatar         string                  `gorm:"size:256" json:"avatar"`
-	Abstract       string                  `gorm:"size:256" json:"abstract"`
-	RegisterSource enum.RegisterSourceType `json:"register_source"` // 注册来源
-	Password       string                  `gorm:"size:64" json:"-"`
-	Email          *string                 `gorm:"size:256;uniqueIndex:uk_user_email" json:"email"`
-	OpenID         *string                 `gorm:"size:64;uniqueIndex:uk_user_open_id" json:"open_id"` // qq 登录的 openid
-	Role           enum.RoleType           `gorm:"default:0" json:"role"`
-	IP             string                  `gorm:"size:64" json:"ip"`    // 注册时的 IP
-	Addr           string                  `gorm:"size:256" json:"addr"` // 注册时的地址
-	UserConfModel  *UserConfModel          `gorm:"foreignKey:UserID;" json:"-"`
-	LoginList      []UserLoginModel        `gorm:"foreignKey:UserID" json:"-"`
+	Username              string                  `gorm:"size:32;uniqueIndex:uk_user_username" json:"username"`
+	Nickname              string                  `gorm:"size:32" json:"nickname"`
+	Avatar                string                  `gorm:"size:256" json:"avatar"`
+	Abstract              string                  `gorm:"size:256" json:"abstract"`
+	RegisterSource        enum.RegisterSourceType `json:"register_source"` // 注册来源
+	Password              string                  `gorm:"size:64" json:"-"`
+	Email                 *string                 `gorm:"size:256;uniqueIndex:uk_user_email" json:"email"`
+	OpenID                *string                 `gorm:"size:64;uniqueIndex:uk_user_open_id" json:"open_id"` // qq 登录的 openid
+	Status                enum.UserStatus         `gorm:"default:1;index" json:"status"`
+	TokenVersion          uint32                  `gorm:"default:1" json:"-"`
+	LastPasswordChangedAt *time.Time              `json:"-"`
+	Role                  enum.RoleType           `gorm:"default:0" json:"role"`
+	IP                    string                  `gorm:"size:64" json:"ip"`    // 注册时的 IP
+	Addr                  string                  `gorm:"size:256" json:"addr"` // 注册时的地址
+	UserConfModel         *UserConfModel          `gorm:"foreignKey:UserID;" json:"-"`
+	LoginList             []UserLoginModel        `gorm:"foreignKey:UserID" json:"-"`
+}
+
+func (u *UserModel) BeforeCreate(tx *gorm.DB) (err error) {
+	if u.Status == 0 {
+		u.Status = enum.UserStatusActive
+	}
+	if u.TokenVersion == 0 {
+		u.TokenVersion = 1
+	}
+	return u.Model.BeforeCreate(tx)
 }
 
 // 创建用户配置表
@@ -51,6 +65,25 @@ func (u *UserModel) AfterCreate(tx *gorm.DB) (err error) {
 // CodeAge 计算用户注册年龄（单位：年）
 func (u *UserModel) CodeAge() int {
 	return int(time.Since(u.CreatedAt).Hours() / 24 / 365)
+}
+
+func (u *UserModel) CheckTokenVersion(token uint32) bool {
+	return u.TokenVersion == token
+}
+
+func (u *UserModel) CanLogin() bool {
+	return u.Status.CanLogin()
+}
+
+func (u *UserModel) ValidateUserStatus() error {
+	switch u.Status {
+	case 0, 1:
+		return nil
+	case 2, 3:
+		return errors.New(u.Status.String())
+	default:
+		return errors.New("用户状态异常")
+	}
 }
 
 type UserConfModel struct {

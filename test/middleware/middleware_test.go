@@ -6,6 +6,7 @@ import (
 	confsite "myblogx/conf/site"
 	"myblogx/global"
 	"myblogx/middleware"
+	"myblogx/models"
 	"myblogx/models/enum"
 	redis_email "myblogx/service/redis_service/redis_email"
 	redis_jwt "myblogx/service/redis_service/redis_jwt"
@@ -70,6 +71,7 @@ func TestBindMiddlewares(t *testing.T) {
 func setupAuthEnv(t *testing.T) {
 	t.Helper()
 	_ = testutil.SetupMiniRedis(t)
+	_ = testutil.SetupSQLite(t, &models.UserModel{})
 	global.Config = &conf.Config{
 		Jwt: conf.Jwt{
 			Expire: 1,
@@ -95,14 +97,16 @@ func TestAuthAndAdminMiddleware(t *testing.T) {
 		c.Status(http.StatusOK)
 	})
 
-	userToken, err := jwts.GetToken(jwts.Claims{UserID: 1, Role: enum.RoleUser, Username: "u1"})
-	if err != nil {
-		t.Fatalf("生成 user token 失败: %v", err)
+	user := &models.UserModel{Username: "u1", Password: "x", Role: enum.RoleUser}
+	admin := &models.UserModel{Username: "admin", Password: "x", Role: enum.RoleAdmin}
+	if err := global.DB.Create(user).Error; err != nil {
+		t.Fatalf("创建普通用户失败: %v", err)
 	}
-	adminToken, err := jwts.GetToken(jwts.Claims{UserID: 2, Role: enum.RoleAdmin, Username: "admin"})
-	if err != nil {
-		t.Fatalf("生成 admin token 失败: %v", err)
+	if err := global.DB.Create(admin).Error; err != nil {
+		t.Fatalf("创建管理员失败: %v", err)
 	}
+	userToken := testutil.IssueAccessToken(t, user)
+	adminToken := testutil.IssueAccessToken(t, admin)
 
 	{
 		w := httptest.NewRecorder()

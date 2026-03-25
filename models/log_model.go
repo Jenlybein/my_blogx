@@ -21,7 +21,6 @@ type LogModel struct {
 	IsRead      bool              `json:"is_read"`                     // 是否已读
 	LoginStatus bool              `json:"login_status"`                // 登录状态
 	Username    string            `gorm:"size:32" json:"username"`     // 登录日志的用户名
-	Password    string            `gorm:"size:32" json:"password"`     // 登录日志的密码
 	LoginType   enum.LoginType    `json:"login_type"`                  // 登录类型
 	ServiceName string            `gorm:"size:32" json:"service_name"` // 服务名称
 }

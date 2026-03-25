@@ -65,15 +65,7 @@ func setupFavoriteEnv(t *testing.T) *models.UserModel {
 
 func tokenForUser(t *testing.T, user *models.UserModel) string {
 	t.Helper()
-	token, err := jwts.GetToken(jwts.Claims{
-		UserID:   user.ID,
-		Role:     user.Role,
-		Username: user.Username,
-	})
-	if err != nil {
-		t.Fatalf("生成 token 失败: %v", err)
-	}
-	return token
+	return testutil.IssueAccessToken(t, user)
 }
 
 func readData(t *testing.T, w *httptest.ResponseRecorder) map[string]any {

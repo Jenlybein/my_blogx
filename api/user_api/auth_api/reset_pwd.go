@@ -5,6 +5,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/user_service"
 	"myblogx/utils/pwd"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,7 @@ func (AuthApi) ResetPwdByEmailView(c *gin.Context) {
 		res.FailWithError(err, c)
 		return
 	}
-	if err := global.DB.Model(&user).Update("password", hashPwd).Error; err != nil {
+	if err := user_service.UpdatePasswordAndRevokeSessions(&user, hashPwd); err != nil {
 		res.FailWithError(err, c)
 		return
 	}

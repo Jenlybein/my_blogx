@@ -11,7 +11,6 @@ import (
 	"myblogx/models/enum/message_enum"
 	"myblogx/router"
 	"myblogx/test/testutil"
-	"myblogx/utils/jwts"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -61,14 +60,7 @@ func setupSitemsgRouterEnv(t *testing.T) (*models.UserModel, string) {
 		t.Fatalf("创建用户失败: %v", err)
 	}
 
-	token, err := jwts.GetToken(jwts.Claims{
-		UserID:   user.ID,
-		Role:     user.Role,
-		Username: user.Username,
-	})
-	if err != nil {
-		t.Fatalf("生成 token 失败: %v", err)
-	}
+	token := testutil.IssueAccessToken(t, user)
 	return user, token
 }
 
@@ -101,14 +93,7 @@ func TestSitemsgRouterPutConfBindsJSON(t *testing.T) {
 		t.Fatalf("创建用户失败: %v", err)
 	}
 
-	token, err := jwts.GetToken(jwts.Claims{
-		UserID:   user.ID,
-		Role:     user.Role,
-		Username: user.Username,
-	})
-	if err != nil {
-		t.Fatalf("生成 token 失败: %v", err)
-	}
+	token := testutil.IssueAccessToken(t, &user)
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

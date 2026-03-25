@@ -14,7 +14,7 @@ import (
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
-	"myblogx/utils/jwts"
+	"myblogx/service/user_service"
 	"myblogx/utils/user_info"
 	"time"
 
@@ -27,9 +27,9 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 	cr := middleware.GetBindJson[ArticleViewCountRequest](c)
 
 	// 获取用户登录信息
-	claims, err := jwts.ParseTokenByGin(c)
+	authResult := user_service.MustAuthenticateAccessTokenByGin(c)
 
-	if err != nil {
+	if authResult == nil {
 		// TODO：获取更真实可靠的ip和设备id防爬虫？
 		// 未登录用户，靠 ip 和 设备id 进行确认
 		ip := user_info.GetClientIP(c)
@@ -51,6 +51,7 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 
 		redis_article.SetGuestArticleHistoryCache(int(cr.ArticleID), key)
 	} else {
+		claims := authResult.Claims
 		// 已登录用户，靠用户 id 进行确认
 		if redis_article.GetUserArticleHistoryCache(int(cr.ArticleID), int(claims.UserID)) {
 			// TODO：加消息队列通知数据库更新访问历史

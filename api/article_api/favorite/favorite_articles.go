@@ -10,6 +10,7 @@ import (
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
+	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +28,10 @@ var favoriteArticleOrderMap = map[string]string{
 // 3. 列表按收藏时间排序，支持按文章标题关键字筛选
 func (FavoriteApi) FavoriteArticlesView(c *gin.Context) {
 	cr := middleware.GetBindQuery[FavoriteArticlesRequest](c)
-	claims, _ := jwts.ParseTokenByGin(c)
+	var claims *jwts.MyClaims
+	if authResult := user_service.MustAuthenticateAccessTokenByGin(c); authResult != nil {
+		claims = authResult.Claims
+	}
 
 	favoriteModel, err := getAccessibleFavorite(c, cr.FavoriteID, claims)
 	if err != nil {

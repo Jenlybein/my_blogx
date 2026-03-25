@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	snowflakeEpochMillis int64 = 1704067200000 // 2024-01-01 00:00:00 UTC（上线后禁止修改）
+	snowflakeEpochMillis int64  = 1704067200000 // 2024-01-01 00:00:00 UTC（上线后禁止修改）
+	maxSnowflakeNodeID   uint32 = 1023
 )
 
 var (
@@ -20,6 +21,10 @@ var (
 // InitSnowflake 显式初始化雪花生成器。
 // 初始化成功后，重复传入相同机器号会直接复用；传入不同机器号会返回错误。
 func InitSnowflake(workerID uint32) error {
+	if workerID == 0 || workerID > maxSnowflakeNodeID {
+		return fmt.Errorf("雪花机器ID必须在 1-%d 之间，当前: %d", maxSnowflakeNodeID, workerID)
+	}
+
 	if defaultSnowflake != nil {
 		if initializedWorkerID == workerID {
 			return nil

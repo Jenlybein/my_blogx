@@ -10,7 +10,6 @@ import (
 	"myblogx/models/enum/global_notif_enum"
 	"myblogx/router"
 	"myblogx/test/testutil"
-	"myblogx/utils/jwts"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -53,14 +52,8 @@ func setupGlobalNotifRouterEnv(t *testing.T) (*models.UserModel, string, *models
 		t.Fatalf("创建用户失败: %v", err)
 	}
 
-	adminToken, err := jwts.GetToken(jwts.Claims{UserID: admin.ID, Role: admin.Role, Username: admin.Username})
-	if err != nil {
-		t.Fatalf("生成管理员 token 失败: %v", err)
-	}
-	userToken, err := jwts.GetToken(jwts.Claims{UserID: user.ID, Role: user.Role, Username: user.Username})
-	if err != nil {
-		t.Fatalf("生成用户 token 失败: %v", err)
-	}
+	adminToken := testutil.IssueAccessToken(t, admin)
+	userToken := testutil.IssueAccessToken(t, user)
 	return admin, adminToken, user, userToken
 }
 

@@ -6,6 +6,7 @@ system:
   gin_mode: release
 jwt:
   expire: 3600
+  refresh_expire: 720
   secret: ******_secret1
   issuer: ******_issuer1
 log:
@@ -119,6 +120,13 @@ site:
     username_pwd_login: true
     email_login: true
     captcha: false
+    email_code_timeout: 5
+    login_fail_window_minute: 15
+    login_fail_user_max: 5
+    login_fail_ip_max: 20
+    email_send_window_second: 60
+    email_send_per_email_max: 1
+    email_send_per_ip_max: 10
   index_right:
     list: []
   article:

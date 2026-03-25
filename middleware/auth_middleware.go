@@ -2,38 +2,34 @@ package middleware
 
 import (
 	"myblogx/common/res"
-	"myblogx/models/enum"
-	"myblogx/service/redis_service/redis_jwt"
+	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
 )
 
 func AuthMiddleware(c *gin.Context) {
-	// 从请求头中获取 token
-	claims, err := jwts.ParseTokenByGin(c)
+	authResult, err := user_service.AuthenticateAccessTokenByGin(c)
 	if err != nil {
-		res.FailWithError(err, c)
+		res.FailWithMsg(err.Error(), c)
 		c.Abort()
 		return
 	}
 
-	// 判断 token 是否在黑名单中
-	blackMsg, ok := redis_jwt.HasTokenBlackByGin(c)
-	if !ok {
-		res.FailWithMsg(blackMsg, c)
-		c.Abort()
-		return
-	}
-	c.Set("claims", claims)
+	c.Set("claims", authResult.Claims)
+	c.Set("auth_user", authResult.User)
+	c.Set("auth_session", authResult.Session)
+	c.Set("access_token", authResult.Token)
+	c.Next()
 }
 
 func AdminMiddleware(c *gin.Context) {
 	claims := jwts.MustGetClaimsByGin(c)
 
-	if claims.Role != enum.RoleAdmin {
+	if !claims.IsAdmin() {
 		res.FailWithMsg("权限错误", c)
 		c.Abort()
 		return
 	}
+	c.Next()
 }

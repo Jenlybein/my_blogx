@@ -5,6 +5,7 @@ import (
 	"myblogx/common/res"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,13 @@ import (
 func (CategoryApi) CategoryListView(c *gin.Context) {
 	cr := middleware.GetBindQuery[CategoryListRequest](c)
 
-	claim, err := jwts.ParseTokenByGin(c)
+	var claim *jwts.MyClaims
+	var err error
+	if authResult := user_service.MustAuthenticateAccessTokenByGin(c); authResult != nil {
+		claim = authResult.Claims
+	} else {
+		err = user_service.ErrAuthRequired
+	}
 
 	preloads := []string{"ArticleList"}
 

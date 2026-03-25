@@ -6,7 +6,9 @@ import (
 	"myblogx/conf"
 	"myblogx/global"
 	blogmodels "myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/db_service"
+	"myblogx/utils/jwts"
 	"net/http"
 	"reflect"
 	"strings"
@@ -77,7 +79,7 @@ func SetupSQLite(t *testing.T, models ...any) *gorm.DB {
 	sqlDB.SetMaxIdleConns(1)
 
 	if len(models) > 0 {
-		models = appendArticleTagModels(models)
+		models = appendDependentModels(models)
 		if err = db.AutoMigrate(models...); err != nil {
 			t.Fatalf("自动迁移失败: %v", err)
 		}
@@ -87,10 +89,13 @@ func SetupSQLite(t *testing.T, models ...any) *gorm.DB {
 	return db
 }
 
-func appendArticleTagModels(list []any) []any {
+func appendDependentModels(list []any) []any {
 	hasArticle := false
 	hasTag := false
 	hasArticleTag := false
+	hasUser := false
+	hasUserConf := false
+	hasUserSession := false
 
 	for _, item := range list {
 		switch reflect.TypeOf(item) {
@@ -100,17 +105,31 @@ func appendArticleTagModels(list []any) []any {
 			hasTag = true
 		case reflect.TypeOf(&blogmodels.ArticleTagModel{}):
 			hasArticleTag = true
+		case reflect.TypeOf(&blogmodels.UserModel{}):
+			hasUser = true
+		case reflect.TypeOf(&blogmodels.UserConfModel{}):
+			hasUserConf = true
+		case reflect.TypeOf(&blogmodels.UserSessionModel{}):
+			hasUserSession = true
 		}
 	}
 
-	if !hasArticle {
-		return list
+	if hasUser {
+		if !hasUserConf {
+			list = append(list, &blogmodels.UserConfModel{})
+		}
+		if !hasUserSession {
+			list = append(list, &blogmodels.UserSessionModel{})
+		}
 	}
-	if !hasTag {
-		list = append(list, &blogmodels.TagModel{})
-	}
-	if !hasArticleTag {
-		list = append(list, &blogmodels.ArticleTagModel{})
+
+	if hasArticle {
+		if !hasTag {
+			list = append(list, &blogmodels.TagModel{})
+		}
+		if !hasArticleTag {
+			list = append(list, &blogmodels.ArticleTagModel{})
+		}
 	}
 	return list
 }
@@ -119,4 +138,62 @@ func NewJSONRequest(method, target, body string) *http.Request {
 	req, _ := http.NewRequest(method, target, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	return req
+}
+
+func IssueAccessToken(t *testing.T, user *blogmodels.UserModel) string {
+	t.Helper()
+	sessionID, err := db_service.NextSnowflakeID()
+	if err != nil {
+		t.Fatalf("生成测试会话ID失败: %v", err)
+	}
+	now := time.Now()
+	session := blogmodels.UserSessionModel{
+		Model: blogmodels.Model{
+			ID: sessionID,
+		},
+		UserID:           user.ID,
+		RefreshTokenHash: fmt.Sprintf("test-refresh-%s", sessionID.String()),
+		IP:               "127.0.0.1",
+		Addr:             "本地测试",
+		UA:               "codex-test",
+		LastSeenAt:       &now,
+		ExpiresAt:        now.Add(24 * time.Hour),
+	}
+	if err = global.DB.Create(&session).Error; err != nil {
+		t.Fatalf("创建测试会话失败: %v", err)
+	}
+
+	token, err := jwts.GetToken(jwts.Claims{
+		UserID:       user.ID,
+		SessionID:    session.ID,
+		TokenVersion: effectiveTokenVersion(user),
+		Username:     user.Username,
+		Role:         user.Role,
+	})
+	if err != nil {
+		t.Fatalf("签发测试访问令牌失败: %v", err)
+	}
+	return token
+}
+
+func effectiveTokenVersion(user *blogmodels.UserModel) uint32 {
+	if user == nil || user.TokenVersion == 0 {
+		return 1
+	}
+	return user.TokenVersion
+}
+
+func NewClaims(user *blogmodels.UserModel) *jwts.MyClaims {
+	if user == nil {
+		return &jwts.MyClaims{}
+	}
+	return &jwts.MyClaims{
+		Claims: jwts.Claims{
+			UserID:       user.ID,
+			SessionID:    ctype.ID(0),
+			TokenVersion: effectiveTokenVersion(user),
+			Username:     user.Username,
+			Role:         user.Role,
+		},
+	}
 }

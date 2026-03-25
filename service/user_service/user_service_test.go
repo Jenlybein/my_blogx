@@ -2,6 +2,7 @@ package user_service_test
 
 import (
 	"myblogx/models"
+	"myblogx/service/redis_service/redis_user"
 	"myblogx/service/user_service"
 	"myblogx/test/testutil"
 	"net/http/httptest"
@@ -31,8 +32,6 @@ func TestUserLoginCreateLog(t *testing.T) {
 		t.Fatalf("创建用户失败: %v", err)
 	}
 
-	svc := user_service.NewUserService(user)
-
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -41,7 +40,7 @@ func TestUserLoginCreateLog(t *testing.T) {
 	req.Header.Set("User-Agent", "unit-test-agent")
 	c.Request = req
 
-	svc.UserLogin(c)
+	user_service.UserLoginLog(c, user.ID)
 
 	var log models.UserLoginModel
 	if err := db.Last(&log).Error; err != nil {
@@ -61,7 +60,7 @@ func TestUserLoginCreateLog(t *testing.T) {
 func TestNextAutoUsername(t *testing.T) {
 	testutil.SetupMiniRedis(t)
 
-	username1, err := user_service.NextAutoUsername()
+	username1, err := redis_user.NextAutoUsername()
 	if err != nil {
 		t.Fatalf("首次生成用户名失败: %v", err)
 	}
@@ -69,7 +68,7 @@ func TestNextAutoUsername(t *testing.T) {
 		t.Fatalf("首次用户名错误: got=%s want=100001", username1)
 	}
 
-	username2, err := user_service.NextAutoUsername()
+	username2, err := redis_user.NextAutoUsername()
 	if err != nil {
 		t.Fatalf("第二次生成用户名失败: %v", err)
 	}

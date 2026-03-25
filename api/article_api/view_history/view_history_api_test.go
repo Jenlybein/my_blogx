@@ -9,7 +9,6 @@ import (
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/test/testutil"
-	"myblogx/utils/jwts"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -64,15 +63,7 @@ func setupViewHistoryEnv(t *testing.T) *models.UserModel {
 
 func tokenForUser(t *testing.T, user *models.UserModel) string {
 	t.Helper()
-	token, err := jwts.GetToken(jwts.Claims{
-		UserID:   user.ID,
-		Role:     user.Role,
-		Username: user.Username,
-	})
-	if err != nil {
-		t.Fatalf("生成 token 失败: %v", err)
-	}
-	return token
+	return testutil.IssueAccessToken(t, user)
 }
 
 func TestViewHistoryListAndDelete(t *testing.T) {

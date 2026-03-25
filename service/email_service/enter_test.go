@@ -29,4 +29,7 @@ func TestSendEmailFunctions(t *testing.T) {
 	if err := email_service.SendBindEmailCode("u@example.com", "1234", 5); err != nil {
 		t.Fatalf("SendBindEmailCode 返回错误: %v", err)
 	}
+	if err := email_service.SendLoginCode("u@example.com", "1234", 5); err != nil {
+		t.Fatalf("SendLoginCode 返回错误: %v", err)
+	}
 }

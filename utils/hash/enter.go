@@ -2,6 +2,7 @@ package hash
 
 import (
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"io"
 	"mime/multipart"
@@ -43,4 +44,10 @@ func Md5(data []byte) string {
 	h := md5.New()
 	h.Write(data)
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// 做SHA256哈希
+func SHA256Hash(data string) string {
+	sum := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(sum[:])
 }

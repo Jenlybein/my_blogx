@@ -48,9 +48,16 @@ func setupAuthEnv(t *testing.T) {
 		},
 		Site: conf.Site{
 			Login: confsite.Login{
-				QQLogin:          false,
-				UsernamePwdLogin: false,
-				EmailLogin:       false,
+				QQLogin:               false,
+				UsernamePwdLogin:      false,
+				EmailLogin:            false,
+				EmailCodeTimeout:      5,
+				LoginFailWindowMinute: 15,
+				LoginFailUserMax:      5,
+				LoginFailIPMax:        20,
+				EmailSendWindowSecond: 60,
+				EmailSendPerEmailMax:  1,
+				EmailSendPerIPMax:     10,
 			},
 		},
 	}
@@ -86,6 +93,15 @@ func TestAuthFeatureDisabledBranches(t *testing.T) {
 		api.RegisterEmailView(c)
 		if code := readCode(t, w); code == 0 {
 			t.Fatalf("关闭邮箱注册时应失败, body=%s", w.Body.String())
+		}
+	}
+
+	{
+		c, w := newCtx()
+		c.Set("email", "u@example.com")
+		api.EmailLoginView(c)
+		if code := readCode(t, w); code == 0 {
+			t.Fatalf("关闭邮箱登录时应失败, body=%s", w.Body.String())
 		}
 	}
 

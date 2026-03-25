@@ -11,6 +11,7 @@ import (
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
+	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 	"strings"
 
@@ -39,7 +40,10 @@ var orderColumnMap = map[string]string{
 // 直接一条 SQL 同时处理 join、分页、排序和 preload，行为更容易失稳。
 func (ArticleApi) ArticleListView(c *gin.Context) {
 	cr := middleware.GetBindQuery[ArticleListRequest](c)
-	claims, _ := jwts.ParseTokenByGin(c)
+	var claims *jwts.MyClaims
+	if authResult := user_service.MustAuthenticateAccessTokenByGin(c); authResult != nil {
+		claims = authResult.Claims
+	}
 
 	normalized, err := validateRequest(cr, claims, c)
 	if err != nil {

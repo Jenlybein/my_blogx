@@ -20,21 +20,8 @@ const (
 	DeviceBlackType BlackType = 3 // 其他设备已登录
 )
 
-// redis 不能自动转化自定义类型，需要手动转换
 func (b BlackType) String() string {
-	return fmt.Sprintf("%d", b)
-}
-
-func BlackTypeFromString(str string) (BlackType, error) {
-	num1, err := strconv.Atoi(str)
-	if err != nil {
-		return 0, err
-	}
-	return BlackType(num1), nil
-}
-
-func BlackTypeMsg(blackType BlackType) string {
-	switch blackType {
+	switch b {
 	case UserBlackType:
 		return "用户注销登录"
 	case AdminBlackType:
@@ -46,7 +33,26 @@ func BlackTypeMsg(blackType BlackType) string {
 	}
 }
 
+// RedisValue 返回存入 Redis 的枚举值。
+func (b BlackType) RedisValue() string {
+	return fmt.Sprintf("%d", b)
+}
+
+// BlackTypeFromRedisValue 将 Redis 中存储的字符串转换为枚举值。
+func BlackTypeFromRedisValue(str string) (BlackType, error) {
+	num1, err := strconv.Atoi(str)
+	if err != nil {
+		return 0, err
+	}
+	return BlackType(num1), nil
+}
+
+// SetTokenBlack 将 token 放入 Redis 的黑名单中。
 func SetTokenBlack(token string, blackType BlackType) {
+	if global.Redis == nil {
+		return
+	}
+
 	key := fmt.Sprintf("token_blacklist_%s", token)
 
 	// 获取 token 原本的过期时间
@@ -63,34 +69,40 @@ func SetTokenBlack(token string, blackType BlackType) {
 		return
 	}
 
-	_, err = global.Redis.Set(context.Background(), key, blackType.String(), time.Duration(expire)*time.Second).Result()
+	_, err = global.Redis.Set(context.Background(), key, blackType.RedisValue(), time.Duration(expire)*time.Second).Result()
 	if err != nil {
 		global.Logger.Errorf("将Token放入黑名单时出错 err: %v", err)
 		return
 	}
 }
 
-func HasTokenBlack(token string) (BlackMsg string, ok bool) {
+// HasTokenBlack 检查 token 是否在 Redis 的黑名单中。
+func HasTokenBlack(token string) (blackType BlackType, ok bool) {
+	if global.Redis == nil {
+		return 0, true
+	}
+
 	key := fmt.Sprintf("token_blacklist_%s", token)
 	has, err := global.Redis.Get(context.Background(), key).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return "Token 不在黑名单中", true
+			return 0, true
 		}
 		global.Logger.Errorf("检查Token是否在黑名单时出错 err: %v", err)
-		return BlackTypeMsg(0), false
+		return 0, false
 	}
 
-	blackType, err := BlackTypeFromString(has)
+	blackType, err = BlackTypeFromRedisValue(has)
 	if err != nil {
 		global.Logger.Errorf("string 转换 BlackType 失败: %v", err)
-		return BlackTypeMsg(0), false
+		return 0, false
 	}
 
-	return BlackTypeMsg(blackType), false
+	return blackType, false
 }
 
-func HasTokenBlackByGin(c *gin.Context) (BlackMsg string, ok bool) {
+// HasTokenBlackByGin 检查 token 是否在 Redis 的黑名单中。
+func HasTokenBlackByGin(c *gin.Context) (blackType BlackType, ok bool) {
 	token := jwts.GetTokenByGin(c)
 	return HasTokenBlack(token)
 }

@@ -539,11 +539,7 @@ func TestArticleDiggFavoriteVisitDetailRemoveUser(t *testing.T) {
 		}
 	}
 
-	token, _ := jwts.GetToken(jwts.Claims{
-		UserID:   user.ID,
-		Role:     user.Role,
-		Username: user.Username,
-	})
+	token := testutil.IssueAccessToken(t, user)
 	{
 		c, w := newCtx()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)

@@ -3,7 +3,6 @@
 package log_service
 
 import (
-	"fmt"
 	"myblogx/core"
 	"myblogx/global"
 	"myblogx/models"
@@ -17,9 +16,6 @@ import (
 func NewLoginSuccess(c *gin.Context, loginType enum.LoginType) {
 	ip := c.ClientIP()
 	addr := core.GetIpAddr(ip)
-
-	token := c.Request.Header.Get("token")
-	fmt.Println(token)
 
 	// 解析 jwt token 中的 userID
 	userID := ctype.ID(0)
@@ -41,12 +37,12 @@ func NewLoginSuccess(c *gin.Context, loginType enum.LoginType) {
 		Addr:        addr,
 		LoginStatus: true,
 		Username:    username,
-		Password:    "-",
 		LoginType:   loginType,
 	})
 }
 
 func NewLoginFail(c *gin.Context, loginType enum.LoginType, msg string, username string, password string) {
+	_ = password
 	ip := c.ClientIP()
 	addr := core.GetIpAddr(ip)
 
@@ -58,7 +54,6 @@ func NewLoginFail(c *gin.Context, loginType enum.LoginType, msg string, username
 		Addr:        addr,
 		LoginStatus: false,
 		Username:    username,
-		Password:    password,
 		LoginType:   loginType,
 	})
 }

@@ -63,7 +63,8 @@ func TestParseTokenByGin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	req := httptest.NewRequest(http.MethodGet, "/?token="+token, nil)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	c.Request = req
 
 	claims, err := jwts.ParseTokenByGin(c)

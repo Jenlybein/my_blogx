@@ -8,8 +8,8 @@ import (
 	"myblogx/models"
 	"myblogx/models/enum"
 	"myblogx/service/qq_service"
+	"myblogx/service/redis_service/redis_user"
 	"myblogx/service/user_service"
-	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -43,7 +43,7 @@ func (AuthApi) QQLoginView(c *gin.Context) {
 		}
 
 		for range 5 {
-			username, usernameErr := user_service.NextAutoUsername()
+			username, usernameErr := redis_user.NextAutoUsername()
 			if usernameErr != nil {
 				global.Logger.Errorf("qq 登录生成用户名失败: %v", usernameErr)
 				res.FailWithMsg("qq登录失败", c)
@@ -83,18 +83,19 @@ func (AuthApi) QQLoginView(c *gin.Context) {
 		}
 	}
 
-	// 签发token
-	token, err := jwts.GetToken(jwts.Claims{
-		UserID:   user.ID,
-		Username: user.Username,
-		Role:     user.Role,
-	})
+	if !user.CanLogin() {
+		res.FailWithMsg(user.Status.String(), c)
+		return
+	}
+
+	token, refreshToken, _, err := user_service.CreateLoginTokens(&user, user_service.BuildSessionMetaFromGin(c))
 	if err != nil {
 		res.FailWithMsg("qq登录失败 "+err.Error(), c)
 		return
 	}
+	user_service.SetRefreshTokenCookie(c, refreshToken)
 	// 登录日志
-	user_service.NewUserService(user).UserLogin(c)
+	user_service.UserLoginLog(c, user.ID)
 
 	res.OkWithData(token, c)
 }

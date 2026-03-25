@@ -11,6 +11,7 @@ func FlagDB(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&models.UserModel{},
 		&models.UserConfModel{},
+		&models.UserSessionModel{},
 		&models.ArticleModel{},
 		&models.TagModel{},
 		&models.ArticleTagModel{},
@@ -37,6 +38,11 @@ func FlagDB(db *gorm.DB) {
 	if err != nil {
 		global.Logger.Error("数据库迁移失败", err)
 		return
+	}
+	if db.Migrator().HasColumn(&models.LogModel{}, "password") {
+		if err := db.Migrator().DropColumn(&models.LogModel{}, "password"); err != nil {
+			global.Logger.Errorf("删除日志表 password 列失败: %v", err)
+		}
 	}
 	global.Logger.Info("数据库迁移成功")
 }

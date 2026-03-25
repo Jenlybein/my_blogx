@@ -5,9 +5,10 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/redis_service/redis_user"
 	"myblogx/service/user_service"
-	"myblogx/utils/jwts"
 	"myblogx/utils/pwd"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,35 +25,47 @@ func (AuthApi) PwdLoginView(c *gin.Context) {
 	}
 
 	cr := middleware.GetBindJson[PwdLoginRequest](c)
+	
+	// 登录失败次数限制
+	meta := user_service.BuildSessionMetaFromGin(c)
+	account := strings.TrimSpace(cr.Username)
+	if !redis_user.CheckLoginAllowed(account, meta.IP) {
+		res.FailWithMsg(user_service.ErrLoginTooFrequent.Error(), c)
+		return
+	}
 
 	var user models.UserModel
 	if err := global.DB.Take(
 		&user,
 		"(username = ? OR email = ?) and (password <> '')",
-		cr.Username, cr.Username,
+		account, account,
 	).Error; err != nil {
-		res.FailWithMsg("用户名或邮箱不存在", c)
+		redis_user.RecordLoginFailure(account, meta.IP)
+		res.FailWithMsg("账号或密码错误", c)
 		return
 	}
 
 	// 校验密码
 	if !pwd.CompareHashAndPassword(user.Password, cr.Password) {
-		res.FailWithMsg("密码错误", c)
+		redis_user.RecordLoginFailure(account, meta.IP)
+		res.FailWithMsg("账号或密码错误", c)
 		return
 	}
+	if !user.CanLogin() {
+		res.FailWithMsg(user.Status.String(), c)
+		return
+	}
+	redis_user.ResetLoginFailures(account, meta.IP)
 
-	// 签发token
-	token, err := jwts.GetToken(jwts.Claims{
-		UserID:   user.ID,
-		Username: user.Username,
-		Role:     user.Role,
-	})
+	// 登录成功后创建服务端会话，再签发短期访问令牌。
+	token, refreshToken, _, err := user_service.CreateLoginTokens(&user, meta)
 	if err != nil {
 		res.FailWithError(err, c)
 		return
 	}
+	user_service.SetRefreshTokenCookie(c, refreshToken)
 	// 登录日志
-	user_service.NewUserService(user).UserLogin(c)
+	user_service.UserLoginLog(c, user.ID)
 
 	res.OkWithData(token, c)
 }

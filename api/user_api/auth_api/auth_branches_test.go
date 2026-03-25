@@ -1,6 +1,7 @@
 package auth_api_test
 
 import (
+	"encoding/json"
 	"myblogx/api/user_api/auth_api"
 	"myblogx/global"
 	"myblogx/models"
@@ -80,6 +81,23 @@ func TestEmailPasswordAndBindFailureBranches(t *testing.T) {
 		api.RegisterEmailView(c)
 		if code := readCode(t, w); code == 0 {
 			t.Fatalf("缺少 email 上下文应失败, body=%s", w.Body.String())
+		}
+	})
+
+	t.Run("邮箱登录缺少 email 上下文", func(t *testing.T) {
+		c, w := newCtx()
+		api.EmailLoginView(c)
+		if code := readCode(t, w); code == 0 {
+			t.Fatalf("邮箱登录缺少 email 上下文应失败, body=%s", w.Body.String())
+		}
+	})
+
+	t.Run("邮箱登录用户不存在", func(t *testing.T) {
+		c, w := newCtx()
+		c.Set("email", "missing@example.com")
+		api.EmailLoginView(c)
+		if code := readCode(t, w); code == 0 {
+			t.Fatalf("邮箱登录用户不存在应失败, body=%s", w.Body.String())
 		}
 	})
 
@@ -172,6 +190,55 @@ func TestEmailPasswordAndBindFailureBranches(t *testing.T) {
 			t.Fatalf("绑定重复邮箱应失败, body=%s", w.Body.String())
 		}
 	})
+}
+
+func TestEmailLoginView(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserSessionModel{})
+	setupAuthEnv(t)
+	global.Config.Site.Login.EmailLogin = true
+	api := auth_api.AuthApi{}
+
+	user := models.UserModel{
+		Username: "u_email_login",
+		Password: "",
+		Email:    strPtr("u_login@example.com"),
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("创建邮箱登录用户失败: %v", err)
+	}
+
+	c, w := newCtx()
+	c.Set("email", *user.Email)
+	api.EmailLoginView(c)
+	if code := readCode(t, w); code != 0 {
+		t.Fatalf("邮箱登录应成功, body=%s", w.Body.String())
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("解析响应失败: %v", err)
+	}
+	token, _ := body["data"].(string)
+	if token == "" {
+		t.Fatalf("邮箱登录返回的 access token 不能为空, body=%s", w.Body.String())
+	}
+	if _, err := jwts.ParseToken(token); err != nil {
+		t.Fatalf("邮箱登录返回的 token 无法解析: %v", err)
+	}
+
+	cookies := w.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatalf("邮箱登录应写入 refresh token cookie")
+	}
+
+	var sessionCount int64
+	if err := db.Model(&models.UserSessionModel{}).Where("user_id = ?", user.ID).Count(&sessionCount).Error; err != nil {
+		t.Fatalf("查询会话失败: %v", err)
+	}
+	if sessionCount != 1 {
+		t.Fatalf("邮箱登录应创建 1 条会话, got=%d", sessionCount)
+	}
 }
 
 func TestUserModelUniqueIndexes(t *testing.T) {

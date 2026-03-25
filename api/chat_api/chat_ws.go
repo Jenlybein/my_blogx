@@ -1,6 +1,8 @@
 package chat_api
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"myblogx/common/res"
@@ -8,6 +10,8 @@ import (
 	"myblogx/models"
 	"myblogx/models/enum/chat_msg_enum"
 	"myblogx/service/chat_service"
+	"myblogx/service/redis_service/redis_ws_ticket"
+	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 	"net/http"
 	"time"
@@ -35,9 +39,51 @@ var chatWSUpgrader = websocket.Upgrader{
 	},
 }
 
+// ChatWsTicketView 生成聊天票据
+func (ChatApi) ChatWsTicketView(c *gin.Context) {
+	claims := jwts.MustGetClaimsByGin(c)
+	raw := make([]byte, 24)
+	if _, err := rand.Read(raw); err != nil {
+		res.FailWithMsg("生成 ws 票据失败", c)
+		return
+	}
+
+	ticket := base64.RawURLEncoding.EncodeToString(raw)
+	if err := redis_ws_ticket.Store(ticket, redis_ws_ticket.TicketPayload{
+		UserID:    claims.UserID,
+		SessionID: claims.SessionID,
+	}, time.Minute); err != nil {
+		res.FailWithMsg("生成 ws 票据失败", c)
+		return
+	}
+
+	res.OkWithData(gin.H{"ticket": ticket}, c)
+}
+
 // ChatWsView 处理聊天 WebSocket 长连接。
 func (ChatApi) ChatWsView(c *gin.Context) {
-	claims := jwts.MustGetClaimsByGin(c)
+	// 尝试从 Header 中的 token 中获取用户
+	authResult := user_service.MustAuthenticateAccessTokenByGin(c)
+	if authResult == nil {
+		// Header 中未携带 token，尝试从 query 中获取票据，再尝试从 redis 中获取用户数据
+		ticket := c.Query("ticket")
+		if ticket == "" {
+			res.FailWithMsg(user_service.ErrAuthRequired.Error(), c)
+			return
+		}
+
+		payload, err := redis_ws_ticket.Consume(ticket)
+		if err != nil {
+			res.FailWithMsg(user_service.ErrAuthInvalid.Error(), c)
+			return
+		}
+		authResult, err = user_service.AuthenticateSession(payload.UserID, payload.SessionID)
+		if err != nil {
+			res.FailWithMsg(err.Error(), c)
+			return
+		}
+	}
+	claims := authResult.Claims
 
 	// 升级成 ws 连接
 	rawConn, err := chatWSUpgrader.Upgrade(c.Writer, c.Request, nil)

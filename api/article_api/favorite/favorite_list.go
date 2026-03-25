@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,13 @@ import (
 func (FavoriteApi) FavoriteListView(c *gin.Context) {
 	cr := middleware.GetBindQuery[FavoriteListRequest](c)
 
-	claim, err := jwts.ParseTokenByGin(c)
+	var claim *jwts.MyClaims
+	var err error
+	if authResult := user_service.MustAuthenticateAccessTokenByGin(c); authResult != nil {
+		claim = authResult.Claims
+	} else {
+		err = user_service.ErrAuthRequired
+	}
 
 	preloads := []string{"ArticleList"}
 

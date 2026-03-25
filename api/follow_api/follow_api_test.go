@@ -7,10 +7,8 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/ctype"
-	"myblogx/models/enum"
 	"myblogx/models/enum/relationship_enum"
 	"myblogx/test/testutil"
-	"myblogx/utils/jwts"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -331,14 +329,7 @@ func newFollowCtx(t *testing.T, method string, user models.UserModel, uri models
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	token, err := jwts.GetToken(jwts.Claims{
-		UserID:   user.ID,
-		Role:     enum.RoleUser,
-		Username: user.Username,
-	})
-	if err != nil {
-		t.Fatalf("生成 token 失败: %v", err)
-	}
+	token := testutil.IssueAccessToken(t, &user)
 
 	req := httptest.NewRequest(method, "/follow", nil)
 	req.Header.Set("token", token)

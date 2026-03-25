@@ -5,6 +5,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 	"myblogx/utils/pwd"
 
@@ -51,10 +52,11 @@ func (AuthApi) UpdatePwdByEmailView(c *gin.Context) {
 		res.FailWithError(err, c)
 		return
 	}
-	if err := global.DB.Model(&user).Update("password", hashPwd).Error; err != nil {
+	if err := user_service.UpdatePasswordAndRevokeSessions(&user, hashPwd); err != nil {
 		res.FailWithError(err, c)
 		return
 	}
+	user_service.ClearRefreshTokenCookie(c)
 
 	res.OkWithMsg("密码更新成功", c)
 }

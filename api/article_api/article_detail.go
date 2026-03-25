@@ -8,6 +8,7 @@ import (
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/redis_service/redis_article"
+	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -43,7 +44,10 @@ func (ArticleApi) ArticleDetailView(c *gin.Context) {
 		return
 	}
 
-	claims, _ := jwts.ParseTokenByGin(c)
+	var claims *jwts.MyClaims
+	if authResult := user_service.MustAuthenticateAccessTokenByGin(c); authResult != nil {
+		claims = authResult.Claims
+	}
 	if claims == nil {
 		if article.Status != enum.ArticleStatusPublished {
 			res.FailWithMsg("文章不存在", c)

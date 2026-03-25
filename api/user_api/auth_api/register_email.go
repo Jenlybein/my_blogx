@@ -7,8 +7,8 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/service/redis_service/redis_user"
 	"myblogx/service/user_service"
-	"myblogx/utils/jwts"
 	"myblogx/utils/pwd"
 
 	"github.com/gin-gonic/gin"
@@ -40,7 +40,7 @@ func (AuthApi) RegisterEmailView(c *gin.Context) {
 		res.FailWithMsg("邮箱注册失败", c)
 		return
 	}
-	username, err := user_service.NextAutoUsername()
+	username, err := redis_user.NextAutoUsername()
 	if err != nil {
 		global.Logger.Errorf("邮箱注册生成用户名失败: %v", err)
 		res.FailWithMsg("邮箱注册失败", c)
@@ -75,7 +75,7 @@ func (AuthApi) RegisterEmailView(c *gin.Context) {
 			break
 		}
 
-		username, err = user_service.NextAutoUsername()
+		username, err = redis_user.NextAutoUsername()
 		if err != nil {
 			global.Logger.Errorf("邮箱注册生成用户名失败: %v", err)
 			res.FailWithMsg("邮箱注册失败", c)
@@ -93,18 +93,14 @@ func (AuthApi) RegisterEmailView(c *gin.Context) {
 		return
 	}
 
-	// 签发token
-	jwtToken, err := jwts.GetToken(jwts.Claims{
-		UserID:   user.ID,
-		Username: user.Username,
-		Role:     user.Role,
-	})
+	jwtToken, refreshToken, _, err := user_service.CreateLoginTokens(&user, user_service.BuildSessionMetaFromGin(c))
 	if err != nil {
 		res.FailWithMsg("邮箱登录失败", c)
 		return
 	}
+	user_service.SetRefreshTokenCookie(c, refreshToken)
 	// 登录日志
-	user_service.NewUserService(user).UserLogin(c)
+	user_service.UserLoginLog(c, user.ID)
 
 	// 返回token
 	res.OkWithData(jwtToken, c)
