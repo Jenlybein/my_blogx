@@ -5,8 +5,6 @@ logs
 test_copy
 uploads
 
-.readmd
-
 init/deploy/es/data
 init/deploy/redis/data
 init/deploy/redis/data

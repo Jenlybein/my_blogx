@@ -49,7 +49,7 @@
 | utils/      | ip/、cache/、file/ 等                      | 工具函数层，封装通用工具（IP解析、缓存操作等）       |
 | common/     | res/、constant/ 等                         | 通用组件（统一响应、常量定义）                       |
 | init/       | ipbase/、deploy/                           | 初始化资源（IP数据库文件、部署所需配置）             |
-| store/      | email_store/                               | 存储层，用于各种数据存储操作（邮件存储、文件存储等） |
+| service/email_service/、service/redis_service/redis_email/ | enter.go 等 | 邮件发送与邮箱验证码存储能力，当前未再单独拆出 `store/` 目录 |
 | logs/       | -                                          | 日志记录输出文件                                     |
 | test/       | -                                          | 程序测试临时文件                                     |
 | uploads/    | -                                          | 文件上传目录，用于存储用户上传的文件（图片、文档等） |
@@ -826,7 +826,7 @@ go get github.com/go-redis/redis/v8
 | 站点配置 | 已实现 | 站点公共配置读取、后台敏感配置读取与更新 |
 | 图片资源 | 已实现 | 本地上传、七牛直传 token、远程图片转存、后台图片管理 |
 | 轮播图 | 已实现 | 轮播图增删改查 |
-| 验证码与认证 | 已实现 | 图片验证码、邮箱验证码、邮箱注册、账号密码登录、QQ 登录、密码重置、邮箱绑定 |
+| 验证码与认证 | 已实现 | 图片验证码、邮箱验证码、邮箱注册、邮箱验证码登录、账号密码登录、QQ 登录、刷新令牌、退出登录、密码重置、邮箱绑定 |
 | 用户资料 | 已实现 | 用户详情、基础信息、个人资料更新、管理员更新用户 |
 | 登录日志 | 已实现 | 用户查看自己的登录日志，管理员查看全部 |
 | 系统日志 | 已实现 | 日志列表、日志读取、日志删除 |
@@ -1121,17 +1121,14 @@ go get github.com/go-redis/redis/v8
 
 ## 5.5 用户与认证模块
 
-> **TODO**：
->
-> 可选用更新的交互式验证码：http://gocaptcha.wencodes.com/guide/ 
->
-> 验证码是ddos攻击的良好接口之一，因为无需登录即可从服务器获取高成本响应；
->
-> 目前的防ddos策略：
->
-> - 登录失败 2 次后才出现验证码（同时发起 cloudflare JS 质询）
-> - 每个 ip 每秒只能生成 1 次验证码
-> - 验证 10 次失败则拉黑 1 分钟。
+当前认证链路已经从“单 JWT 校验”升级为一套更完整的组合方案：
+
+- 前置校验层：图片验证码、邮箱验证码
+- 风控层：密码登录失败限流、邮件发送频率限制
+- 登录态层：`AccessToken + RefreshToken + UserSession`
+- 失效控制层：`token_version + 会话吊销 + Redis 黑名单`
+
+也就是说，现在的认证不再只是“签一个 token 给前端”，而是把“谁能发起登录”“登录成功后如何续期”“怎样让某个设备或全部设备立即失效”都纳入同一套设计里。
 
 ### 5.5.1 图片验证码
 
@@ -1139,11 +1136,17 @@ go get github.com/go-redis/redis/v8
 
 - 当前验证码使用 `base64Captcha` 生成。
 - 是否启用由 `global.Config.Site.Login.Captcha` 控制。
+- 验证码接口只负责生成 `captcha_id + base64` 图片数据。
+- 密码登录与发送邮箱验证码接口会复用 `CaptchaMiddleware` 做统一校验。
 
 #### 设计思路
 
-- 验证码接口和验证码校验中间件拆开，是为了把“生成验证码”和“消费验证码”职责分离。
-- 具体校验不写在登录接口内部，而是放到 `CaptchaMiddleware` 里统一处理，这样后续新增需要验证码保护的接口时可以直接复用中间件。
+- 验证码生成和验证码消费拆成两层：
+  1. `GET /api/imagecaptcha` 只负责生成图片；
+  2. `CaptchaMiddleware` 只负责读取请求体并校验。
+- 这样做的核心目的，是把“挑战生成”和“业务接口”解耦。登录、发邮件、后续其他高风险接口都不需要重复写验证码解析逻辑。
+- 当前校验调用 `global.ImageCaptchaStore.Verify(id, code, true)`，校验成功后会立即消费掉验证码，避免同一验证码被重复使用。
+- 当前存储后端仍是进程内内存 `base64Captcha.DefaultMemStore`，实现简单，但天然更适合单实例；如果后续扩成多实例部署，再迁移到 Redis 这一类共享存储会更稳。
 
 #### 接口设计表
 
@@ -1151,48 +1154,137 @@ go get github.com/go-redis/redis/v8
 | ---- | ---- | ---- | -------- | ---- |
 | `/api/imagecaptcha` | GET | 公开 | 无 | 返回 `captcha_id` 与 `base64` 图片数据 |
 
-### 5.5.2 邮箱验证码与登录认证
+### 5.5.2 邮箱验证码、登录与会话认证
 
 #### 功能说明
 
-- 邮箱验证码有三种用途：注册、找回密码、绑定邮箱。
-- 登录方式已实现邮箱注册登录、用户名/邮箱密码登录、QQ 登录。
-- 当前仓库尚未提供登出、刷新 token 接口，尽管 Redis 黑名单能力已存在。
+- 邮箱验证码当前支持四类用途：
+  - 注册
+  - 找回密码
+  - 绑定邮箱
+  - 邮箱验证码登录
+- 登录方式当前已实现：
+  - 用户名 / 邮箱 + 密码登录
+  - 邮箱验证码登录
+  - 邮箱注册后直接登录
+  - QQ 登录
+- 登录成功后，系统会同时建立服务端会话并签发双令牌：
+  - `access_token`：接口鉴权使用，返回给前端
+  - `refresh_token`：写入 HttpOnly Cookie，用于续期
+- 当前仓库已经提供：
+  - 刷新令牌接口
+  - 单设备退出登录
+  - 全部设备退出登录
+  - 基于邮箱验证码重置密码
+  - 基于旧密码修改密码
+  - 绑定邮箱
 
 #### 接口设计表
 
-> **TODO**：
->
-> QQ登录 - https://video.fengfengzhidao.com/play/17/3391
->
-> 发送手机验证码需要企业资质，而邮箱验证码可以用个人邮箱。因此，目前项目的设置为必须绑定邮箱后才能依靠邮箱进行密码修改。
-
 | 接口 | 方法 | 权限 | 主要参数 | 说明 |
 | ---- | ---- | ---- | -------- | ---- |
-| `/api/users/email/verify` | POST | 公开 | `type`、`email`、`captcha_id`、`captcha_code` | 发送邮箱验证码，`type=1` 注册，`2` 重置密码，`3` 绑定邮箱 |
-| `/api/users/email/register` | POST | 公开 | `pwd`、`email_id`、`email_code` | 邮箱注册并直接签发 JWT |
+| `/api/users/email/verify` | POST | 公开 | `type`、`email`、`captcha_id`、`captcha_code` | 发送邮箱验证码，`type=1` 注册，`2` 重置密码，`3` 绑定邮箱，`4` 邮箱登录 |
+| `/api/users/email/login` | POST | 公开 | `email_id`、`email_code` | 邮箱验证码登录，校验成功后签发 `access_token` 并写入 `refresh_token` Cookie |
+| `/api/users/email/register` | POST | 公开 | `pwd`、`email_id`、`email_code` | 邮箱注册并直接建立登录会话 |
 | `/api/users/qq` | POST | 公开 | `code` | QQ 登录，首次登录自动创建用户 |
 | `/api/users/login` | POST | 公开 | `username`、`password`、`captcha_id`、`captcha_code` | 用户名或邮箱密码登录 |
+| `/api/users/refresh` | POST | 公开 | 无 | 读取 `refresh_token` Cookie，刷新访问令牌并轮换刷新令牌 |
 | `/api/users/password/recovery/email` | PUT | 公开 | `new_password`、`email_id`、`email_code` | 基于邮箱验证码重置密码 |
 | `/api/users/password/renewal/email` | PUT | 登录用户 | `old_password`、`new_password` | 修改已绑定邮箱账户的密码 |
+| `/api/users/logout` | POST | 登录用户 | 无 | 注销当前登录会话 |
+| `/api/users/logout/all` | POST | 登录用户 | 无 | 注销当前用户全部登录会话 |
 | `/api/users/email/bind` | PUT | 登录用户 | `email_id`、`email_code` | 绑定邮箱，邮箱信息由中间件校验后注入 |
 
 #### 规则说明
 
-- `POST /api/users/email/verify` 和 `POST /api/users/login` 都受图片验证码中间件保护。
-- `POST /api/users/email/register`、`PUT /api/users/password/recovery/email`、`PUT /api/users/email/bind` 都依赖邮箱验证码中间件。
+- `POST /api/users/email/verify` 和 `POST /api/users/login` 都受 `CaptchaMiddleware` 保护；但只有当 `site.login.captcha=true` 时才真正启用。
+- `POST /api/users/email/login`、`POST /api/users/email/register`、`PUT /api/users/password/recovery/email`、`PUT /api/users/email/bind` 都依赖 `EmailVerifyMiddleware`。
+- `EmailVerifyMiddleware` 校验成功后，会把邮箱写入 Gin Context，业务接口不再重复解析 `email_id` / `email_code`。
+- 邮箱验证码存储在 Redis 中，成功校验后会立即删除；连续输错达到上限后也会删除，避免暴力尝试。
+- 发送邮箱验证码前，系统会按“邮箱 + IP + 操作类型”做频率限制，避免接口被恶意刷爆。
+- 用户名密码登录支持“用户名或邮箱”两种账号字段，但只允许对“已设置密码”的用户生效。
+- 密码登录前会检查账号与 IP 是否已被短时锁定；登录失败会累计账号和 IP 的失败次数，登录成功会清空对应计数。
+- 所有登录方式都会校验用户状态；被禁用、封禁等不可登录状态不会允许继续签发会话。
+- 所有登录方式成功后都会记录登录日志。
+- `POST /api/users/refresh` 不依赖 `AuthMiddleware`，而是直接从 Cookie 中读取 `refresh_token`。
 - 密码重置与密码修改都禁止“新密码等于旧密码”。
+- 密码修改与密码重置成功后，会使该用户所有旧登录态失效。
 - QQ 登录是否开放由 `global.Config.Site.Login.QQLogin` 控制。
+- Access Token 当前支持以下请求头读取方式：
+  - `Authorization: Bearer <token>`
+  - `Authorization: <token>`
+  - `token: <token>`
+  - `Token: <token>`
 
 #### 实现思路
 
-- 邮箱验证码链路分为两步：
-  1. 发送验证码时，在 Redis 中保存 `email_id -> email + code`；
-  2. 业务接口通过 `EmailVerifyMiddleware` 校验成功后，把邮箱写入 Gin Context。
-- 这样注册、找回密码、绑定邮箱三个接口就不需要重复处理验证码解析逻辑。
-- 用户名密码登录支持“用户名或邮箱”两种身份字段，便于邮箱注册用户直接登录。
-- 邮箱注册和 QQ 登录在首次创建用户时，都会按 `MAX(id)+10000` 的策略生成默认用户名，这是一种“先保证可登录，再允许后续改名”的设计。
-- 当前 JWT 只做访问令牌，不做双 token/刷新 token；因此系统更简单，但登录态续期能力也更弱，这一点在后续演进时要明确。
+当前认证链路可以拆成四层来理解：
+
+1. **挑战校验层**
+   - 图片验证码负责拦截“密码登录 / 发邮箱验证码”这类最容易被脚本滥用的入口；
+   - 邮箱验证码负责把“邮箱所有权证明”抽出来，统一给注册、邮箱登录、找回密码、绑定邮箱复用。
+
+2. **登录风控层**
+   - 密码登录失败次数不直接存在数据库，而是用 Redis 记录“账号维度失败计数”和“IP 维度失败计数”；
+   - 这样可以做到短时限流、低成本判断，也不会把数据库变成风控计数器。
+   - 邮件发送同样走 Redis 频控，避免公开接口被高频调用。
+
+3. **会话与令牌层**
+   - 登录成功后不是只返回一个 JWT，而是：
+     - 在 `user_session_models` 中落一条会话记录；
+     - 把 `session_id` 和 `token_version` 写进 Access Token；
+     - 把原始 `refresh_token` 写入 HttpOnly Cookie；
+     - 服务端数据库只保存 `refresh_token` 的 SHA256 哈希，不保存明文。
+   - 这个设计的核心价值，是把“短期接口凭证”和“长期续期凭证”分开：
+     - `access_token` 适合高频接口鉴权，解析快；
+     - `refresh_token` 只用于续期，且必须和数据库中的有效会话匹配。
+
+4. **失效控制层**
+   - `AuthMiddleware` 校验访问令牌时，不只验签名，而是依次校验：
+     - Token 解析是否合法
+     - 是否在 Redis 黑名单
+     - 用户是否存在、状态是否允许登录
+     - `token_version` 是否仍匹配当前用户
+     - 对应 `session_id` 是否存在、未吊销、未过期
+   - 这样做的好处是：
+     - `token_version` 负责“用户级全量失效”，适合改密码、风控踢号；
+     - `session_id` 负责“设备级精确失效”，适合退出当前设备；
+     - Redis 黑名单负责“当前 access_token 立即失效”，弥补 JWT 天生无状态的问题。
+
+围绕这四层，几个关键业务链路是这样落地的：
+
+- **邮箱验证码链路**
+  1. 发送验证码时，在 Redis 保存 `email_id -> email + code + fail_count + max_fail`；
+  2. 校验时通过 Lua 脚本原子判断正确 / 错误 / 是否达最大失败次数；
+  3. 校验成功就删除验证码，并把邮箱写入上下文。
+
+- **密码登录链路**
+  1. 先校验站点是否启用密码登录；
+  2. 再校验 Redis 中账号 / IP 是否允许继续尝试；
+  3. 查询用户名或邮箱对应的用户；
+  4. 校验密码和用户状态；
+  5. 创建会话、签发双令牌、写登录日志。
+
+- **邮箱登录 / 邮箱注册 / QQ 登录链路**
+  - 都复用同一套“创建服务端会话 + 返回 access token + 写 refresh cookie”的登录收口逻辑；
+  - 首次自动建号时，用户名不再依赖 `MAX(id)+10000` 这类数据库推导，而是通过 Redis 自增序列 `NextAutoUsername()` 生成默认用户名，减少并发冲突和表扫描成本。
+
+- **刷新令牌链路**
+  - `POST /api/users/refresh` 只认 Cookie 中的 `refresh_token`；
+  - 服务端根据其哈希找到有效会话后，生成新的 Access Token 和新的 Refresh Token；
+  - 同时更新当前会话中的 `refresh_token_hash`、`expires_at`、`last_seen_at`、IP、UA、归属地信息；
+  - 也就是说，刷新不是“重复发同一个长期 token”，而是“会话续期 + Refresh Token 轮换”。
+
+- **退出登录 / 改密码链路**
+  - 退出当前设备：吊销当前 `session_id`，并把当前 `access_token` 放进 Redis 黑名单；
+  - 退出全部设备：吊销该用户全部会话，并把当前 `access_token` 拉黑；
+  - 修改密码 / 重置密码：事务内完成“更新密码 + `token_version + 1` + 吊销全部会话”，确保旧登录态整体失效。
+
+#### 当前实现边界
+
+- 当前用户侧还没有开放“会话列表 / 设备管理”接口，虽然底层已经有 `user_session_models`。
+- 当前图片验证码仍是进程内存存储，不适合直接拿来支撑多实例共享校验。
+- 当前认证体系已支持双令牌，但还没有引入短信验证码、多因素认证、设备指纹等更强风控能力。
 
 ### 5.5.3 用户资料
 
@@ -1274,28 +1366,16 @@ go run main.go -t user -s create
 
 #### 实现思路
 
-- 正文采用“Markdown 原文 + HTML 渲染结果”双存储：
-  - `content` 保留原始 Markdown，方便二次编辑；
-  
-  - `html_content` 保存安全渲染后的 HTML，方便前台直接展示。
-  
-    ```bash
-    go get github.com/gomarkdown/markdown
-    go get github.com/JohannesKaufmann/html-to-markdown/v2
-  
-- Markdown 渲染链路使用 `gomarkdown`，xss 安全过滤使用 `bluemonday.UGCPolicy()`，并额外放行：
-  - 放行数学公式：仅允许 `span` 和 `div`使用以 `math` 开头的 `class` 标签 ；
-  
-  - [Markdown 锚点] 和 [锚点跳转链接] 增加前缀，保证 `id` 安全放行。
-  
-  - 限定 ID 放行：只放行符合带有安全前缀的 `id` 标签。
-  
-  - Style 权限受限：默认禁止内联样式，仅对 `img` 标签开启`zoom`支持缩放，且限制数值在合理范围。
-  
-    ```bash
-    go get github.com/microcosm-cc/bluemonday
-    ```
-  
+- 当前正文不再采用“`content + html_content` 双存储”。
+- 实际实现是：
+  - 前端提交 Markdown 内容；
+  - 后端通过 `utils/markdown.MdToSafe` 对内容做安全处理；
+  - 处理后的安全 Markdown 直接写入 `article_models.content`。
+- 也就是说，当前模型里已经没有 `html_content` 持久化字段，展示层如果需要 HTML，应基于 `content` 再做渲染，而不是依赖数据库里预存的一份 HTML 副本。
+- `utils/markdown` 当前围绕 Goldmark 和安全清洗规则做内容处理，主要目标是：
+  - 去掉危险 HTML / 链接等不安全内容；
+  - 保留正常 Markdown 结构；
+  - 为摘要提取、搜索分段、正文预处理提供统一入口。
 - 文章创建与标签关系写入放在一个事务里，避免出现“文章建好了但标签关系没建好”的半成功状态。
 
 - 标签文章数不在创建时直接回写数据库，而是记入 Redis 增量，后续由定时任务统一同步。
@@ -1336,7 +1416,7 @@ go run main.go -t user -s create
 #### 功能说明
 
 - 更新接口只允许文章作者本人修改自己的文章。
-- 更新时会重新生成 HTML、安全摘要和标签关系。
+- 更新时会重新计算安全正文、摘要和标签关系。
 - 如果原文章已经是“已发布”，且站点未开启免审核，那么一旦编辑会自动退回“审核中”。
 
 #### 接口设计表
@@ -1356,7 +1436,8 @@ go run main.go -t user -s create
 
 - 更新前先读出旧标签集合，再和新标签集合做差集，最终把标签文章数增量写入 Redis。
 - 文章字段更新与标签关联替换放在同一个事务里执行，避免正文和标签关系出现不一致。
-- 更新时不直接让前端传 `html_content`，而是后端统一重新渲染，确保展示格式和安全策略一致。
+- 如果更新了 `content`，后端会再次通过 `MdToSafe` 做安全处理；如果摘要为空，也会基于处理后的正文重新提取摘要。
+- 当前更新链路同样不依赖 `html_content` 字段，而是统一维护单一的安全正文 `content`。
 
 #### 当前实现边界
 
@@ -1413,14 +1494,14 @@ go run main.go -t user -s create
 
 #### 当前实现边界
 
-- 当前只有“用户置顶”排序生效；`adminTopMap` 还没有真正接入逻辑，所以返回结构里的 `admin_top` 目前会保持默认值。
-- 列表接口当前直接返回 `html_content`，更适合作为前台卡片摘要展示；如果后续要做真正轻量列表，可能还需要再拆更轻的 DTO。
+- 当前列表默认排序已经会叠加作者置顶和管理员置顶；返回结构里的 `user_top`、`admin_top` 都会按现有置顶关系真实返回。
+- 列表接口当前返回的是安全正文 `content`，不是 `html_content`；如果后续要做真正轻量列表，可能还需要再拆更轻的 DTO。
 
 ### 5.6.4 文章详情
 
 #### 功能说明
 
-- 文章详情接口负责返回单篇文章的完整展示信息，包括正文 HTML、作者、分类、标签与计数聚合值。
+- 文章详情接口负责返回单篇文章的完整展示信息，包括正文内容、作者、分类、标签与计数聚合值。
 - 它只负责“读内容”，不负责“加浏览量”。
 
 #### 接口设计表
@@ -1443,12 +1524,12 @@ go run main.go -t user -s create
   - 分类信息
   - 标签信息
 - 响应前会把 Redis 中的点赞、收藏、浏览、评论增量与数据库基础值合并。
-- 详情接口只返回 `html_content`，不返回原始 Markdown，体现的是“展示接口”和“编辑接口”分离。
+- 详情接口当前直接返回文章的安全正文 `content`；它并不依赖 `html_content` 这类额外持久化字段。
 
 #### 当前实现边界
 
 - 当前详情接口只返回聚合计数，不返回“当前登录用户是否已点赞 / 是否已收藏”这类个性化布尔态。
-- 如果前端详情页需要“编辑态 Markdown 原文”，当前要走其他接口能力或后续补专门的编辑详情接口，不能直接依赖这个公开详情接口。
+- 当前详情接口返回的是安全正文 `content`；如果后续要明确区分“展示态内容”和“编辑态原文”，还需要再补更清晰的字段设计或专门接口。
 
 ### 5.6.5 文章审核与删除
 
@@ -1609,7 +1690,62 @@ go run main.go -t user -s create
 | `/api/articles/category` | DELETE | 登录用户 / 管理员 | `id_list` | 删除分类 |
 | `/api/articles/category/options` | GET | 登录用户 | 无 | 返回当前用户分类下拉选项 |
 
-### 5.6.10 文章标签
+### 5.6.10 文章置顶
+
+#### 功能说明
+
+- 当前项目支持两类置顶：
+  - 作者置顶：作者把自己的已发布文章置顶到个人文章流前面
+  - 管理员置顶：管理员把文章置顶到更高优先级的位置
+- 置顶关系支持新增、取消和列表查询。
+- 常规文章列表默认排序已经会叠加置顶关系，因此置顶不只是“单独查一个置顶列表”，也会影响常规文章列表的顺序。
+
+#### 接口设计表
+
+| 接口 | 方法 | 权限 | 主要参数 | 说明 |
+| ---- | ---- | ---- | -------- | ---- |
+| `/api/articles/top` | GET | 公开 | `type`、`user_id` | 查询置顶文章列表；`type=1` 作者置顶，`2` 管理员置顶 |
+| `/api/articles/top` | POST | 登录用户 | `article_id`、`type` | 置顶文章；`type=1` 作者置顶，`2` 管理员置顶 |
+| `/api/articles/top` | DELETE | 登录用户 | `article_id`、`type` | 取消置顶；`type=1` 作者置顶，`2` 管理员置顶 |
+
+#### 规则说明
+
+- `GET /api/articles/top`
+  - `type=1` 时必须传 `user_id`，表示查询某位作者的置顶文章；
+  - `type=2` 时查询管理员置顶文章列表；
+  - 当前置顶列表只返回已发布文章。
+- `POST /api/articles/top`
+  - `type=1` 时只能置顶自己的文章；
+  - 普通用户作者置顶最多 `3` 篇；
+  - 作者置顶要求目标文章必须已发布；
+  - `type=2` 时只有管理员可以执行管理员置顶。
+- `DELETE /api/articles/top`
+  - `type=1` 时只能取消自己文章的作者置顶；
+  - `type=2` 时只有管理员才能取消管理员置顶。
+
+#### 设计思路
+
+- 当前作者置顶和管理员置顶没有拆成两张表，而是共用 `user_top_article_models` 这一张关系表。
+- 区分方式不是额外加一个“置顶类型字段”，而是看“是谁创建了这条置顶关系”：
+  - 作者给自己的文章置顶，表现为 `user_id = article.author_id`
+  - 管理员置顶，表现为 `user_id` 对应一个管理员账号
+- 这样设计的好处是：
+  - 数据结构更简单；
+  - 新增 / 恢复 / 取消置顶都能复用同一套唯一关系逻辑；
+  - 作者置顶列表和管理员置顶列表只需要切换查询条件，不需要维护两套几乎重复的模型。
+- 为了避免“检查数量上限”和“创建置顶记录”之间发生并发竞态，作者置顶时会先锁当前用户行，再在事务里完成：
+  1. 校验是否已置顶；
+  2. 统计当前作者置顶数量；
+  3. 创建或恢复置顶关系。
+- 置顶状态变化后，业务侧会调用 `es_service.UpdateESDocsTop` 刷新对应文章的 ES 文档，缩短搜索侧看到旧置顶状态的时间窗口。
+
+#### 当前实现边界
+
+- 当前置顶列表接口没有单独做分页，返回的是当前查询条件下的全部置顶文章。
+- 管理员置顶列表只返回“当前已发布”的文章；因此管理员即使先给未发布文章打了管理员置顶，这篇文章也要等发布后才会出现在置顶列表里。
+- 当前作者置顶数量上限只约束普通作者；管理员如果按作者置顶自己的文章，不受 `3` 篇上限限制。
+
+### 5.6.11 文章标签
 
 #### 功能说明
 
@@ -2560,7 +2696,7 @@ ES 里的文章计数来自索引文档，而项目里的点赞 / 收藏 / 浏�
 - 当前业务侧 ES 局部刷新并不完整：
   - 新文章创建后没有直接调用 `SyncESDocs`
   - 删除文章后也没有直接调用 `DeleteDocument`
-  - `UpdateESDocsTop` 虽然已经在 `es_service` 中提供，但当前仓库里还没有找到业务路由调用它
+  - 但文章置顶 / 取消置顶已经会调用 `UpdateESDocsTop` 做局部刷新
 - 因此从系统真实行为上看，搜索一致性的主兜底仍然是 Binlog 同步链路。
 
 
@@ -2586,7 +2722,8 @@ ES 里的文章计数来自索引文档，而项目里的点赞 / 收藏 / 浏�
 | ----------- | -------- | ---- | ---- |
 | `-f settings.yaml` | 已实现 | `flags.Parse()` | 指定配置文件路径，默认值为 `settings.yaml` |
 | `-db` | 已实现 | `flags.FlagDB()` | 执行 GORM `AutoMigrate`，完成后退出进程 |
-| `-es` | 已实现 | `flags.FlagESIndex()` | 交互式初始化 / 删除文章索引与 Pipeline，完成后退出进程 |
+| `-es -s init` | 已实现 | `flags.FlagESIndex()` | 交互式初始化 / 删除文章索引与 Pipeline，完成后退出进程 |
+| `-es -s article-sync` | 已实现 | `flags.FlagESArticleSync()` | 按批次全量同步文章数据到 ES，完成后退出进程 |
 | `-t user -s create` | 已实现 | `FlagUser.Create()` | 交互式创建命令行用户，完成后退出进程 |
 | `-version` | 仅解析未生效 | `flags.Parse()` | 参数已定义，但当前 `flags.Run()` 没有输出版本信息的实现 |
 
@@ -2637,7 +2774,7 @@ ES 里的文章计数来自索引文档，而项目里的点赞 / 收藏 / 浏�
 
 #### 功能说明
 
-`go run . -es -f settings.yaml` 会进入交互式命令，分别处理两类 ES 资源：
+`go run . -es -s init -f settings.yaml` 会进入交互式命令，分别处理两类 ES 资源：
 
 - 文章索引（index）
 - 文章处理管道（pipeline）
@@ -2656,6 +2793,7 @@ ES 里的文章计数来自索引文档，而项目里的点赞 / 收藏 / 浏�
 
 - 当前只覆盖文章检索相关索引，没有扩展到评论、用户或聊天消息等其他搜索场景。
 - 当前是交互式 `fmt.Scanln`，更适合人工运维，不适合 CI/CD 中的非交互自动化流程。
+- 如果要做文章全量补索引，当前还需要显式走 `go run . -es -s article-sync -f settings.yaml`。
 
 ### 5.13.6 命令行用户创建
 
@@ -2680,7 +2818,7 @@ ES 里的文章计数来自索引文档，而项目里的点赞 / 收藏 / 浏�
 ### 5.13.7 当前实现边界
 
 - `-version` 当前只是参数占位，并没有真正输出 `global.Version`。
-- `op.Type` 目前只实现了 `user`，`op.Sub` 也只实现了 `create`，扩展性预留了入口，但子命令体系还比较薄。
+- `op.Type` 目前只实现了 `user`；但 `op.Sub` 不再只有 `create`，ES 分支已经支持 `init` 和 `article-sync`，整体子命令体系仍然偏轻量。
 - 当前命令执行失败大多是直接打印错误并退出，没有形成统一的 CLI 错误码和帮助信息体系。
 - 整个 `flags` 模块本质上是“工程运维入口”，不是对外业务能力，因此文档里不应把它描述成 HTTP 功能模块。
 
