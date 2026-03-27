@@ -3,10 +3,6 @@ package image_service
 import (
 	"errors"
 	"fmt"
-
-	"myblogx/global"
-
-	"github.com/qiniu/go-sdk/v7/auth"
 	"github.com/qiniu/go-sdk/v7/storage"
 )
 
@@ -21,7 +17,6 @@ func CreateUploadToken(policy UploadPolicy) (*UploadTokenResult, error) {
 		return nil, errors.New("七牛上传大小限制必须大于 0")
 	}
 
-	mac := auth.New(global.Config.QiNiu.AccessKey, global.Config.QiNiu.SecretKey)
 	putPolicy := storage.PutPolicy{
 		Scope:      fmt.Sprintf("%s:%s", policy.Bucket, policy.ObjectKey),
 		Expires:    uint64(policy.ExpireAt.Unix()),
@@ -39,7 +34,7 @@ func CreateUploadToken(policy UploadPolicy) (*UploadTokenResult, error) {
 	}
 
 	return &UploadTokenResult{
-		Token:     putPolicy.UploadToken(mac),
+		Token:     putPolicy.UploadToken(getQiniuRuntime().mac),
 		Bucket:    policy.Bucket,
 		ObjectKey: policy.ObjectKey,
 		ExpireAt:  policy.ExpireAt,

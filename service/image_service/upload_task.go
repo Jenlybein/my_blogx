@@ -112,7 +112,7 @@ func CreateUploadTask(userID ctype.ID, fileName string, size int64, mimeType str
 // ConfirmUploadTaskByUser 用户手动确认上传完成（前端调用）
 // 校验任务归属用户，校验ObjectKey，然后执行任务确认
 func ConfirmUploadTaskByUser(taskID, userID ctype.ID, objectKey string) (*ConfirmUploadTaskResult, error) {
-	return confirmUploadTask(taskID, func(task *ImageUploadTask) error {
+	return confirmUploadTask(taskID, nil, func(task *ImageUploadTask) error {
 		if task.UserID != userID {
 			return ErrUploadTaskNotFound
 		}
@@ -123,14 +123,18 @@ func ConfirmUploadTaskByUser(taskID, userID ctype.ID, objectKey string) (*Confir
 	})
 }
 
-// ConfirmUploadTaskByObjectKey 七牛回调确认上传（自动调用）
-// 通过回调携带的ObjectKey找到任务并完成确认
-func ConfirmUploadTaskByObjectKey(objectKey string) (*ConfirmUploadTaskResult, error) {
+// ConfirmUploadTaskByCallback 七牛上传回调确认上传。
+// 直接复用七牛回调已返回的对象元信息，避免再额外调用一次 StatObject。
+func ConfirmUploadTaskByCallback(objectKey, bucket, hash string, size int64) (*ConfirmUploadTaskResult, error) {
 	taskID, err := getUploadTaskIDByObjectKey(objectKey)
 	if err != nil {
 		return nil, err
 	}
-	return confirmUploadTask(taskID, func(task *ImageUploadTask) error {
+	return confirmUploadTask(taskID, &uploadedObjectMeta{
+		Bucket: bucket,
+		Hash:   hash,
+		Size:   size,
+	}, func(task *ImageUploadTask) error {
 		if task.ObjectKey != objectKey {
 			return ErrUploadTaskNotFound
 		}
@@ -155,6 +159,15 @@ func GetUploadTaskStatusByUser(taskID, userID ctype.ID) (*ConfirmUploadTaskResul
 	result := &ConfirmUploadTaskResult{Task: task}
 	// 如果任务已关联图片ID，查询图片信息并返回
 	if task.ImageID != nil {
+		if task.ImageURL != "" {
+			result.Image = &models.ImageModel{
+				Model: models.Model{
+					ID: *task.ImageID,
+				},
+				URL: task.ImageURL,
+			}
+			return result, nil
+		}
 		var image models.ImageModel
 		if err = global.DB.Take(&image, "id = ?", *task.ImageID).Error; err == nil {
 			result.Image = &image
@@ -167,7 +180,7 @@ func GetUploadTaskStatusByUser(taskID, userID ctype.ID) (*ConfirmUploadTaskResul
 
 // confirmUploadTask 统一确认上传任务（核心逻辑）
 // 处理任务状态、加锁防并发、校验文件、入库保存。
-func confirmUploadTask(taskID ctype.ID, validate func(*ImageUploadTask) error) (*ConfirmUploadTaskResult, error) {
+func confirmUploadTask(taskID ctype.ID, objectMeta *uploadedObjectMeta, validate func(*ImageUploadTask) error) (*ConfirmUploadTaskResult, error) {
 	// 分布式锁：防止并发重复确认
 	unlock, locked, err := lockUploadTask(taskID, 30*time.Second)
 	if err != nil {
@@ -205,7 +218,7 @@ func confirmUploadTask(taskID ctype.ID, validate func(*ImageUploadTask) error) (
 	}
 
 	// 核心：校验七牛上的真实文件
-	verified, err := verifyUploadedObject(task)
+	verified, err := verifyUploadedObject(task, objectMeta)
 	if err != nil {
 		// 校验失败：标记任务为失败状态
 		task.Status = enum.ImageUploadTaskFailed
@@ -234,27 +247,37 @@ func confirmUploadTask(taskID ctype.ID, validate func(*ImageUploadTask) error) (
 
 // verifyUploadedObject 校验七牛云存储的真实文件
 // 校验哈希、大小、格式、图片信息，返回校验结果
-func verifyUploadedObject(task *ImageUploadTask) (*verifiedImage, error) {
-	// 查询七牛文件元信息
-	fileInfo, err := StatObject(task.Bucket, task.ObjectKey)
-	if err != nil {
-		return nil, err
+func verifyUploadedObject(task *ImageUploadTask, objectMeta *uploadedObjectMeta) (*verifiedImage, error) {
+	var (
+		objectHash string
+		objectSize int64
+	)
+	if objectMeta != nil {
+		if objectMeta.Bucket != "" && objectMeta.Bucket != task.Bucket {
+			return nil, errors.New("上传对象 bucket 与任务不匹配")
+		}
+		objectHash = objectMeta.Hash
+		objectSize = objectMeta.Size
+	}
+	if objectHash == "" || objectSize <= 0 {
+		fileInfo, err := StatObject(task.Bucket, task.ObjectKey)
+		if err != nil {
+			return nil, err
+		}
+		objectHash = fileInfo.Hash
+		objectSize = fileInfo.Fsize
 	}
 	// 校验文件哈希存在
-	if fileInfo.Hash == "" {
+	if objectHash == "" {
 		return nil, errors.New("七牛对象缺少哈希信息")
 	}
 	// 校验哈希与任务一致
-	if task.Hash != "" && task.Hash != fileInfo.Hash {
+	if task.Hash != "" && task.Hash != objectHash {
 		return nil, errors.New("上传对象哈希与任务不匹配")
 	}
 	// 校验文件大小与声明一致
-	if task.DeclaredSize > 0 && fileInfo.Fsize != task.DeclaredSize {
+	if task.DeclaredSize > 0 && objectSize != task.DeclaredSize {
 		return nil, errors.New("上传对象大小与任务不匹配")
-	}
-	// 校验文件类型是图片
-	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(fileInfo.MimeType)), "image/") {
-		return nil, errors.New("上传对象不是图片")
 	}
 
 	// 获取图片宽高信息
@@ -275,9 +298,9 @@ func verifyUploadedObject(task *ImageUploadTask) (*verifiedImage, error) {
 		Bucket:    task.Bucket,
 		ObjectKey: task.ObjectKey,
 		FileName:  task.OriginalName,
-		Hash:      fileInfo.Hash,
-		MimeType:  chooseVerifiedMime(fileInfo.MimeType, formatToMime(format)),
-		Size:      fileInfo.Fsize,
+		Hash:      objectHash,
+		MimeType:  chooseVerifiedMime(task.DeclaredMime, formatToMime(format)),
+		Size:      objectSize,
 		Width:     imageInfo.Width,
 		Height:    imageInfo.Height,
 	}, nil
@@ -339,6 +362,7 @@ func persistConfirmedTask(task *ImageUploadTask, verified *verifiedImage) (*Conf
 		task.Hash = verified.Hash
 		task.ConfirmedAt = &now
 		task.ImageID = &image.ID
+		task.ImageURL = image.URL
 		result.Task = task
 		result.Image = &image
 		return nil

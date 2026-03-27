@@ -148,7 +148,7 @@ func (ImageApi) QiniuCallbackView(c *gin.Context) {
 	}
 
 	// 根据文件key自动完成上传任务
-	result, err := image_service.ConfirmUploadTaskByObjectKey(payload.Key)
+	result, err := image_service.ConfirmUploadTaskByCallback(payload.Key, payload.Bucket, payload.Hash, payload.Fsize)
 	if err != nil {
 		if errors.Is(err, image_service.ErrUploadTaskNotFound) {
 			res.FailWithMsg("上传任务不存在", c)

@@ -50,6 +50,7 @@ type ImageUploadTask struct {
 	ExpiresAt    time.Time                  `json:"expires_at"`
 	ConfirmedAt  *time.Time                 `json:"confirmed_at"`
 	ImageID      *ctype.ID                  `json:"image_id"`
+	ImageURL     string                     `json:"image_url"`
 }
 
 type CreateUploadTaskResult struct {
@@ -76,6 +77,12 @@ type verifiedImage struct {
 	Width              int
 	Height             int
 	ShouldDeleteUpload bool
+}
+
+type uploadedObjectMeta struct {
+	Bucket string
+	Hash   string
+	Size   int64
 }
 
 type qiniuAuditCallbackPayload struct {
