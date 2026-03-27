@@ -82,11 +82,12 @@ func (h *eventHandler) OnRow(e *canal.RowsEvent) error {
 		return nil
 	}
 
-	// 提取表所有列名
+	// 当前批次行的列布局固定，索引映射只构建一次并在本批次复用。
 	columnNames := make([]string, 0, len(e.Table.Columns))
 	for _, column := range e.Table.Columns {
 		columnNames = append(columnNames, column.Name)
 	}
+	layout := newRowLayout(columnNames)
 
 	// 根据操作类型处理
 	switch e.Action {
@@ -100,14 +101,19 @@ func (h *eventHandler) OnRow(e *canal.RowsEvent) error {
 	case canal.InsertAction:
 		// 新增操作：重建该条数据的图片引用关系
 		for _, row := range e.Rows {
-			if err := rebuildByRow(newRowSnapshot(columnNames, row)); err != nil {
+			if err := rebuildByRow(newRowSnapshot(layout, row)); err != nil {
 				return err
 			}
 		}
 	case canal.UpdateAction:
 		// 更新操作：使用新数据重建图片引用（e.Rows[i] 是更新后的数据）
 		for i := 1; i < len(e.Rows); i += 2 {
-			if err := rebuildByRow(newRowSnapshot(columnNames, e.Rows[i])); err != nil {
+			before := newRowSnapshot(layout, e.Rows[i-1])
+			after := newRowSnapshot(layout, e.Rows[i])
+			if !shouldRebuildOnUpdate(e.Table.Name, before, after) {
+				continue
+			}
+			if err := rebuildByRow(after); err != nil {
 				return err
 			}
 		}
@@ -150,6 +156,29 @@ func tableHandler(table string) (image_ref_enum.RefType, func(rowSnapshot) error
 		return image_ref_enum.RefTypeFavorite, RebuildFavoriteRefsByRow, true
 	default:
 		return 0, nil, false
+	}
+}
+
+func shouldRebuildOnUpdate(table string, before rowSnapshot, after rowSnapshot) bool {
+	beforeDeleted := before.IsDeleted()
+	afterDeleted := after.IsDeleted()
+	if beforeDeleted != afterDeleted {
+		return true
+	}
+	if afterDeleted {
+		return false
+	}
+	switch table {
+	case "article_models":
+		return !before.EqualString(after, "content") || !before.EqualString(after, "cover")
+	case "user_models":
+		return !before.EqualString(after, "avatar")
+	case "banner_models":
+		return !before.EqualString(after, "cover")
+	case "favorite_models":
+		return !before.EqualString(after, "cover")
+	default:
+		return true
 	}
 }
 

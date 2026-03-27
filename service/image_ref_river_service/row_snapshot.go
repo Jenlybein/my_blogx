@@ -9,18 +9,26 @@ import (
 )
 
 type rowSnapshot struct {
-	columns map[string]int
-	row     []any
+	layout rowLayout
+	row    []any
 }
 
-func newRowSnapshot(columnNames []string, row []any) rowSnapshot {
+type rowLayout struct {
+	columns map[string]int
+}
+
+func newRowLayout(columnNames []string) rowLayout {
 	columns := make(map[string]int, len(columnNames))
 	for index, name := range columnNames {
 		columns[name] = index
 	}
+	return rowLayout{columns: columns}
+}
+
+func newRowSnapshot(layout rowLayout, row []any) rowSnapshot {
 	return rowSnapshot{
-		columns: columns,
-		row:     row,
+		layout: layout,
+		row:    row,
 	}
 }
 
@@ -66,11 +74,20 @@ func (r rowSnapshot) IsDeleted() bool {
 }
 
 func (r rowSnapshot) value(column string) (any, bool) {
-	index, ok := r.columns[column]
+	index, ok := r.layout.columns[column]
 	if !ok || index >= len(r.row) {
 		return nil, false
 	}
 	return r.row[index], true
+}
+
+func (r rowSnapshot) EqualString(other rowSnapshot, column string) bool {
+	left, leftOK := r.value(column)
+	right, rightOK := other.value(column)
+	if !leftOK && !rightOK {
+		return true
+	}
+	return normalizeString(left) == normalizeString(right)
 }
 
 func normalizeString(value any) string {

@@ -17,6 +17,10 @@ func ParseMarkdownImageURLs(content string) []string {
 	if content == "" {
 		return nil
 	}
+	lowerContent := strings.ToLower(content)
+	if !strings.Contains(content, "![") && !strings.Contains(lowerContent, "<img") {
+		return nil
+	}
 
 	source := []byte(content)
 	doc := goldmark.New().Parser().Parse(text.NewReader(source))

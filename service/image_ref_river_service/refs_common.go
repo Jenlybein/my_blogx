@@ -101,6 +101,20 @@ func extractObjectKey(raw string) string {
 	if raw == "" {
 		return ""
 	}
+	prefix := strings.Trim(global.Config.QiNiu.Prefix, "/")
+	if prefix == "" {
+		prefix = "images"
+	}
+	raw = strings.TrimPrefix(raw, "/")
+	if raw == "" {
+		return ""
+	}
+	if !strings.Contains(raw, "://") && !strings.ContainsAny(raw, "?#") {
+		if strings.HasPrefix(raw, prefix+"/images/") {
+			return raw
+		}
+		return ""
+	}
 	if strings.Contains(raw, "://") || strings.Contains(raw, "?") || strings.Contains(raw, "#") {
 		parsed, err := url.Parse(raw)
 		if err == nil {
@@ -110,10 +124,6 @@ func extractObjectKey(raw string) string {
 	raw = strings.TrimPrefix(strings.TrimSpace(raw), "/")
 	if raw == "" {
 		return ""
-	}
-	prefix := strings.Trim(global.Config.QiNiu.Prefix, "/")
-	if prefix == "" {
-		prefix = "images"
 	}
 	if strings.HasPrefix(raw, prefix+"/images/") {
 		return raw
