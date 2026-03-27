@@ -98,3 +98,16 @@ func LockTask(taskID ctype.ID, ttl time.Duration) (unlock func(), locked bool, e
 		}
 	}, true, nil
 }
+
+// StoreAuditStatus 暂存图片审核状态，兜住“审核回调先到、图片记录后建”的情况。
+func StoreAuditStatus(objectKey string, status string, ttl time.Duration) error {
+	if ttl <= 0 {
+		ttl = 24 * time.Hour
+	}
+	return global.Redis.Set(context.Background(), imageAuditKey(objectKey), status, ttl).Err()
+}
+
+// ConsumeAuditStatus 读取并删除暂存的图片审核状态。
+func ConsumeAuditStatus(objectKey string) (string, error) {
+	return global.Redis.GetDel(context.Background(), imageAuditKey(objectKey)).Result()
+}

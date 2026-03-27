@@ -166,3 +166,26 @@ func (ImageApi) QiniuCallbackView(c *gin.Context) {
 		ErrorMsg: result.Task.ErrorMsg,
 	}, c)
 }
+
+// QiniuAuditCallbackView 七牛内容审核回调接口。
+// 七牛完成内容审核后回调该接口，服务端根据审核结论更新图片状态。
+func (ImageApi) QiniuAuditCallbackView(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(body))
+
+	ok, err := image_service.VerifyQiniuCallback(c.Request)
+	if err != nil || !ok {
+		res.FailWithMsg(fmt.Sprintf("校验七牛审核回调失败: %v", err), c)
+		return
+	}
+
+	if err = image_service.HandleQiniuAuditCallback(body); err != nil {
+		res.FailWithMsg(err.Error(), c)
+		return
+	}
+	res.OkWithMsg("七牛审核回调处理成功", c)
+}

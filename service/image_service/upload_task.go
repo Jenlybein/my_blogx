@@ -313,7 +313,7 @@ func persistConfirmedTask(task *ImageUploadTask, verified *verifiedImage) (*Conf
 				Width:     verified.Width,
 				Height:    verified.Height,
 				Hash:      verified.Hash,
-				Status:    enum.ImageStatusReady,
+				Status:    enum.ImageStatusPass,
 			}
 			// 创建图片记录
 			if err = tx.Create(&image).Error; err != nil {
@@ -350,6 +350,9 @@ func persistConfirmedTask(task *ImageUploadTask, verified *verifiedImage) (*Conf
 	// 保存完成状态的任务到缓存
 	if saveErr := saveUploadTask(task, finalizedTaskKeepAlive); saveErr != nil {
 		global.Logger.Warnf("保存成功的图片上传任务状态失败: taskID=%s err=%v", task.ID.String(), saveErr)
+	}
+	if err = applyPendingAuditStatusIfAny(result.Image); err != nil {
+		global.Logger.Warnf("应用七牛审核结果失败: image_id=%s key=%s err=%v", result.Image.ID.String(), result.Image.ObjectKey, err)
 	}
 	return &result, nil
 }

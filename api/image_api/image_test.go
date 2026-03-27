@@ -61,7 +61,7 @@ func TestImageListView(t *testing.T) {
 		MimeType:  "image/png",
 		Size:      1,
 		Hash:      "etag-test",
-		Status:    enum.ImageStatusReady,
+		Status:    enum.ImageStatusPass,
 	}
 	if err := db.Create(&image).Error; err != nil {
 		t.Fatalf("创建图片记录失败: %v", err)

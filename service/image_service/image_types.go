@@ -32,24 +32,24 @@ type ImageInfoResult struct {
 }
 
 type ImageUploadTask struct {
-	ID           ctype.ID                 `json:"id"`
-	UserID       ctype.ID                 `json:"user_id"`
-	Provider     enum.ImageProvider       `json:"provider"`
+	ID           ctype.ID                   `json:"id"`
+	UserID       ctype.ID                   `json:"user_id"`
+	Provider     enum.ImageProvider         `json:"provider"`
 	Status       enum.ImageUploadTaskStatus `json:"status"`
-	Bucket       string                   `json:"bucket"`
-	ObjectKey    string                   `json:"object_key"`
-	OriginalName string                   `json:"original_name"`
-	DeclaredMime string                   `json:"declared_mime"`
-	DeclaredSize int64                    `json:"declared_size"`
-	VerifiedMime string                   `json:"verified_mime"`
-	VerifiedSize int64                    `json:"verified_size"`
-	Width        int                      `json:"width"`
-	Height       int                      `json:"height"`
-	Hash         string                   `json:"hash"`
-	ErrorMsg     string                   `json:"error_msg"`
-	ExpiresAt    time.Time                `json:"expires_at"`
-	ConfirmedAt  *time.Time               `json:"confirmed_at"`
-	ImageID      *ctype.ID                `json:"image_id"`
+	Bucket       string                     `json:"bucket"`
+	ObjectKey    string                     `json:"object_key"`
+	OriginalName string                     `json:"original_name"`
+	DeclaredMime string                     `json:"declared_mime"`
+	DeclaredSize int64                      `json:"declared_size"`
+	VerifiedMime string                     `json:"verified_mime"`
+	VerifiedSize int64                      `json:"verified_size"`
+	Width        int                        `json:"width"`
+	Height       int                        `json:"height"`
+	Hash         string                     `json:"hash"`
+	ErrorMsg     string                     `json:"error_msg"`
+	ExpiresAt    time.Time                  `json:"expires_at"`
+	ConfirmedAt  *time.Time                 `json:"confirmed_at"`
+	ImageID      *ctype.ID                  `json:"image_id"`
 }
 
 type CreateUploadTaskResult struct {
@@ -76,4 +76,26 @@ type verifiedImage struct {
 	Width              int
 	Height             int
 	ShouldDeleteUpload bool
+}
+
+type qiniuAuditCallbackPayload struct {
+	InputKey   string                   `json:"inputKey"`
+	Key        string                   `json:"key"`
+	ObjectKey  string                   `json:"objectKey"`
+	Suggestion string                   `json:"suggestion"`
+	Result     qiniuAuditResultLevel1   `json:"result"`
+	Items      []qiniuAuditCallbackItem `json:"items"`
+}
+
+type qiniuAuditCallbackItem struct {
+	Result qiniuAuditResultLevel1 `json:"result"`
+}
+
+type qiniuAuditResultLevel1 struct {
+	Suggestion string                 `json:"suggestion"`
+	Result     qiniuAuditResultLevel2 `json:"result"`
+}
+
+type qiniuAuditResultLevel2 struct {
+	Suggestion string `json:"suggestion"`
 }

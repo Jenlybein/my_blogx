@@ -1,5 +1,9 @@
 package enum
 
+import (
+	"strings"
+)
+
 type ImageProvider string
 
 const (
@@ -17,23 +21,45 @@ const (
 type ImageStatus uint
 
 const (
-	ImageStatusReady ImageStatus = iota + 1
+	ImageStatusUnknown ImageStatus = iota
+	ImageStatusPass
 	ImageStatusDeleted
 	ImageStatusOrphaned
+	ImageStatusReviewing
 	ImageStatusBlocked
 )
 
 func (s ImageStatus) String() string {
 	switch s {
-	case ImageStatusReady:
-		return "ready"
+	case ImageStatusPass:
+		return "pass"
 	case ImageStatusDeleted:
 		return "deleted"
 	case ImageStatusOrphaned:
 		return "orphaned"
+	case ImageStatusReviewing:
+		return "review"
 	case ImageStatusBlocked:
-		return "blocked"
+		return "block"
 	default:
 		return "unknown"
+	}
+}
+
+// 将七牛的审核建议映射为系统图片状态
+func ImageStatusMapString(suggestion string) ImageStatus {
+	switch strings.ToLower(strings.TrimSpace(suggestion)) {
+	case "pass":
+		return ImageStatusPass
+	case "review":
+		return ImageStatusReviewing
+	case "block":
+		return ImageStatusBlocked
+	case "deleted":
+		return ImageStatusDeleted
+	case "orphaned":
+		return ImageStatusOrphaned
+	default:
+		return ImageStatusUnknown
 	}
 }

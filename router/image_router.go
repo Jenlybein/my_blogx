@@ -21,6 +21,7 @@ func ImageRouter(r *gin.RouterGroup) {
 	authGroup.POST("upload-tasks/complete", mw.BindJson[image_api.CompleteImageUploadTaskRequest], app.CompleteUploadTaskView)
 	authGroup.GET("upload-tasks/:id", mw.BindUri[models.IDRequest], app.UploadTaskStatusView)
 	Group.POST("qiniu/callback", app.QiniuCallbackView)
+	Group.POST("qiniu/audit/callback", app.QiniuAuditCallbackView)
 
 	adminGroup.GET("", mw.BindQuery[common.PageInfo], app.ImageListView)
 	adminGroup.DELETE("", mw.BindJson[models.IDListRequest], app.ImageRemoveView)

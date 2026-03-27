@@ -3,9 +3,12 @@ package image_service
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"mime/multipart"
 	"myblogx/conf"
 	"myblogx/global"
+	"myblogx/models"
+	"myblogx/models/enum"
 	"myblogx/test/testutil"
 	"net/http"
 	"net/http/httptest"
@@ -139,4 +142,103 @@ func makeMultipartImageHeader(t *testing.T, filename string, content []byte) *mu
 	}
 
 	return req.MultipartForm.File["file"][0]
+}
+
+func TestHandleQiniuAuditCallbackUpdateExistingImage(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.ImageModel{})
+	testutil.SetupMiniRedis(t)
+
+	image := models.ImageModel{
+		UserID:    1,
+		Provider:  enum.ImageProviderQiNiu,
+		Bucket:    "bucket",
+		ObjectKey: "blogx/images/20260327/etag-audit",
+		FileName:  "audit.png",
+		URL:       "https://cdn.example.com/blogx/images/20260327/etag-audit",
+		MimeType:  "image/png",
+		Size:      1,
+		Hash:      "etag-audit",
+		Status:    enum.ImageStatusPass,
+	}
+	if err := db.Create(&image).Error; err != nil {
+		t.Fatalf("创建图片记录失败: %v", err)
+	}
+
+	body, _ := json.Marshal(map[string]any{
+		"inputBucket": "bucket",
+		"inputKey":    "blogx/images/20260327/etag-audit",
+		"items": []map[string]any{
+			{
+				"result": map[string]any{
+					"result": map[string]any{
+						"suggestion": "block",
+					},
+				},
+			},
+		},
+	})
+	if err := HandleQiniuAuditCallback(body); err != nil {
+		t.Fatalf("处理审核回调失败: %v", err)
+	}
+
+	var updated models.ImageModel
+	if err := db.Take(&updated, "id = ?", image.ID).Error; err != nil {
+		t.Fatalf("查询图片失败: %v", err)
+	}
+	if updated.Status != enum.ImageStatusBlocked {
+		t.Fatalf("审核回调后状态应为 blocked, got=%v", updated.Status)
+	}
+}
+
+func TestHandleQiniuAuditCallbackCacheAndApplyLater(t *testing.T) {
+	db := testutil.SetupSQLite(t, &models.ImageModel{})
+	testutil.SetupMiniRedis(t)
+
+	body, _ := json.Marshal(map[string]any{
+		"inputBucket": "bucket",
+		"inputKey":    "blogx/images/20260327/etag-audit-later",
+		"items": []map[string]any{
+			{
+				"result": map[string]any{
+					"result": map[string]any{
+						"suggestion": "review",
+					},
+				},
+			},
+		},
+	})
+	if err := HandleQiniuAuditCallback(body); err != nil {
+		t.Fatalf("处理审核回调失败: %v", err)
+	}
+
+	image := models.ImageModel{
+		UserID:    1,
+		Provider:  enum.ImageProviderQiNiu,
+		Bucket:    "bucket",
+		ObjectKey: "blogx/images/20260327/etag-audit-later",
+		FileName:  "audit-later.png",
+		URL:       "https://cdn.example.com/blogx/images/20260327/etag-audit-later",
+		MimeType:  "image/png",
+		Size:      1,
+		Hash:      "etag-audit-later",
+		Status:    enum.ImageStatusPass,
+	}
+	if err := db.Create(&image).Error; err != nil {
+		t.Fatalf("创建图片记录失败: %v", err)
+	}
+
+	if err := applyPendingAuditStatusIfAny(&image); err != nil {
+		t.Fatalf("应用缓存审核结果失败: %v", err)
+	}
+	if image.Status != enum.ImageStatusReviewing {
+		t.Fatalf("review 应落为 reviewing, got=%v", image.Status)
+	}
+
+	var updated models.ImageModel
+	if err := db.Take(&updated, "id = ?", image.ID).Error; err != nil {
+		t.Fatalf("查询图片失败: %v", err)
+	}
+	if updated.Status != enum.ImageStatusReviewing {
+		t.Fatalf("数据库中的图片状态应为 reviewing, got=%v", updated.Status)
+	}
 }

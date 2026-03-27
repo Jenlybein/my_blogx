@@ -16,3 +16,8 @@ func uploadTaskObjectKey(objectKey string) string {
 func uploadTaskLockKey(taskID ctype.ID) string {
 	return "image:upload:task:lock:" + taskID.String()
 }
+
+// imageAuditKey 生成图片审核结果缓存 key。
+func imageAuditKey(objectKey string) string {
+	return "image:audit:" + objectKey
+}
