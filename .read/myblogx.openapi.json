@@ -586,7 +586,7 @@
       "post": {
         "summary": "邮件获取",
         "deprecated": false,
-        "description": "发送邮箱验证码。不同 type 表示不同业务场景，调用成功后会返回 email_id，后续校验验证码时需要携带该值。",
+        "description": "发送邮箱验证码。不同 type 表示不同业务场景，调用成功后会返回 email_id，后续校验验证码时需要携带该值。\n\n调用顺序：\n1. 前端提交邮箱和验证码业务类型。\n2. 后端发送邮件并返回 email_id。\n3. 前端提示用户输入验证码。\n4. 后续在注册、登录、绑定邮箱或找回密码接口中提交 email_id 与 email_code。",
         "tags": [
           "用户管理/认证"
         ],
@@ -598,9 +598,21 @@
               "schema": {
                 "$ref": "#/components/schemas/SendEmailRequest"
               },
-              "example": {
-                "type": 4,
-                "email": "user@example.com"
+              "examples": {
+                "email_login": {
+                  "summary": "邮箱登录验证码",
+                  "value": {
+                    "type": 4,
+                    "email": "user@example.com"
+                  }
+                },
+                "register": {
+                  "summary": "邮箱注册验证码",
+                  "value": {
+                    "type": 1,
+                    "email": "user@example.com"
+                  }
+                }
               }
             }
           }
@@ -612,6 +624,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiSendEmailResponse"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "发送成功",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": {
+                        "email_id": "abc123",
+                        "email": "user@example.com"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -695,7 +720,7 @@
       "post": {
         "summary": "密码登录",
         "deprecated": false,
-        "description": "使用用户名或邮箱加密码登录。成功后返回 access token，后续受保护接口应通过 Authorization: Bearer <token> 调用。",
+        "description": "使用用户名或邮箱加密码登录。成功后返回 access token，后续受保护接口应通过 Authorization: Bearer <token> 调用。\n\n调用顺序：\n1. 提交用户名或邮箱与密码。\n2. 后端校验账号、密码与风控状态。\n3. 成功后返回 access token，并写入 refresh_token Cookie。\n4. 后续受保护接口优先使用 Bearer token 调用，access token 过期后再调用刷新接口。",
         "tags": [
           "用户管理/认证"
         ],
@@ -707,9 +732,14 @@
               "schema": {
                 "$ref": "#/components/schemas/PwdLoginRequest"
               },
-              "example": {
-                "username": "admin",
-                "password": "123456"
+              "examples": {
+                "simple": {
+                  "summary": "密码登录示例",
+                  "value": {
+                    "username": "testAdmin",
+                    "password": "123456"
+                  }
+                }
               }
             }
           }
@@ -721,6 +751,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiStringDataResponse"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "登录成功",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx.yyy"
+                    }
+                  }
                 }
               }
             }
@@ -1216,7 +1256,7 @@
       "post": {
         "summary": "发布文章",
         "deprecated": false,
-        "description": "发布新文章。请求体中的 content 为正文内容，tag_ids 为已存在标签 ID 列表，cover 为封面图片地址。",
+        "description": "发布新文章。请求体中的 content 为正文内容，tag_ids 为已存在标签 ID 列表，cover 为封面图片地址。\n\n调用顺序：\n1. 前端先完成图片上传，拿到可用图片 URL。\n2. 组织标题、正文、标签、分类、封面和状态等字段。\n3. 调用本接口提交文章。\n4. 成功后再跳转到文章详情页或管理页。",
         "tags": [
           "文章管理/文章"
         ],
@@ -1227,6 +1267,24 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ArticleCreateRequest"
+              },
+              "examples": {
+                "publish_article": {
+                  "summary": "发布文章示例",
+                  "value": {
+                    "title": "测试文章",
+                    "abstract": "这是一篇用于联调的文章摘要。",
+                    "content": "# 这是一个标题\\n\\n正文内容。\\n\\n![测试图片](https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/ljZa0YMcc2u6lyAqG-ALnuhewGrY)",
+                    "category_id": 1,
+                    "tag_ids": [
+                      1,
+                      2
+                    ],
+                    "cover": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/ljZa0YMcc2u6lyAqG-ALnuhewGrY",
+                    "comments_toggle": true,
+                    "status": 2
+                  }
+                }
               }
             }
           }
@@ -1238,6 +1296,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "文章发布成功",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": {}
+                    }
+                  }
                 }
               }
             }
@@ -3873,7 +3941,7 @@
       "get": {
         "summary": "求和数据",
         "deprecated": false,
-        "description": "需要管理员权限。",
+        "description": "获取后台汇总统计数据，例如文章数、用户数、评论数等。",
         "tags": [
           "数据统计/概览"
         ],
@@ -3916,7 +3984,7 @@
       "get": {
         "summary": "增长数据",
         "deprecated": false,
-        "description": "需要管理员权限。",
+        "description": "获取增长趋势数据，可按 type 指定统计口径。",
         "tags": [
           "数据统计/趋势"
         ],
@@ -3970,7 +4038,7 @@
       "get": {
         "summary": "文章一年数据",
         "deprecated": false,
-        "description": "需要管理员权限。",
+        "description": "获取按年份聚合的文章统计数据。",
         "tags": [
           "数据统计/文章"
         ],
@@ -4451,7 +4519,7 @@
       "get": {
         "summary": "获取站点公开配置",
         "deprecated": false,
-        "description": "当前公开接口主要用于获取 site 配置。",
+        "description": "获取指定站点公开配置。路径中的 name 用于区分 site、qq、ai 等公开配置项。",
         "tags": [
           "站点配置/公开"
         ],
@@ -4492,7 +4560,7 @@
       "put": {
         "summary": "更新站点配置",
         "deprecated": false,
-        "description": "管理员按 name 更新站点配置，支持 site/email/qq/qiniu/ai。需要管理员权限。",
+        "description": "按路径中的 name 更新对应站点配置。不同 name 对应不同 JSON 结构，请按字段说明传值。",
         "tags": [
           "站点配置/公开"
         ],
@@ -4546,7 +4614,7 @@
       "get": {
         "summary": "获取站点后台配置",
         "deprecated": false,
-        "description": "管理员获取后台站点配置，支持 site/email/qq/qiniu/ai。需要管理员权限。",
+        "description": "管理员获取后台站点配置详情。路径中的 name 用于区分 site、email、qq、qiniu、ai 等配置。",
         "tags": [
           "站点配置/管理"
         ],
@@ -4594,7 +4662,7 @@
       "post": {
         "summary": "邮箱验证码登录",
         "deprecated": false,
-        "description": "先调用邮箱验证码发送接口，再使用 email_id + email_code 登录。",
+        "description": "先调用邮箱验证码发送接口，再使用 email_id 与 email_code 完成登录。成功后返回 access token。\n\n调用顺序：\n1. 先调用邮箱验证码发送接口拿到 email_id。\n2. 用户输入邮件中的验证码。\n3. 调用本接口提交 email_id 与 email_code。\n4. 成功后拿到 access token，并按常规登录态使用。",
         "tags": [
           "用户管理/认证"
         ],
@@ -4606,9 +4674,14 @@
               "schema": {
                 "$ref": "#/components/schemas/EmailVerifyRequest"
               },
-              "example": {
-                "email_id": "abc123",
-                "email_code": "123456"
+              "examples": {
+                "simple": {
+                  "summary": "邮箱验证码登录示例",
+                  "value": {
+                    "email_id": "abc123",
+                    "email_code": "123456"
+                  }
+                }
               }
             }
           }
@@ -4635,6 +4708,16 @@
                       ]
                     }
                   ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "登录成功",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx.yyy"
+                    }
+                  }
                 }
               }
             }
@@ -4646,7 +4729,7 @@
       "post": {
         "summary": "刷新登录令牌",
         "deprecated": false,
-        "description": "通过 HttpOnly refresh_token Cookie 换取新的 access token。",
+        "description": "通过 HttpOnly refresh_token Cookie 换取新的 access token。当前接口主要用于 access token 过期后的续期，不需要在 body 中再传 token。\n\n调用顺序：\n1. 前端检测 access token 失效或即将失效。\n2. 携带浏览器自动附带的 refresh_token Cookie 调用本接口。\n3. 成功后拿到新的 access token。\n4. 用新的 access token 重试原先的受保护请求。",
         "tags": [
           "用户管理/认证"
         ],
@@ -4674,6 +4757,16 @@
                     "msg",
                     "data"
                   ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "刷新成功",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new.xxx"
+                    }
+                  }
                 }
               }
             }
@@ -4770,7 +4863,7 @@
       "post": {
         "summary": "创建图片上传任务",
         "deprecated": false,
-        "description": "前端先计算 qetag/hash，再调用本接口进行预去重并获取七牛上传票据。",
+        "description": "前端先计算 qetag/hash，再调用本接口进行预去重并获取七牛上传票据。若返回 skip_upload=true，则可直接使用返回的 url。\n\n调用顺序：\n1. 前端选中图片后先计算 qetag/hash。\n2. 调用本接口提交文件名、大小、mime 和 hash。\n3. 若命中预去重，直接使用返回的 url，不再上传。\n4. 若未命中，则拿到 upload_token、object_key 等信息上传到七牛。\n5. 正式环境上传后依赖七牛 callback，再轮询上传状态接口拿结果；开发环境可直接调用 complete 接口兜底确认。",
         "tags": [
           "图片管理/上传任务"
         ],
@@ -4782,11 +4875,16 @@
               "schema": {
                 "$ref": "#/components/schemas/CreateImageUploadTaskRequest"
               },
-              "example": {
-                "file_name": "avatar.png",
-                "size": 490,
-                "mime_type": "image/png",
-                "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx"
+              "examples": {
+                "create_task": {
+                  "summary": "创建图片上传任务",
+                  "value": {
+                    "file_name": "avatar.png",
+                    "size": 490,
+                    "mime_type": "image/png",
+                    "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx"
+                  }
+                }
               }
             }
           }
@@ -4813,6 +4911,41 @@
                       ]
                     }
                   ]
+                },
+                "examples": {
+                  "skip_upload": {
+                    "summary": "命中预去重，直接复用图片",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": {
+                        "skip_upload": true,
+                        "image_id": 295954303670030336,
+                        "status": "ready",
+                        "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                        "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx"
+                      }
+                    }
+                  },
+                  "need_upload": {
+                    "summary": "需要继续上传到七牛",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": {
+                        "skip_upload": false,
+                        "upload_id": 295621418450685952,
+                        "provider": "qiniu",
+                        "bucket": "myblogx",
+                        "object_key": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                        "upload_token": "upload-token",
+                        "region": "z2",
+                        "expire_at": "2026-03-28T10:00:00+08:00",
+                        "max_size": 5242880,
+                        "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -4829,7 +4962,7 @@
       "post": {
         "summary": "手动完成图片上传任务",
         "deprecated": false,
-        "description": "主要用于开发调试或七牛回调不可达时的兜底确认。",
+        "description": "手动完成图片上传任务。主要用于开发调试，或七牛回调不可达时的兜底确认。\n\n调用顺序：\n1. 前端创建上传任务并完成七牛直传。\n2. 如果当前环境没有走 callback，可调用本接口。\n3. 后端会校验对象、确认图片信息并写入正式图片记录。\n4. 成功后直接从响应里读取图片 url。",
         "tags": [
           "图片管理/上传任务"
         ],
@@ -4841,9 +4974,14 @@
               "schema": {
                 "$ref": "#/components/schemas/CompleteImageUploadTaskRequest"
               },
-              "example": {
-                "upload_id": 295621418450685952,
-                "object_key": "myblogx/images/20260327/Fm8TSAox63x45bd-hrHs87ZQPSxx"
+              "examples": {
+                "manual_complete": {
+                  "summary": "开发环境手动完成上传",
+                  "value": {
+                    "upload_id": 295621418450685952,
+                    "object_key": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx"
+                  }
+                }
               }
             }
           }
@@ -4870,6 +5008,21 @@
                       ]
                     }
                   ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "手动完成上传成功",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": {
+                        "upload_id": 295621418450685952,
+                        "image_id": 295954303670030336,
+                        "status": "ready",
+                        "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -4886,7 +5039,7 @@
       "get": {
         "summary": "查询上传任务状态",
         "deprecated": false,
-        "description": "前端轮询 callback 结果时使用。",
+        "description": "查询上传任务状态。正式环境主要配合七牛 callback 轮询最终结果，状态变为 ready 后即可使用返回的 url。\n\n调用顺序：\n1. 前端调用创建上传任务接口并完成文件直传。\n2. 正式环境等待七牛回调触发后端确认。\n3. 前端周期性轮询本接口。\n4. 当 status 变为 ready 时，读取 url 作为最终图片地址；若为 failed，则根据 error_msg 提示用户。",
         "tags": [
           "图片管理/上传任务"
         ],
@@ -4917,6 +5070,34 @@
                       ]
                     }
                   ]
+                },
+                "examples": {
+                  "pending": {
+                    "summary": "等待七牛回调完成",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": {
+                        "upload_id": 295621418450685952,
+                        "status": "pending",
+                        "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx"
+                      }
+                    }
+                  },
+                  "ready": {
+                    "summary": "图片已可用",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": {
+                        "upload_id": 295621418450685952,
+                        "image_id": 295954303670030336,
+                        "status": "ready",
+                        "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                        "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -4933,7 +5114,7 @@
       "post": {
         "summary": "七牛上传完成回调",
         "deprecated": false,
-        "description": "七牛云上传完成后回调，服务端完成最终确认。",
+        "description": "七牛上传完成后回调本接口，服务端据此完成图片最终确认。通常正式环境主要依赖这条链路。\n\n调用顺序：\n1. 前端先调用创建上传任务接口并完成七牛直传。\n2. 七牛上传成功后回调本接口。\n3. 后端完成对象校验、图片确认和入库。\n4. 前端再通过上传状态查询接口轮询 ready 结果。",
         "tags": [
           "图片管理/回调"
         ],
@@ -4962,11 +5143,16 @@
                   "key"
                 ]
               },
-              "example": {
-                "key": "myblogx/images/20260327/Fm8TSAox63x45bd-hrHs87ZQPSxx",
-                "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx",
-                "bucket": "myblogx",
-                "fsize": 490
+              "examples": {
+                "callback": {
+                  "summary": "七牛上传完成回调示例",
+                  "value": {
+                    "key": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                    "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                    "bucket": "myblogx",
+                    "fsize": 490
+                  }
+                }
               }
             }
           }
@@ -5011,6 +5197,21 @@
                     "msg",
                     "data"
                   ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "七牛上传回调成功",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": {
+                        "upload_id": 295621418450685952,
+                        "image_id": 295954303670030336,
+                        "status": "ready",
+                        "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -5022,7 +5223,7 @@
       "post": {
         "summary": "七牛内容审核回调",
         "deprecated": false,
-        "description": "七牛审核完成后回调，更新图片状态为 ready/reviewing/blocked。",
+        "description": "七牛内容审核完成后回调本接口，服务端会根据审核建议更新图片状态。\n\n调用顺序：\n1. 图片上传并确认完成后，七牛异步进行内容审核。\n2. 审核结果通过本接口回调到后端。\n3. 后端把图片状态更新为 ready、reviewing 或 blocked。\n4. 后续业务可根据图片状态决定是否允许继续展示或引用。",
         "tags": [
           "图片管理/回调"
         ],
@@ -5034,29 +5235,34 @@
               "schema": {
                 "$ref": "#/components/schemas/QiniuAuditCallbackRequest"
               },
-              "example": {
-                "id": "z0.5b8911ea38b9f324a5734c32",
-                "pipeline": "0.default",
-                "code": 0,
-                "desc": "The fop was completed successfully",
-                "reqid": "mH0AAOWK5yLQ708V",
-                "inputBucket": "netback",
-                "inputKey": "Image-2016-09-08-00-50-1632.jpg",
-                "items": [
-                  {
-                    "cmd": "image-censor/v2/...",
+              "examples": {
+                "audit_block": {
+                  "summary": "七牛审核回调示例",
+                  "value": {
+                    "id": "z0.5b8911ea38b9f324a5734c32",
+                    "pipeline": "0.default",
                     "code": 0,
                     "desc": "The fop was completed successfully",
-                    "result": {
-                      "disable": true,
-                      "result": {
-                        "code": 200,
-                        "message": "OK",
-                        "suggestion": "block"
+                    "reqid": "mH0AAOWK5yLQ708V",
+                    "inputBucket": "myblogx",
+                    "inputKey": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                    "items": [
+                      {
+                        "cmd": "image-censor/v2/pulp/terror/politician",
+                        "code": 0,
+                        "desc": "The fop was completed successfully",
+                        "result": {
+                          "disable": true,
+                          "result": {
+                            "code": 200,
+                            "message": "OK",
+                            "suggestion": "block"
+                          }
+                        }
                       }
-                    }
+                    ]
                   }
-                ]
+                }
               }
             }
           }
@@ -5068,6 +5274,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                },
+                "examples": {
+                  "success": {
+                    "summary": "审核结果已接收",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": {}
+                    }
+                  }
                 }
               }
             }
@@ -5123,7 +5339,7 @@
       "get": {
         "summary": "聊天 WebSocket 连接",
         "deprecated": false,
-        "description": "浏览器使用 ws ticket 建立连接。",
+        "description": "使用 ticket 建立聊天 WebSocket 连接。ticket 需先通过已登录接口换取。",
         "tags": [
           "私信模块/WebSocket"
         ],
@@ -5149,7 +5365,7 @@
       "get": {
         "summary": "图片列表",
         "deprecated": false,
-        "description": "管理员分页查看图片资源。需要管理员权限。",
+        "description": "获取图片资源列表，支持按分页参数分页查询。",
         "tags": [
           "图片管理/资源"
         ],
@@ -5210,7 +5426,7 @@
       "delete": {
         "summary": "删除图片",
         "deprecated": false,
-        "description": "管理员删除图片，同时删除七牛对象、图片记录和图片引用。需要管理员权限。",
+        "description": "删除图片资源。接口会同步删除对象存储文件、图片记录和图片引用记录。",
         "tags": [
           "图片管理/资源"
         ],

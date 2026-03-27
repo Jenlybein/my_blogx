@@ -23,13 +23,25 @@ def auth_suffix(op: dict) -> str:
 
 
 OP_OVERRIDES = {
-    ("POST", "/api/users/login"): "使用用户名或邮箱加密码登录。成功后返回 access token，后续受保护接口应通过 Authorization: Bearer <token> 调用。",
-    ("POST", "/api/users/refresh"): "通过 HttpOnly refresh_token Cookie 换取新的 access token。当前接口主要用于 access token 过期后的续期，不需要在 body 中再传 token。",
+    (
+        "POST",
+        "/api/users/login",
+    ): "使用用户名或邮箱加密码登录。成功后返回 access token，后续受保护接口应通过 Authorization: Bearer <token> 调用。\n\n调用顺序：\n1. 提交用户名或邮箱与密码。\n2. 后端校验账号、密码与风控状态。\n3. 成功后返回 access token，并写入 refresh_token Cookie。\n4. 后续受保护接口优先使用 Bearer token 调用，access token 过期后再调用刷新接口。",
+    (
+        "POST",
+        "/api/users/refresh",
+    ): "通过 HttpOnly refresh_token Cookie 换取新的 access token。当前接口主要用于 access token 过期后的续期，不需要在 body 中再传 token。\n\n调用顺序：\n1. 前端检测 access token 失效或即将失效。\n2. 携带浏览器自动附带的 refresh_token Cookie 调用本接口。\n3. 成功后拿到新的 access token。\n4. 用新的 access token 重试原先的受保护请求。",
     ("POST", "/api/users/logout"): "退出当前设备登录态。通常在前端用户主动退出时调用，会清理当前会话对应的登录状态。",
     ("POST", "/api/users/logout/all"): "退出当前账号在所有设备上的登录态。适合修改密码后或用户希望强制全端下线时调用。",
-    ("POST", "/api/users/email/verify"): "发送邮箱验证码。不同 type 表示不同业务场景，调用成功后会返回 email_id，后续校验验证码时需要携带该值。",
+    (
+        "POST",
+        "/api/users/email/verify",
+    ): "发送邮箱验证码。不同 type 表示不同业务场景，调用成功后会返回 email_id，后续校验验证码时需要携带该值。\n\n调用顺序：\n1. 前端提交邮箱和验证码业务类型。\n2. 后端发送邮件并返回 email_id。\n3. 前端提示用户输入验证码。\n4. 后续在注册、登录、绑定邮箱或找回密码接口中提交 email_id 与 email_code。",
     ("POST", "/api/users/email/register"): "使用邮箱验证码完成注册。应先调用邮箱验证码发送接口拿到 email_id，再提交验证码与密码。",
-    ("POST", "/api/users/email/login"): "先调用邮箱验证码发送接口，再使用 email_id 与 email_code 完成登录。成功后返回 access token。",
+    (
+        "POST",
+        "/api/users/email/login",
+    ): "先调用邮箱验证码发送接口，再使用 email_id 与 email_code 完成登录。成功后返回 access token。\n\n调用顺序：\n1. 先调用邮箱验证码发送接口拿到 email_id。\n2. 用户输入邮件中的验证码。\n3. 调用本接口提交 email_id 与 email_code。\n4. 成功后拿到 access token，并按常规登录态使用。",
     ("POST", "/api/users/qq"): "使用 QQ 登录授权 code 换取系统登录态。成功后返回 access token，并写入 refresh_token Cookie。",
     ("GET", "/api/users/detail"): "获取当前登录用户自己的完整资料信息，适合个人中心初始化时调用。",
     ("GET", "/api/users/base"): "根据用户 ID 获取用户页公开基础信息，用于个人主页、作者卡片等展示场景。",
@@ -41,7 +53,10 @@ OP_OVERRIDES = {
     ("GET", "/api/site/qq_url"): "获取 QQ 登录跳转地址。前端在发起 QQ 授权登录前应先调用该接口。",
     ("GET", "/api/site/ai_info"): "获取站点 AI 助手公开配置，例如昵称、头像、是否启用等，用于前端初始化展示。",
     ("GET", "/api/articles"): "获取文章列表。可结合 type、status、user_id、分页与排序参数筛选结果。",
-    ("POST", "/api/articles"): "发布新文章。请求体中的 content 为正文内容，tag_ids 为已存在标签 ID 列表，cover 为封面图片地址。",
+    (
+        "POST",
+        "/api/articles",
+    ): "发布新文章。请求体中的 content 为正文内容，tag_ids 为已存在标签 ID 列表，cover 为封面图片地址。\n\n调用顺序：\n1. 前端先完成图片上传，拿到可用图片 URL。\n2. 组织标题、正文、标签、分类、封面和状态等字段。\n3. 调用本接口提交文章。\n4. 成功后再跳转到文章详情页或管理页。",
     ("PUT", "/api/articles/{id}"): "更新指定文章。通常用于文章编辑页保存，未提交的字段会按接口实现使用新值覆盖旧值。",
     ("GET", "/api/articles/{id}"): "获取指定文章详情。适合文章详情页初始化，也会返回文章统计与作者信息。",
     ("DELETE", "/api/articles/{id}"): "删除当前用户自己的文章。删除后文章不再对外展示。",
@@ -98,11 +113,26 @@ OP_OVERRIDES = {
     ("GET", "/api/imagecaptcha"): "获取图片验证码，用于登录、注册或其他需要图形校验的场景。",
     ("GET", "/api/images"): "获取图片资源列表，支持按分页参数分页查询。",
     ("DELETE", "/api/images"): "删除图片资源。接口会同步删除对象存储文件、图片记录和图片引用记录。",
-    ("POST", "/api/images/upload-tasks"): "前端先计算 qetag/hash，再调用本接口进行预去重并获取七牛上传票据。若返回 skip_upload=true，则可直接使用返回的 url。",
-    ("GET", "/api/images/upload-tasks/{id}"): "查询上传任务状态。正式环境主要配合七牛 callback 轮询最终结果，状态变为 ready 后即可使用返回的 url。",
-    ("POST", "/api/images/upload-tasks/complete"): "手动完成图片上传任务。主要用于开发调试，或七牛回调不可达时的兜底确认。",
-    ("POST", "/api/images/qiniu/callback"): "七牛上传完成后回调本接口，服务端据此完成图片最终确认。通常正式环境主要依赖这条链路。",
-    ("POST", "/api/images/qiniu/audit/callback"): "七牛内容审核完成后回调本接口，服务端会根据审核建议更新图片状态。",
+    (
+        "POST",
+        "/api/images/upload-tasks",
+    ): "前端先计算 qetag/hash，再调用本接口进行预去重并获取七牛上传票据。若返回 skip_upload=true，则可直接使用返回的 url。\n\n调用顺序：\n1. 前端选中图片后先计算 qetag/hash。\n2. 调用本接口提交文件名、大小、mime 和 hash。\n3. 若命中预去重，直接使用返回的 url，不再上传。\n4. 若未命中，则拿到 upload_token、object_key 等信息上传到七牛。\n5. 正式环境上传后依赖七牛 callback，再轮询上传状态接口拿结果；开发环境可直接调用 complete 接口兜底确认。",
+    (
+        "GET",
+        "/api/images/upload-tasks/{id}",
+    ): "查询上传任务状态。正式环境主要配合七牛 callback 轮询最终结果，状态变为 ready 后即可使用返回的 url。\n\n调用顺序：\n1. 前端调用创建上传任务接口并完成文件直传。\n2. 正式环境等待七牛回调触发后端确认。\n3. 前端周期性轮询本接口。\n4. 当 status 变为 ready 时，读取 url 作为最终图片地址；若为 failed，则根据 error_msg 提示用户。",
+    (
+        "POST",
+        "/api/images/upload-tasks/complete",
+    ): "手动完成图片上传任务。主要用于开发调试，或七牛回调不可达时的兜底确认。\n\n调用顺序：\n1. 前端创建上传任务并完成七牛直传。\n2. 如果当前环境没有走 callback，可调用本接口。\n3. 后端会校验对象、确认图片信息并写入正式图片记录。\n4. 成功后直接从响应里读取图片 url。",
+    (
+        "POST",
+        "/api/images/qiniu/callback",
+    ): "七牛上传完成后回调本接口，服务端据此完成图片最终确认。通常正式环境主要依赖这条链路。\n\n调用顺序：\n1. 前端先调用创建上传任务接口并完成七牛直传。\n2. 七牛上传成功后回调本接口。\n3. 后端完成对象校验、图片确认和入库。\n4. 前端再通过上传状态查询接口轮询 ready 结果。",
+    (
+        "POST",
+        "/api/images/qiniu/audit/callback",
+    ): "七牛内容审核完成后回调本接口，服务端会根据审核建议更新图片状态。\n\n调用顺序：\n1. 图片上传并确认完成后，七牛异步进行内容审核。\n2. 审核结果通过本接口回调到后端。\n3. 后端把图片状态更新为 ready、reviewing 或 blocked。\n4. 后续业务可根据图片状态决定是否允许继续展示或引用。",
     ("GET", "/api/site/{name}"): "获取指定站点公开配置。路径中的 name 用于区分 site、qq、ai 等公开配置项。",
     ("PUT", "/api/site/{name}"): "按路径中的 name 更新对应站点配置。不同 name 对应不同 JSON 结构，请按字段说明传值。",
     ("GET", "/api/site/admin/{name}"): "管理员获取后台站点配置详情。路径中的 name 用于区分 site、email、qq、qiniu、ai 等配置。",
@@ -284,15 +314,252 @@ SCHEMA_OVERRIDES = {
 }
 
 
+REQUEST_EXAMPLES = {
+    ("POST", "/api/users/login"): {
+        "simple": {
+            "summary": "密码登录示例",
+            "value": {"username": "testAdmin", "password": "123456"},
+        }
+    },
+    ("POST", "/api/users/email/verify"): {
+        "email_login": {
+            "summary": "邮箱登录验证码",
+            "value": {"type": 4, "email": "user@example.com"},
+        },
+        "register": {
+            "summary": "邮箱注册验证码",
+            "value": {"type": 1, "email": "user@example.com"},
+        },
+    },
+    ("POST", "/api/users/email/login"): {
+        "simple": {
+            "summary": "邮箱验证码登录示例",
+            "value": {"email_id": "abc123", "email_code": "123456"},
+        }
+    },
+    ("POST", "/api/images/upload-tasks"): {
+        "create_task": {
+            "summary": "创建图片上传任务",
+            "value": {
+                "file_name": "avatar.png",
+                "size": 490,
+                "mime_type": "image/png",
+                "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx",
+            },
+        }
+    },
+    ("POST", "/api/images/upload-tasks/complete"): {
+        "manual_complete": {
+            "summary": "开发环境手动完成上传",
+            "value": {
+                "upload_id": 295621418450685952,
+                "object_key": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+            },
+        }
+    },
+    ("POST", "/api/images/qiniu/callback"): {
+        "callback": {
+            "summary": "七牛上传完成回调示例",
+            "value": {
+                "key": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                "bucket": "myblogx",
+                "fsize": 490,
+            },
+        }
+    },
+    ("POST", "/api/images/qiniu/audit/callback"): {
+        "audit_block": {
+            "summary": "七牛审核回调示例",
+            "value": {
+                "id": "z0.5b8911ea38b9f324a5734c32",
+                "pipeline": "0.default",
+                "code": 0,
+                "desc": "The fop was completed successfully",
+                "reqid": "mH0AAOWK5yLQ708V",
+                "inputBucket": "myblogx",
+                "inputKey": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                "items": [
+                    {
+                        "cmd": "image-censor/v2/pulp/terror/politician",
+                        "code": 0,
+                        "desc": "The fop was completed successfully",
+                        "result": {
+                            "disable": True,
+                            "result": {
+                                "code": 200,
+                                "message": "OK",
+                                "suggestion": "block",
+                            },
+                        },
+                    }
+                ],
+            },
+        }
+    },
+    ("POST", "/api/articles"): {
+        "publish_article": {
+            "summary": "发布文章示例",
+            "value": {
+                "title": "测试文章",
+                "abstract": "这是一篇用于联调的文章摘要。",
+                "content": "# 这是一个标题\\n\\n正文内容。\\n\\n![测试图片](https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/ljZa0YMcc2u6lyAqG-ALnuhewGrY)",
+                "category_id": 1,
+                "tag_ids": [1, 2],
+                "cover": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/ljZa0YMcc2u6lyAqG-ALnuhewGrY",
+                "comments_toggle": True,
+                "status": 2,
+            },
+        }
+    },
+}
+
+
+RESPONSE_EXAMPLES = {
+    ("POST", "/api/users/login", "200"): {
+        "success": {
+            "summary": "登录成功",
+            "value": {"code": 0, "msg": "成功", "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx.yyy"},
+        }
+    },
+    ("POST", "/api/users/refresh", "200"): {
+        "success": {
+            "summary": "刷新成功",
+            "value": {"code": 0, "msg": "成功", "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new.xxx"},
+        }
+    },
+    ("POST", "/api/users/email/verify", "200"): {
+        "success": {
+            "summary": "发送成功",
+            "value": {"code": 0, "msg": "成功", "data": {"email_id": "abc123", "email": "user@example.com"}},
+        }
+    },
+    ("POST", "/api/users/email/login", "200"): {
+        "success": {
+            "summary": "登录成功",
+            "value": {"code": 0, "msg": "成功", "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx.yyy"},
+        }
+    },
+    ("POST", "/api/images/upload-tasks", "200"): {
+        "skip_upload": {
+            "summary": "命中预去重，直接复用图片",
+            "value": {
+                "code": 0,
+                "msg": "成功",
+                "data": {
+                    "skip_upload": True,
+                    "image_id": 295954303670030336,
+                    "status": "ready",
+                    "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                    "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                },
+            },
+        },
+        "need_upload": {
+            "summary": "需要继续上传到七牛",
+            "value": {
+                "code": 0,
+                "msg": "成功",
+                "data": {
+                    "skip_upload": False,
+                    "upload_id": 295621418450685952,
+                    "provider": "qiniu",
+                    "bucket": "myblogx",
+                    "object_key": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                    "upload_token": "upload-token",
+                    "region": "z2",
+                    "expire_at": "2026-03-28T10:00:00+08:00",
+                    "max_size": 5242880,
+                    "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                },
+            },
+        },
+    },
+    ("GET", "/api/images/upload-tasks/{id}", "200"): {
+        "pending": {
+            "summary": "等待七牛回调完成",
+            "value": {
+                "code": 0,
+                "msg": "成功",
+                "data": {
+                    "upload_id": 295621418450685952,
+                    "status": "pending",
+                    "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                },
+            },
+        },
+        "ready": {
+            "summary": "图片已可用",
+            "value": {
+                "code": 0,
+                "msg": "成功",
+                "data": {
+                    "upload_id": 295621418450685952,
+                    "image_id": 295954303670030336,
+                    "status": "ready",
+                    "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                    "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                },
+            },
+        },
+    },
+    ("POST", "/api/images/upload-tasks/complete", "200"): {
+        "success": {
+            "summary": "手动完成上传成功",
+            "value": {
+                "code": 0,
+                "msg": "成功",
+                "data": {
+                    "upload_id": 295621418450685952,
+                    "image_id": 295954303670030336,
+                    "status": "ready",
+                    "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                },
+            },
+        }
+    },
+    ("POST", "/api/images/qiniu/callback", "200"): {
+        "success": {
+            "summary": "七牛上传回调成功",
+            "value": {
+                "code": 0,
+                "msg": "成功",
+                "data": {
+                    "upload_id": 295621418450685952,
+                    "image_id": 295954303670030336,
+                    "status": "ready",
+                    "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
+                },
+            },
+        }
+    },
+    ("POST", "/api/images/qiniu/audit/callback", "200"): {
+        "success": {
+            "summary": "审核结果已接收",
+            "value": {"code": 0, "msg": "成功", "data": {}},
+        }
+    },
+    ("POST", "/api/articles", "200"): {
+        "success": {
+            "summary": "文章发布成功",
+            "value": {"code": 0, "msg": "成功", "data": {}},
+        }
+    },
+}
+
+
 def apply_operation_descriptions(doc: dict) -> None:
     for path, methods in doc["paths"].items():
         for method, op in methods.items():
             if method.startswith("x-"):
                 continue
+            key = (method.upper(), path)
+            if key in OP_OVERRIDES:
+                op["description"] = OP_OVERRIDES[key]
+                continue
             if str(op.get("description") or "").strip():
                 continue
-            key = (method.upper(), path)
-            op["description"] = OP_OVERRIDES.get(key) or generic_desc(method.upper(), op.get("summary", path), op)
+            op["description"] = generic_desc(method.upper(), op.get("summary", path), op)
 
 
 def apply_parameter_descriptions(doc: dict) -> None:
@@ -349,6 +616,23 @@ def main() -> None:
     apply_operation_descriptions(data)
     apply_parameter_descriptions(data)
     apply_schema_property_descriptions(data)
+    for (method, path), examples in REQUEST_EXAMPLES.items():
+        op = data["paths"].get(path, {}).get(method.lower())
+        if not op:
+            continue
+        content = op.get("requestBody", {}).get("content", {}).get("application/json")
+        if not content:
+            continue
+        content.pop("example", None)
+        content["examples"] = examples
+    for (method, path, status), examples in RESPONSE_EXAMPLES.items():
+        op = data["paths"].get(path, {}).get(method.lower())
+        if not op:
+            continue
+        content = op.get("responses", {}).get(status, {}).get("content", {}).get("application/json")
+        if not content:
+            continue
+        content["examples"] = examples
     OPENAPI.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
