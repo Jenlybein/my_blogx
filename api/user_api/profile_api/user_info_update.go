@@ -17,15 +17,15 @@ import (
 )
 
 type UserInfoUpdateRequest struct {
-	Username            *string `json:"username"`
-	Nickname            *string `json:"nickname"`
-	Avatar              *string `json:"avatar"`
-	Abstract            *string `json:"abstract"`
+	Username            *string     `json:"username"`
+	Nickname            *string     `json:"nickname"`
+	Avatar              *string     `json:"avatar"`
+	Abstract            *string     `json:"abstract"`
 	LikeTags            *[]ctype.ID `json:"like_tags"`
-	FavoritesVisibility *bool   `json:"favorites_visibility"`
-	FollowVisibility    *bool   `json:"followers_visibility"`
-	FansVisibility      *bool   `json:"fans_visibility"`
-	HomeStyleID         *ctype.ID `json:"home_style_id"`
+	FavoritesVisibility *bool       `json:"favorites_visibility"`
+	FollowVisibility    *bool       `json:"followers_visibility"`
+	FansVisibility      *bool       `json:"fans_visibility"`
+	HomeStyleID         *ctype.ID   `json:"home_style_id"`
 }
 
 func (ProfileApi) UserInfoUpdateView(c *gin.Context) {

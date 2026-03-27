@@ -67,6 +67,7 @@ func setupArticleEnv(t *testing.T) *models.UserModel {
 		&models.UserArticleFavorModel{},
 		&models.UserTopArticleModel{},
 		&models.UserArticleViewHistoryModel{},
+		&models.ImageRefModel{},
 		&models.CommentModel{},
 		&models.ArticleMessageModel{},
 	)

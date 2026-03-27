@@ -21,12 +21,13 @@ func (FavoriteApi) FavoriteCreateUpdateView(c *gin.Context) {
 	// 创建
 	if cr.ID == 0 {
 		// 收藏夹创建改为直接创建新记录，不再恢复同名软删数据。
-		if err := global.DB.Create(&models.FavoriteModel{
+		favorite := models.FavoriteModel{
 			UserID:   claims.UserID,
 			Title:    cr.Title,
 			Cover:    cr.Cover,
 			Abstract: cr.Abstract,
-		}).Error; err != nil {
+		}
+		if err := global.DB.Create(&favorite).Error; err != nil {
 			if errors.Is(err, gorm.ErrDuplicatedKey) {
 				res.FailWithMsg("收藏夹名称重复", c)
 				return

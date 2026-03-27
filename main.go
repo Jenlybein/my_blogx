@@ -30,6 +30,7 @@ func main() {
 	flags.Run(flag, global.DB)
 
 	core.InitMySQLES()
+	core.InitImageRefRiver()
 
 	// 定时任务
 	cron_service.Cron()

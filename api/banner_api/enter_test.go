@@ -30,7 +30,7 @@ func readCode(t *testing.T, w *httptest.ResponseRecorder) int {
 }
 
 func TestBannerCreateListUpdateRemove(t *testing.T) {
-	db := testutil.SetupSQLite(t, &models.BannerModel{})
+	db := testutil.SetupSQLite(t, &models.BannerModel{}, &models.ImageRefModel{})
 
 	api := banner_api.BannerApi{}
 

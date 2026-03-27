@@ -73,7 +73,10 @@ services:
       blogx_network:
         ipv4_address: 10.2.0.3
   es:
-    image: "elasticsearch:7.12.0"
+    build:
+      context: ./es
+      dockerfile: Dockerfile
+    image: "myblogx-elasticsearch:7.12.0"
     container_name: es
     restart: unless-stopped
     privileged: true
@@ -91,10 +94,8 @@ services:
       ELASTIC_PASSWORD: "REDACTED_SHARED_PASSWORD" # elastic用户的初始密码
     ports:
       - 9200:9200
-    entrypoint: ["/bin/sh", "/start.sh"]
     volumes:
       - ./es/data:/usr/share/elasticsearch/data
-      - ./es/start.sh:/start.sh:ro
     healthcheck:
       test:
         [

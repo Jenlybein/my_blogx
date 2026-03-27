@@ -67,19 +67,6 @@ QQ登录 - https://video.fengfengzhidao.com/play/17/3391
 
 
 写个脚本，定期同步数据库与七牛云中图片结果，清除未记载在数据库的图片
-判断图片是否被使用是要增加一张引用表
-出现以下情况时，就建立引用数据： 
-- 每次文章保存时，解析 Markdown 里的图片 URL
-- 用户头像、文章封面、Banner、收藏夹封面
-参考的结构，非最终结果：
-type ImageRefModel struct {
-    ID         ctype.ID
-    ImageID    ctype.ID
-    RefType  image_ref_enum.RefType // article, user, banner, favorite
-    OwnerID    ctype.ID
-    Field      image_ref_enum.RefField // article_content, banner, favorite_cover, , user_avatar, article_cover
-    CreatedAt  time.Time
-}
 
 
-七牛云启用内容审核，增加一个callback接口
+检测一下还有没有上传图片系统整体还有没有其他性能问题

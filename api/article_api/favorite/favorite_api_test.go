@@ -43,6 +43,7 @@ func setupFavoriteEnv(t *testing.T) *models.UserModel {
 		&models.FavoriteModel{},
 		&models.UserArticleFavorModel{},
 		&models.ArticleModel{},
+		&models.ImageRefModel{},
 	)
 	global.Config = &conf.Config{
 		Jwt: conf.Jwt{

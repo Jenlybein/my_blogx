@@ -22,6 +22,7 @@ func FlagDB(db *gorm.DB) {
 		&models.UserArticleViewHistoryModel{},
 		&models.UserTopArticleModel{},
 		&models.ImageModel{},
+		&models.ImageRefModel{},
 		&models.CommentModel{},
 		&models.LogModel{},
 		&models.BannerModel{},

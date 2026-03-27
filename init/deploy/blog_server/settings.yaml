@@ -85,6 +85,18 @@ river:
   skip_master_data: true
   bulk_size: 128
   flush_bulk_time: 200
+image_ref_river:
+  enabled: true
+  server_id: 1002
+  flavor: mysql
+  schema: blogx
+  mysql:
+    addr: ******_addr1:******_port2
+    user: admin
+    password: ******_password1
+  charset: "utf8mb4"
+  mysqldump: "/usr/local/bin/mariadb-dump-wrapper"
+  skip_master_data: true
 upload:
   size: 3
   whitelist:

@@ -6,10 +6,13 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
+	"myblogx/service/image_ref_river_service"
 	"myblogx/service/image_service"
 	"myblogx/service/log_service"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func (ImageApi) ImageRemoveView(c *gin.Context) {
@@ -38,7 +41,16 @@ func (ImageApi) ImageRemoveView(c *gin.Context) {
 		}
 	}
 
-	if err := global.DB.Unscoped().Delete(&list).Error; err != nil {
+	imageIDs := make([]ctype.ID, 0, len(list))
+	for _, item := range list {
+		imageIDs = append(imageIDs, item.ID)
+	}
+	if err := global.DB.Transaction(func(tx *gorm.DB) error {
+		if err := image_ref_river_service.DeleteImageRefsByImageIDs(tx, imageIDs); err != nil {
+			return err
+		}
+		return tx.Unscoped().Delete(&list).Error
+	}); err != nil {
 		res.FailWithError(err, c)
 		return
 	}

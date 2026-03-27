@@ -49,7 +49,7 @@ func issueClaims(userID ctype.ID) *jwts.MyClaims {
 }
 
 func TestImageListView(t *testing.T) {
-	db := testutil.SetupSQLite(t, &models.ImageModel{})
+	db := testutil.SetupSQLite(t, &models.ImageModel{}, &models.ImageRefModel{})
 
 	image := models.ImageModel{
 		UserID:    1,

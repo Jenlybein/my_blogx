@@ -22,12 +22,12 @@ type BannerCreateRequest struct {
 func (BannerApi) BannerCreateView(c *gin.Context) {
 	cr := middleware.GetBindJson[BannerCreateRequest](c)
 
-	// 创建轮播图
-	if err := global.DB.Create(&models.BannerModel{
+	model := models.BannerModel{
 		Cover: cr.Cover,
 		Href:  cr.Href,
 		Show:  cr.Show,
-	}).Error; err != nil {
+	}
+	if err := global.DB.Create(&model).Error; err != nil {
 		res.FailWithError(err, c)
 		return
 	}
