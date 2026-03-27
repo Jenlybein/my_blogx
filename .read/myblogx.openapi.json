@@ -123,7 +123,7 @@
       "get": {
         "summary": "站点信息：QQ",
         "deprecated": false,
-        "description": "",
+        "description": "获取 QQ 登录跳转地址。前端在发起 QQ 授权登录前应先调用该接口。",
         "tags": [
           "站点配置/公开"
         ],
@@ -146,7 +146,7 @@
       "get": {
         "summary": "站点信息：AI",
         "deprecated": false,
-        "description": "",
+        "description": "获取站点 AI 助手公开配置，例如昵称、头像、是否启用等，用于前端初始化展示。",
         "tags": [
           "站点配置/公开"
         ],
@@ -200,42 +200,48 @@
             "in": "query",
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "日志类型筛选值。"
           },
           {
             "name": "level",
             "in": "query",
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "日志级别筛选值。"
           },
           {
             "name": "user_id",
             "in": "query",
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "目标用户 ID，用于筛选或指定用户。"
           },
           {
             "name": "ip",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "IP 地址筛选值。"
           },
           {
             "name": "login_status",
             "in": "query",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "登录结果状态筛选值。"
           },
           {
             "name": "service_name",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "服务名筛选值。"
           }
         ],
         "responses": {
@@ -374,7 +380,7 @@
       "get": {
         "summary": "轮播图列表",
         "deprecated": false,
-        "description": "",
+        "description": "轮播图列表。可结合 query 参数进行筛选，并在提供分页参数时按页返回结果。",
         "tags": [
           "轮播管理/公开"
         ],
@@ -484,7 +490,7 @@
       "get": {
         "summary": "获取图片验证码",
         "deprecated": false,
-        "description": "",
+        "description": "获取图片验证码，用于登录、注册或其他需要图形校验的场景。",
         "tags": [
           "验证码"
         ],
@@ -580,7 +586,7 @@
       "post": {
         "summary": "邮件获取",
         "deprecated": false,
-        "description": "",
+        "description": "发送邮箱验证码。不同 type 表示不同业务场景，调用成功后会返回 email_id，后续校验验证码时需要携带该值。",
         "tags": [
           "用户管理/认证"
         ],
@@ -617,7 +623,7 @@
       "post": {
         "summary": "邮箱注册",
         "deprecated": false,
-        "description": "",
+        "description": "使用邮箱验证码完成注册。应先调用邮箱验证码发送接口拿到 email_id，再提交验证码与密码。",
         "tags": [
           "用户管理/认证"
         ],
@@ -653,7 +659,7 @@
       "post": {
         "summary": "qq登录",
         "deprecated": false,
-        "description": "",
+        "description": "使用 QQ 登录授权 code 换取系统登录态。成功后返回 access token，并写入 refresh_token Cookie。",
         "tags": [
           "用户管理/认证"
         ],
@@ -689,7 +695,7 @@
       "post": {
         "summary": "密码登录",
         "deprecated": false,
-        "description": "",
+        "description": "使用用户名或邮箱加密码登录。成功后返回 access token，后续受保护接口应通过 Authorization: Bearer <token> 调用。",
         "tags": [
           "用户管理/认证"
         ],
@@ -726,7 +732,7 @@
       "get": {
         "summary": "用户自己的详情",
         "deprecated": false,
-        "description": "",
+        "description": "获取当前登录用户自己的完整资料信息，适合个人中心初始化时调用。",
         "tags": [
           "用户管理/资料"
         ],
@@ -769,7 +775,7 @@
       "get": {
         "summary": "用户页基本信息",
         "deprecated": false,
-        "description": "",
+        "description": "根据用户 ID 获取用户页公开基础信息，用于个人主页、作者卡片等展示场景。",
         "tags": [
           "用户管理/资料"
         ],
@@ -777,7 +783,7 @@
           {
             "name": "id",
             "in": "query",
-            "description": "",
+            "description": "目标资源的主键 ID，用于定位具体记录。",
             "required": false,
             "example": "2",
             "schema": {
@@ -823,7 +829,7 @@
       "get": {
         "summary": "用户登录ip列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取指定用户的登录记录列表，可按用户或记录类型筛选。",
         "tags": [
           "用户管理/登录日志"
         ],
@@ -831,7 +837,7 @@
           {
             "name": "user_id",
             "in": "query",
-            "description": "",
+            "description": "目标用户 ID，用于筛选或指定用户。",
             "required": false,
             "example": "",
             "schema": {
@@ -841,7 +847,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": "2",
             "schema": {
@@ -902,7 +908,7 @@
       "put": {
         "summary": "修改密码-邮箱",
         "deprecated": false,
-        "description": "",
+        "description": "已登录用户通过邮箱验证码修改密码。成功后会使旧登录态失效。",
         "tags": [
           "用户管理/认证"
         ],
@@ -944,7 +950,7 @@
       "put": {
         "summary": "忘记密码-邮箱",
         "deprecated": false,
-        "description": "",
+        "description": "未登录或忘记密码场景下，通过邮箱验证码重置密码。成功后旧登录态会失效。",
         "tags": [
           "用户管理/认证"
         ],
@@ -980,7 +986,7 @@
       "put": {
         "summary": "邮箱绑定",
         "deprecated": false,
-        "description": "",
+        "description": "为当前登录用户绑定邮箱地址。应先获取邮箱验证码，再提交 email_id 与验证码。",
         "tags": [
           "用户管理/认证"
         ],
@@ -1022,7 +1028,7 @@
       "put": {
         "summary": "用户更新信息",
         "deprecated": false,
-        "description": "",
+        "description": "更新当前登录用户资料，例如昵称、头像、简介和个人展示配置。",
         "tags": [
           "用户管理/资料"
         ],
@@ -1098,7 +1104,7 @@
       "get": {
         "summary": "文章列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取文章列表。可结合 type、status、user_id、分页与排序参数筛选结果。",
         "tags": [
           "文章管理/文章"
         ],
@@ -1106,7 +1112,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": "1",
             "schema": {
@@ -1116,7 +1122,7 @@
           {
             "name": "user_id",
             "in": "query",
-            "description": "",
+            "description": "目标用户 ID，用于筛选或指定用户。",
             "required": false,
             "example": "1",
             "schema": {
@@ -1126,7 +1132,7 @@
           {
             "name": "status",
             "in": "query",
-            "description": "",
+            "description": "状态筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": "3",
             "schema": {
@@ -1136,7 +1142,7 @@
           {
             "name": "page",
             "in": "query",
-            "description": "",
+            "description": "分页页码，从 1 开始。",
             "required": false,
             "example": "1",
             "schema": {
@@ -1146,7 +1152,7 @@
           {
             "name": "limit",
             "in": "query",
-            "description": "",
+            "description": "每页返回条数。",
             "required": false,
             "example": "3",
             "schema": {
@@ -1156,7 +1162,7 @@
           {
             "name": "order",
             "in": "query",
-            "description": "",
+            "description": "排序方式参数，具体格式按接口实现约定。",
             "required": false,
             "example": "viesc",
             "schema": {
@@ -1210,7 +1216,7 @@
       "post": {
         "summary": "发布文章",
         "deprecated": false,
-        "description": "",
+        "description": "发布新文章。请求体中的 content 为正文内容，tag_ids 为已存在标签 ID 列表，cover 为封面图片地址。",
         "tags": [
           "文章管理/文章"
         ],
@@ -1284,7 +1290,7 @@
       "post": {
         "summary": "文章收藏",
         "deprecated": false,
-        "description": "",
+        "description": "将文章加入指定收藏夹，或在收藏夹之间建立关联。",
         "tags": [
           "文章管理/收藏夹"
         ],
@@ -1320,7 +1326,7 @@
       "put": {
         "summary": "更新收藏夹",
         "deprecated": false,
-        "description": "",
+        "description": "更新收藏夹基本信息，如标题、封面和简介。",
         "tags": [
           "文章管理/收藏夹"
         ],
@@ -1356,7 +1362,7 @@
       "delete": {
         "summary": "删除收藏夹",
         "deprecated": false,
-        "description": "",
+        "description": "删除收藏夹。删除前请确认前端不再引用该收藏夹。",
         "tags": [
           "文章管理/收藏夹"
         ],
@@ -1392,7 +1398,7 @@
       "get": {
         "summary": "查询收藏夹",
         "deprecated": false,
-        "description": "",
+        "description": "获取收藏夹列表，可根据 type 与 user_id 查询自己的收藏夹或公开收藏夹。",
         "tags": [
           "文章管理/收藏夹"
         ],
@@ -1400,7 +1406,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": "2",
             "schema": {
@@ -1410,7 +1416,7 @@
           {
             "name": "user_id",
             "in": "query",
-            "description": "",
+            "description": "目标用户 ID，用于筛选或指定用户。",
             "required": false,
             "example": "1",
             "schema": {
@@ -1491,7 +1497,7 @@
       "post": {
         "summary": "文章访问量&访问历史",
         "deprecated": false,
-        "description": "",
+        "description": "记录文章浏览量与访问历史。文章详情页打开后通常调用一次。",
         "tags": [
           "文章管理/文章"
         ],
@@ -1524,7 +1530,7 @@
       "delete": {
         "summary": "删除访问历史记录",
         "deprecated": false,
-        "description": "",
+        "description": "删除当前用户的文章访问历史记录，可按请求体中的 ID 列表批量删除。",
         "tags": [
           "文章管理/访问历史"
         ],
@@ -1560,7 +1566,7 @@
       "get": {
         "summary": "记录访问历史",
         "deprecated": false,
-        "description": "",
+        "description": "获取当前用户的文章访问历史列表。",
         "tags": [
           "文章管理/访问历史"
         ],
@@ -1638,7 +1644,7 @@
       "post": {
         "summary": "更新分类",
         "deprecated": false,
-        "description": "",
+        "description": "创建或更新文章分类，具体行为取决于请求体中的 ID 与字段。",
         "tags": [
           "文章管理/分类"
         ],
@@ -1674,7 +1680,7 @@
       "delete": {
         "summary": "删除分类",
         "deprecated": false,
-        "description": "",
+        "description": "删除分类。删除前请确认没有业务继续依赖该分类。",
         "tags": [
           "文章管理/分类"
         ],
@@ -1710,7 +1716,7 @@
       "get": {
         "summary": "分类列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取分类列表，可结合 type 等查询参数控制返回范围。",
         "tags": [
           "文章管理/分类"
         ],
@@ -1718,7 +1724,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": "1",
             "schema": {
@@ -1799,7 +1805,7 @@
       "get": {
         "summary": "分类选项",
         "deprecated": false,
-        "description": "",
+        "description": "获取分类选项数据，适合下拉框或表单选择器使用。",
         "tags": [
           "文章管理/分类"
         ],
@@ -1845,7 +1851,7 @@
       "get": {
         "summary": "查询收藏夹文章",
         "deprecated": false,
-        "description": "",
+        "description": "获取某个收藏夹中的文章列表。需要提供 favorite_id。",
         "tags": [
           "文章管理/收藏夹"
         ],
@@ -1862,7 +1868,8 @@
             "required": true,
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "目标收藏夹 ID。"
           }
         ],
         "responses": {
@@ -1911,7 +1918,7 @@
       "delete": {
         "summary": "批删收藏夹文章",
         "deprecated": false,
-        "description": "",
+        "description": "批量移除收藏夹中的文章关联关系，不会删除文章本身。",
         "tags": [
           "文章管理/收藏夹"
         ],
@@ -1957,7 +1964,7 @@
           {
             "name": "title",
             "in": "query",
-            "description": "",
+            "description": "标题文本或标题筛选值。",
             "required": false,
             "example": "测试文章1",
             "schema": {
@@ -1996,7 +2003,7 @@
       "get": {
         "summary": "获取标签列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取标签列表，可用于后台管理、筛选和页面展示。",
         "tags": [
           "文章管理/标签"
         ],
@@ -2131,7 +2138,7 @@
       "get": {
         "summary": "标签选项",
         "deprecated": false,
-        "description": "",
+        "description": "获取标签选项数据，适合表单选择组件初始化时调用。",
         "tags": [
           "文章管理/标签"
         ],
@@ -2177,7 +2184,7 @@
       "get": {
         "summary": "置顶列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取置顶列表，可按用户或类型筛选。",
         "tags": [
           "文章管理/置顶"
         ],
@@ -2185,7 +2192,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": "1",
             "schema": {
@@ -2195,7 +2202,7 @@
           {
             "name": "user_id",
             "in": "query",
-            "description": "",
+            "description": "目标用户 ID，用于筛选或指定用户。",
             "required": false,
             "example": "1",
             "schema": {
@@ -2249,7 +2256,7 @@
       "post": {
         "summary": "置顶设置",
         "deprecated": false,
-        "description": "",
+        "description": "设置文章置顶关系，用于用户置顶或管理员置顶。",
         "tags": [
           "文章管理/置顶"
         ],
@@ -2285,7 +2292,7 @@
       "delete": {
         "summary": "置顶移除",
         "deprecated": false,
-        "description": "",
+        "description": "移除文章置顶关系。",
         "tags": [
           "文章管理/置顶"
         ],
@@ -2323,7 +2330,7 @@
       "post": {
         "summary": "创建评论",
         "deprecated": false,
-        "description": "",
+        "description": "创建评论或回复评论。请求体中的父评论信息决定是根评论还是二级回复。",
         "tags": [
           "评论管理/用户"
         ],
@@ -2359,7 +2366,7 @@
       "get": {
         "summary": "获取文章根评论",
         "deprecated": false,
-        "description": "",
+        "description": "获取文章根评论列表，需要提供 article_id。",
         "tags": [
           "评论管理/公开"
         ],
@@ -2367,7 +2374,7 @@
           {
             "name": "article_id",
             "in": "query",
-            "description": "",
+            "description": "目标文章 ID。",
             "required": false,
             "example": "26",
             "schema": {
@@ -2408,7 +2415,7 @@
       "get": {
         "summary": "获取二级评论",
         "deprecated": false,
-        "description": "",
+        "description": "获取某条根评论下的回复列表，需要提供 article_id 和 root_id。",
         "tags": [
           "评论管理/公开"
         ],
@@ -2425,7 +2432,8 @@
             "required": true,
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "目标文章 ID。"
           },
           {
             "name": "root_id",
@@ -2433,7 +2441,8 @@
             "required": true,
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "根评论 ID，用于获取该根评论下的回复。"
           }
         ],
         "responses": {
@@ -2469,7 +2478,7 @@
       "get": {
         "summary": "获取后台管理评论列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取后台管理评论列表，支持按文章、用户、状态和类型筛选。",
         "tags": [
           "评论管理/用户"
         ],
@@ -2485,14 +2494,16 @@
             "in": "query",
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "目标文章 ID。"
           },
           {
             "name": "user_id",
             "in": "query",
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "目标用户 ID，用于筛选或指定用户。"
           },
           {
             "name": "status",
@@ -2504,7 +2515,8 @@
                 2,
                 3
               ]
-            }
+            },
+            "description": "状态筛选参数，具体取值请结合该接口业务含义使用。"
           },
           {
             "name": "type",
@@ -2517,7 +2529,8 @@
                 2,
                 3
               ]
-            }
+            },
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。"
           }
         ],
         "responses": {
@@ -2573,7 +2586,7 @@
       "get": {
         "summary": "消息配置",
         "deprecated": false,
-        "description": "",
+        "description": "获取当前用户的站内消息配置。",
         "tags": [
           "站内消息/配置"
         ],
@@ -2614,7 +2627,7 @@
       "put": {
         "summary": "配置更新",
         "deprecated": false,
-        "description": "",
+        "description": "更新当前用户的站内消息配置，例如是否接收特定类型通知。",
         "tags": [
           "站内消息/配置"
         ],
@@ -2652,7 +2665,7 @@
       "get": {
         "summary": "消息列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取站内消息列表，可结合分页和类型参数筛选。",
         "tags": [
           "站内消息/消息"
         ],
@@ -2660,7 +2673,7 @@
           {
             "name": "page",
             "in": "query",
-            "description": "",
+            "description": "分页页码，从 1 开始。",
             "required": false,
             "example": "1",
             "schema": {
@@ -2670,7 +2683,7 @@
           {
             "name": "limit",
             "in": "query",
-            "description": "",
+            "description": "每页返回条数。",
             "required": false,
             "example": "10",
             "schema": {
@@ -2680,7 +2693,7 @@
           {
             "name": "t",
             "in": "query",
-            "description": "",
+            "description": "消息筛选类型参数。",
             "required": false,
             "example": "2",
             "schema": {
@@ -2739,7 +2752,7 @@
       "post": {
         "summary": "消息标记已读",
         "deprecated": false,
-        "description": "",
+        "description": "将指定站内消息标记为已读。",
         "tags": [
           "站内消息/消息"
         ],
@@ -2775,7 +2788,7 @@
       "delete": {
         "summary": "删除消息",
         "deprecated": false,
-        "description": "",
+        "description": "删除站内消息，可按请求体中的消息 ID 列表批量删除。",
         "tags": [
           "站内消息/消息"
         ],
@@ -2813,7 +2826,7 @@
       "get": {
         "summary": "未读消息计数",
         "deprecated": false,
-        "description": "",
+        "description": "获取当前用户未读消息统计，用于顶部角标或消息中心入口提示。",
         "tags": [
           "站内消息/用户"
         ],
@@ -2892,7 +2905,7 @@
       "get": {
         "summary": "全局消息列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取全局通知列表，可按类型与分页参数筛选。",
         "tags": [
           "全局消息/用户"
         ],
@@ -2900,7 +2913,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": "2",
             "schema": {
@@ -2910,7 +2923,7 @@
           {
             "name": "page",
             "in": "query",
-            "description": "",
+            "description": "分页页码，从 1 开始。",
             "required": false,
             "example": "1",
             "schema": {
@@ -2920,7 +2933,7 @@
           {
             "name": "limit",
             "in": "query",
-            "description": "",
+            "description": "每页返回条数。",
             "required": false,
             "example": "10",
             "schema": {
@@ -3017,7 +3030,7 @@
       "delete": {
         "summary": "用户删除全局消息",
         "deprecated": false,
-        "description": "",
+        "description": "用户侧删除自己已接收的全局通知记录。",
         "tags": [
           "全局消息/用户"
         ],
@@ -3055,7 +3068,7 @@
       "post": {
         "summary": "用户已读全局消息",
         "deprecated": false,
-        "description": "",
+        "description": "将指定全局通知标记为已读。",
         "tags": [
           "全局消息/用户"
         ],
@@ -3093,7 +3106,7 @@
       "get": {
         "summary": "关注列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取关注列表，可查看指定用户关注了哪些人。",
         "tags": [
           "粉丝与关注/关注"
         ],
@@ -3101,7 +3114,7 @@
           {
             "name": "page",
             "in": "query",
-            "description": "",
+            "description": "分页页码，从 1 开始。",
             "required": false,
             "example": "1",
             "schema": {
@@ -3111,7 +3124,7 @@
           {
             "name": "limit",
             "in": "query",
-            "description": "",
+            "description": "每页返回条数。",
             "required": false,
             "example": "10",
             "schema": {
@@ -3121,7 +3134,7 @@
           {
             "name": "user_id",
             "in": "query",
-            "description": "",
+            "description": "目标用户 ID，用于筛选或指定用户。",
             "required": false,
             "example": "1",
             "schema": {
@@ -3182,7 +3195,7 @@
       "get": {
         "summary": "粉丝列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取粉丝列表，可查看哪些用户关注了目标用户。",
         "tags": [
           "粉丝与关注/粉丝"
         ],
@@ -3190,7 +3203,7 @@
           {
             "name": "page",
             "in": "query",
-            "description": "",
+            "description": "分页页码，从 1 开始。",
             "required": false,
             "example": "1",
             "schema": {
@@ -3200,7 +3213,7 @@
           {
             "name": "limit",
             "in": "query",
-            "description": "",
+            "description": "每页返回条数。",
             "required": false,
             "example": "10",
             "schema": {
@@ -3210,7 +3223,7 @@
           {
             "name": "user_id",
             "in": "query",
-            "description": "",
+            "description": "目标用户 ID，用于筛选或指定用户。",
             "required": false,
             "example": "3",
             "schema": {
@@ -3271,7 +3284,7 @@
       "get": {
         "summary": "会话列表",
         "deprecated": false,
-        "description": "",
+        "description": "获取私信会话列表，可按 type 区分不同会话视图。",
         "tags": [
           "私信模块/会话"
         ],
@@ -3279,7 +3292,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": "1",
             "schema": {
@@ -3338,7 +3351,7 @@
       "delete": {
         "summary": "删除会话",
         "deprecated": false,
-        "description": "",
+        "description": "删除私信会话，通常用于会话列表页的删除操作。",
         "tags": [
           "私信模块/会话"
         ],
@@ -3376,7 +3389,7 @@
       "get": {
         "summary": "私信信息",
         "deprecated": false,
-        "description": "",
+        "description": "获取私信消息列表，需要提供 session_id 或用户相关筛选条件。",
         "tags": [
           "私信模块/消息"
         ],
@@ -3384,7 +3397,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": 1,
             "schema": {
@@ -3394,7 +3407,7 @@
           {
             "name": "session_id",
             "in": "query",
-            "description": "",
+            "description": "会话 ID，用于定位私信会话。",
             "required": false,
             "example": "chat:1:2",
             "schema": {
@@ -3404,7 +3417,7 @@
           {
             "name": "user_id",
             "in": "query",
-            "description": "",
+            "description": "目标用户 ID，用于筛选或指定用户。",
             "required": false,
             "example": "1",
             "schema": {
@@ -3463,7 +3476,7 @@
       "delete": {
         "summary": "删除信息",
         "deprecated": false,
-        "description": "",
+        "description": "删除私信消息。当前接口通常按请求体提供的消息范围执行删除。",
         "tags": [
           "私信模块/消息"
         ],
@@ -3501,7 +3514,7 @@
       "post": {
         "summary": "已读消息",
         "deprecated": false,
-        "description": "",
+        "description": "将指定会话或消息标记为已读。",
         "tags": [
           "私信模块/消息"
         ],
@@ -3539,7 +3552,7 @@
       "get": {
         "summary": "文章搜索",
         "deprecated": false,
-        "description": "",
+        "description": "按关键字、标签和排序方式搜索文章列表。适合搜索页或站内搜索框使用。",
         "tags": [
           "搜索模块/文章"
         ],
@@ -3547,7 +3560,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": "4",
             "schema": {
@@ -3557,7 +3570,7 @@
           {
             "name": "key",
             "in": "query",
-            "description": "",
+            "description": "搜索关键字或查询词。",
             "required": false,
             "example": "特别长",
             "schema": {
@@ -3567,7 +3580,7 @@
           {
             "name": "tag_list",
             "in": "query",
-            "description": "",
+            "description": "参与筛选的标签名称列表。",
             "required": false,
             "example": "Golang",
             "schema": {
@@ -3577,7 +3590,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "",
+            "description": "搜索结果排序方式。",
             "required": false,
             "example": "1",
             "schema": {
@@ -3712,7 +3725,7 @@
       "post": {
         "summary": "生成文章元信息",
         "deprecated": false,
-        "description": "",
+        "description": "基于文章正文生成标题、摘要、标签等元信息，适合文章编辑器辅助生成。",
         "tags": [
           "AI模块/元信息"
         ],
@@ -3765,7 +3778,7 @@
       "post": {
         "summary": "自然语言 AI 搜索",
         "deprecated": false,
-        "description": "",
+        "description": "使用自然语言对站内文章进行 AI 搜索，并返回结构化列表结果。",
         "tags": [
           "AI模块/搜索"
         ],
@@ -3821,7 +3834,7 @@
       "post": {
         "summary": "网站 ai 助手",
         "deprecated": false,
-        "description": "",
+        "description": "站点 AI 助手对话接口。当前为流式或增量式场景时，前端需要按接口返回约定处理。",
         "tags": [
           "AI模块/搜索"
         ],
@@ -3911,7 +3924,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": false,
             "example": "1",
             "schema": {
@@ -4000,7 +4013,7 @@
       "put": {
         "summary": "更新文章",
         "deprecated": false,
-        "description": "",
+        "description": "更新指定文章。通常用于文章编辑页保存，未提交的字段会按接口实现使用新值覆盖旧值。",
         "tags": [
           "文章管理/文章"
         ],
@@ -4040,7 +4053,7 @@
       "get": {
         "summary": "文章详情",
         "deprecated": false,
-        "description": "",
+        "description": "获取指定文章详情。适合文章详情页初始化，也会返回文章统计与作者信息。",
         "tags": [
           "文章管理/文章"
         ],
@@ -4080,7 +4093,7 @@
       "delete": {
         "summary": "用户删除文章",
         "deprecated": false,
-        "description": "",
+        "description": "删除当前用户自己的文章。删除后文章不再对外展示。",
         "tags": [
           "文章管理/文章"
         ],
@@ -4114,7 +4127,7 @@
       "put": {
         "summary": "文章点赞",
         "deprecated": false,
-        "description": "",
+        "description": "文章点赞。通常用于更新已有资源，请按 JSON 请求体提供需要修改的字段。 调用时需要在请求头中携带 Bearer access token。",
         "tags": [
           "文章管理/文章"
         ],
@@ -4211,7 +4224,7 @@
       "delete": {
         "summary": "删除评论",
         "deprecated": false,
-        "description": "",
+        "description": "删除指定评论。支持用户删除自己的评论或管理员执行管理删除。",
         "tags": [
           "评论管理/用户"
         ],
@@ -4258,7 +4271,7 @@
       "post": {
         "summary": "点赞评论",
         "deprecated": false,
-        "description": "",
+        "description": "对指定评论执行点赞或取消点赞操作。",
         "tags": [
           "评论管理/用户"
         ],
@@ -4308,7 +4321,7 @@
       "post": {
         "summary": "关注用户",
         "deprecated": false,
-        "description": "",
+        "description": "关注指定用户。路径中的 id 为被关注用户 ID。",
         "tags": [
           "粉丝与关注/关注"
         ],
@@ -4356,7 +4369,7 @@
       "delete": {
         "summary": "取消关注",
         "deprecated": false,
-        "description": "",
+        "description": "取消关注指定用户。路径中的 id 为被取消关注用户 ID。",
         "tags": [
           "粉丝与关注/关注"
         ],
@@ -4677,7 +4690,7 @@
       "post": {
         "summary": "退出当前登录",
         "deprecated": false,
-        "description": "",
+        "description": "退出当前设备登录态。通常在前端用户主动退出时调用，会清理当前会话对应的登录状态。",
         "tags": [
           "用户管理/认证"
         ],
@@ -4717,7 +4730,7 @@
       "post": {
         "summary": "退出全部设备",
         "deprecated": false,
-        "description": "",
+        "description": "退出当前账号在所有设备上的登录态。适合修改密码后或用户希望强制全端下线时调用。",
         "tags": [
           "用户管理/认证"
         ],
@@ -5121,7 +5134,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "WebSocket 建连票据，需先通过已登录接口换取。"
           }
         ],
         "responses": {
@@ -5146,7 +5160,8 @@
             "required": false,
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "分页页码，从 1 开始。"
           },
           {
             "name": "limit",
@@ -5154,7 +5169,8 @@
             "required": false,
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "每页返回条数。"
           }
         ],
         "responses": {
@@ -5327,10 +5343,12 @@
         "type": "object",
         "properties": {
           "code": {
-            "type": "integer"
+            "type": "integer",
+            "description": "业务状态码，0 通常表示成功，其它值表示不同失败场景。"
           },
           "msg": {
-            "type": "string"
+            "type": "string",
+            "description": "接口返回消息，通常用于提示当前请求结果。"
           }
         },
         "required": [
@@ -5345,7 +5363,8 @@
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "需要批量操作的主键 ID 列表。"
           }
         },
         "required": [
@@ -5356,10 +5375,12 @@
         "type": "object",
         "properties": {
           "email_id": {
-            "type": "string"
+            "type": "string",
+            "description": "邮箱验证码会话 ID，用于和验证码配对校验。"
           },
           "email_code": {
-            "type": "string"
+            "type": "string",
+            "description": "邮箱验证码。"
           }
         },
         "required": [
@@ -5372,18 +5393,22 @@
         "properties": {
           "file_name": {
             "type": "string",
-            "maxLength": 255
+            "maxLength": 255,
+            "description": "原始文件名。"
           },
           "size": {
-            "type": "integer"
+            "type": "integer",
+            "description": "文件大小，单位通常为字节。"
           },
           "mime_type": {
             "type": "string",
-            "maxLength": 128
+            "maxLength": 128,
+            "description": "文件 MIME 类型，例如 image/png。"
           },
           "hash": {
             "type": "string",
-            "maxLength": 64
+            "maxLength": 64,
+            "description": "前端预先计算得到的 qetag/hash，用于上传前预去重。"
           }
         },
         "required": [
@@ -5397,43 +5422,56 @@
         "type": "object",
         "properties": {
           "skip_upload": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "为 true 时表示命中预去重并跳过实际上传。"
           },
           "upload_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "上传任务 ID。"
           },
           "provider": {
-            "type": "string"
+            "type": "string",
+            "description": "对象存储提供商标识。"
           },
           "bucket": {
-            "type": "string"
+            "type": "string",
+            "description": "对象存储桶名称。"
           },
           "object_key": {
-            "type": "string"
+            "type": "string",
+            "description": "对象存储中的对象键。"
           },
           "upload_token": {
-            "type": "string"
+            "type": "string",
+            "description": "上传到对象存储所需的临时票据。"
           },
           "region": {
-            "type": "string"
+            "type": "string",
+            "description": "对象存储区域标识。"
           },
           "expire_at": {
-            "type": "string"
+            "type": "string",
+            "description": "上传票据过期时间。"
           },
           "max_size": {
-            "type": "integer"
+            "type": "integer",
+            "description": "允许上传的最大文件大小。"
           },
           "image_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "图片资源 ID。"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "description": "图片或任务当前状态，命中预去重时通常可直接使用。"
           },
           "url": {
-            "type": "string"
+            "type": "string",
+            "description": "资源可访问地址。"
           },
           "hash": {
-            "type": "string"
+            "type": "string",
+            "description": "文件内容标识，当前图片上传链路中使用 qetag/hash。"
           }
         }
       },
@@ -5441,10 +5479,12 @@
         "type": "object",
         "properties": {
           "upload_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "上传任务 ID。"
           },
           "object_key": {
-            "type": "string"
+            "type": "string",
+            "description": "七牛对象 key，应与创建上传任务时返回的 object_key 保持一致。"
           }
         },
         "required": [
@@ -5456,19 +5496,24 @@
         "type": "object",
         "properties": {
           "upload_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "上传任务 ID。"
           },
           "image_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "图片资源 ID。"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "description": "当前资源状态值。"
           },
           "url": {
-            "type": "string"
+            "type": "string",
+            "description": "资源可访问地址。"
           },
           "error_msg": {
-            "type": "string"
+            "type": "string",
+            "description": "失败原因说明。"
           }
         }
       },
@@ -5476,22 +5521,28 @@
         "type": "object",
         "properties": {
           "upload_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "上传任务 ID。"
           },
           "image_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "图片资源 ID。"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "description": "上传任务当前状态，例如 pending、ready、failed。"
           },
           "url": {
-            "type": "string"
+            "type": "string",
+            "description": "资源可访问地址。"
           },
           "error_msg": {
-            "type": "string"
+            "type": "string",
+            "description": "失败原因说明。"
           },
           "hash": {
-            "type": "string"
+            "type": "string",
+            "description": "文件内容标识，当前图片上传链路中使用 qetag/hash。"
           }
         }
       },
@@ -5590,11 +5641,13 @@
               2,
               3,
               4
-            ]
+            ],
+            "description": "验证码业务类型，例如注册、找回密码、绑定邮箱或邮箱登录。"
           },
           "email": {
             "type": "string",
-            "format": "email"
+            "format": "email",
+            "description": "邮箱地址。"
           }
         },
         "required": [
@@ -5606,10 +5659,12 @@
         "type": "object",
         "properties": {
           "username": {
-            "type": "string"
+            "type": "string",
+            "description": "用户名或邮箱，后端会按登录规则识别。"
           },
           "password": {
-            "type": "string"
+            "type": "string",
+            "description": "密码明文输入字段，仅用于请求提交。"
           }
         },
         "required": [
@@ -5621,7 +5676,8 @@
         "type": "object",
         "properties": {
           "code": {
-            "type": "string"
+            "type": "string",
+            "description": "QQ OAuth 授权返回的 code。"
           }
         },
         "required": [
@@ -5632,7 +5688,8 @@
         "type": "object",
         "properties": {
           "pwd": {
-            "type": "string"
+            "type": "string",
+            "description": "注册时设置的新密码。"
           }
         },
         "required": [
@@ -5643,7 +5700,8 @@
         "type": "object",
         "properties": {
           "new_password": {
-            "type": "string"
+            "type": "string",
+            "description": "找回密码后要设置的新密码。"
           }
         },
         "required": [
@@ -5654,10 +5712,12 @@
         "type": "object",
         "properties": {
           "old_password": {
-            "type": "string"
+            "type": "string",
+            "description": "旧密码。"
           },
           "new_password": {
-            "type": "string"
+            "type": "string",
+            "description": "修改后的新密码。"
           }
         },
         "required": [
@@ -5670,41 +5730,50 @@
         "properties": {
           "username": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "用户名。"
           },
           "nickname": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "昵称。"
           },
           "avatar": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "头像图片地址。"
           },
           "abstract": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "摘要或简介文本。"
           },
           "like_tags": {
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "用户偏好标签列表，用于个性化展示。"
           },
           "favorites_visibility": {
             "type": "boolean",
-            "nullable": true
+            "nullable": true,
+            "description": "收藏夹可见性配置。"
           },
           "followers_visibility": {
             "type": "boolean",
-            "nullable": true
+            "nullable": true,
+            "description": "关注列表可见性配置。"
           },
           "fans_visibility": {
             "type": "boolean",
-            "nullable": true
+            "nullable": true,
+            "description": "粉丝列表可见性配置。"
           },
           "home_style_id": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "个人主页样式 ID。"
           }
         }
       },
@@ -5712,23 +5781,28 @@
         "type": "object",
         "properties": {
           "user_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的用户 ID。"
           },
           "username": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "用户名。"
           },
           "nickname": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "昵称。"
           },
           "avatar": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "头像图片地址。"
           },
           "abstract": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "摘要或简介文本。"
           },
           "role": {
             "type": "integer",
@@ -5737,7 +5811,8 @@
               1,
               2,
               3
-            ]
+            ],
+            "description": "用户角色值。"
           },
           "status": {
             "type": "integer",
@@ -5746,7 +5821,8 @@
               1,
               2,
               3
-            ]
+            ],
+            "description": "管理员设置的用户状态值。"
           }
         },
         "required": [
@@ -5757,28 +5833,36 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "code_age": {
-            "type": "integer"
+            "type": "integer",
+            "description": "账号注册时长或站龄信息。"
           },
           "avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "头像图片地址。"
           },
           "nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "昵称。"
           },
           "view_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "浏览次数。"
           },
           "fans_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "fans 统计数量。"
           },
           "follow_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "follow 统计数量。"
           },
           "place": {
-            "type": "string"
+            "type": "string",
+            "description": "地区或所在地信息。"
           }
         },
         "required": [
@@ -5796,51 +5880,65 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "username": {
-            "type": "string"
+            "type": "string",
+            "description": "用户名。"
           },
           "nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "昵称。"
           },
           "avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "头像图片地址。"
           },
           "abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "摘要或简介文本。"
           },
           "register_source": {
-            "type": "integer"
+            "type": "integer",
+            "description": "注册来源。"
           },
           "code_age": {
-            "type": "integer"
+            "type": "integer",
+            "description": "账号注册时长或站龄信息。"
           },
           "favorites_visibility": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "收藏夹可见性配置。"
           },
           "followers_visibility": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "关注列表可见性配置。"
           },
           "fans_visibility": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "粉丝列表可见性配置。"
           },
           "home_style_id": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "个人主页样式 ID。"
           },
           "like_tags": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "用户偏好标签列表，用于个性化展示。"
           },
           "updated_username_date": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "最近一次修改用户名的时间。"
           }
         },
         "required": [
@@ -5858,38 +5956,48 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "updated_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录最后更新时间。"
           },
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "软删除时间；为空表示未删除。"
           },
           "user_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的用户 ID。"
           },
           "ip": {
-            "type": "string"
+            "type": "string",
+            "description": "IP 地址。"
           },
           "addr": {
-            "type": "string"
+            "type": "string",
+            "description": "IP 归属地或解析后的地址信息。"
           },
           "ua": {
-            "type": "string"
+            "type": "string",
+            "description": "用户代理字符串。"
           },
           "user_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户昵称。"
           },
           "user_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户头像地址。"
           }
         },
         "required": [
@@ -5908,30 +6016,38 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "昵称。"
           },
           "avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "头像图片地址。"
           },
           "username": {
-            "type": "string"
+            "type": "string",
+            "description": "用户名。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "ip": {
-            "type": "string"
+            "type": "string",
+            "description": "IP 地址。"
           },
           "addr": {
-            "type": "string"
+            "type": "string",
+            "description": "IP 归属地或解析后的地址信息。"
           },
           "last_login_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "last_login_at 时间。"
           }
         },
         "required": [
@@ -5949,13 +6065,16 @@
         "type": "object",
         "properties": {
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "封面图片地址。"
           },
           "href": {
-            "type": "string"
+            "type": "string",
+            "description": "轮播图点击后跳转的链接地址。"
           },
           "show": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否展示该资源。"
           }
         },
         "required": [
@@ -5966,29 +6085,36 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "updated_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录最后更新时间。"
           },
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "软删除时间；为空表示未删除。"
           },
           "show": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否展示该资源。"
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "封面图片地址。"
           },
           "href": {
-            "type": "string"
+            "type": "string",
+            "description": "跳转链接地址。"
           }
         },
         "required": [
@@ -6004,62 +6130,80 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "updated_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录最后更新时间。"
           },
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "软删除时间；为空表示未删除。"
           },
           "log_type": {
-            "type": "integer"
+            "type": "integer",
+            "description": "日志类型。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "level": {
-            "type": "integer"
+            "type": "integer",
+            "description": "日志级别。"
           },
           "user_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的用户 ID。"
           },
           "ip": {
-            "type": "string"
+            "type": "string",
+            "description": "IP 地址。"
           },
           "addr": {
-            "type": "string"
+            "type": "string",
+            "description": "IP 归属地或解析后的地址信息。"
           },
           "is_read": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否已读。"
           },
           "login_status": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "登录结果状态。"
           },
           "username": {
-            "type": "string"
+            "type": "string",
+            "description": "用户名。"
           },
           "login_type": {
-            "type": "integer"
+            "type": "integer",
+            "description": "登录类型。"
           },
           "service_name": {
-            "type": "string"
+            "type": "string",
+            "description": "服务名。"
           },
           "user_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户昵称。"
           },
           "user_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户头像地址。"
           }
         },
         "required": [
@@ -6086,16 +6230,20 @@
         "type": "object",
         "properties": {
           "enable": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否启用。"
           },
           "nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "昵称。"
           },
           "avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "头像图片地址。"
           },
           "abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "摘要或简介文本。"
           }
         },
         "required": [
@@ -6109,36 +6257,44 @@
         "type": "object",
         "properties": {
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "摘要或简介文本。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "category_id": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "分类 ID。"
           },
           "tag_ids": {
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "标签 ID 列表，需传入已存在标签的主键。"
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "封面图片地址。"
           },
           "comments_toggle": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否开启评论。"
           },
           "status": {
             "type": "integer",
             "enum": [
               1,
               2
-            ]
+            ],
+            "description": "文章状态，如草稿、待审核或已发布。"
           }
         },
         "required": [
@@ -6152,33 +6308,40 @@
         "properties": {
           "title": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "标题文本。"
           },
           "abstract": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "摘要或简介文本。"
           },
           "content": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "category_id": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "分类 ID。"
           },
           "tag_ids": {
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "标签 ID 列表，需传入已存在标签的主键。"
           },
           "cover": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "封面图片地址。"
           },
           "comments_toggle": {
             "type": "boolean",
-            "nullable": true
+            "nullable": true,
+            "description": "是否开启评论。"
           }
         }
       },
@@ -6186,63 +6349,81 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "updated_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录最后更新时间。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "摘要或简介文本。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "封面图片地址。"
           },
           "view_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "浏览次数。"
           },
           "digg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "点赞次数。"
           },
           "comment_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "评论数。"
           },
           "favor_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "收藏数。"
           },
           "comments_toggle": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否开启评论。"
           },
           "status": {
-            "type": "integer"
+            "type": "integer",
+            "description": "当前资源状态值。"
           },
           "tags": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "标签列表。"
           },
           "author_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "作者头像地址。"
           },
           "author_name": {
-            "type": "string"
+            "type": "string",
+            "description": "作者昵称。"
           },
           "author_username": {
-            "type": "string"
+            "type": "string",
+            "description": "作者用户名。"
           },
           "category_name": {
-            "type": "string"
+            "type": "string",
+            "description": "分类名称。"
           }
         },
         "required": [
@@ -6270,66 +6451,85 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "updated_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录最后更新时间。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "摘要或简介文本。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "封面图片地址。"
           },
           "view_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "浏览次数。"
           },
           "digg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "点赞次数。"
           },
           "comment_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "评论数。"
           },
           "favor_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "收藏数。"
           },
           "comments_toggle": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否开启评论。"
           },
           "status": {
-            "type": "integer"
+            "type": "integer",
+            "description": "当前资源状态值。"
           },
           "tags": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "标签列表。"
           },
           "user_top": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `user_top` 的业务含义请结合该接口上下文使用。"
           },
           "admin_top": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `admin_top` 的业务含义请结合该接口上下文使用。"
           },
           "category_title": {
-            "type": "string"
+            "type": "string",
+            "description": "分类标题。"
           },
           "user_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户昵称。"
           },
           "user_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户头像地址。"
           }
         },
         "required": [
@@ -6358,10 +6558,12 @@
         "type": "object",
         "properties": {
           "article_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的文章 ID。"
           },
           "favor_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "目标收藏夹 ID。"
           }
         },
         "required": [
@@ -6372,7 +6574,8 @@
         "type": "object",
         "properties": {
           "article_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "需要记录浏览的文章 ID。"
           }
         },
         "required": [
@@ -6383,16 +6586,20 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "收藏夹封面图地址。"
           },
           "abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "摘要或简介文本。"
           }
         },
         "required": [
@@ -6405,40 +6612,52 @@
         "properties": {
           "favorited_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "favorited_at 时间。"
           },
           "article_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的文章 ID。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "摘要或简介文本。"
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "封面图片地址。"
           },
           "view_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "浏览次数。"
           },
           "digg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "点赞次数。"
           },
           "comment_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "评论数。"
           },
           "favor_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "收藏数。"
           },
           "user_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户昵称。"
           },
           "user_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户头像地址。"
           },
           "article_status": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `article_status` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -6460,13 +6679,15 @@
         "type": "object",
         "properties": {
           "favorite_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的收藏夹 ID。"
           },
           "articles": {
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "字段 `articles` 的数组数据。"
           }
         },
         "required": [
@@ -6478,10 +6699,12 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           }
         },
         "required": [
@@ -6492,10 +6715,12 @@
         "type": "object",
         "properties": {
           "label": {
-            "type": "string"
+            "type": "string",
+            "description": "展示标签。"
           },
           "value": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `value` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -6507,20 +6732,25 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "sort": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `sort` 的业务含义请结合该接口上下文使用。"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `description` 的业务含义请结合该接口上下文使用。"
           },
           "is_enabled": {
             "type": "boolean",
-            "nullable": true
+            "nullable": true,
+            "description": "字段 `is_enabled` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -6531,14 +6761,16 @@
         "type": "object",
         "properties": {
           "article_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的文章 ID。"
           },
           "type": {
             "type": "integer",
             "enum": [
               1,
               2
-            ]
+            ],
+            "description": "当前对象的类型值。"
           }
         },
         "required": [
@@ -6549,63 +6781,81 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "updated_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录最后更新时间。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "摘要或简介文本。"
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "封面图片地址。"
           },
           "view_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "浏览次数。"
           },
           "digg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "点赞次数。"
           },
           "comment_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "评论数。"
           },
           "favor_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "收藏数。"
           },
           "comments_toggle": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否开启评论。"
           },
           "status": {
-            "type": "integer"
+            "type": "integer",
+            "description": "当前资源状态值。"
           },
           "tags": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "标签列表。"
           },
           "user_top": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `user_top` 的业务含义请结合该接口上下文使用。"
           },
           "admin_top": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `admin_top` 的业务含义请结合该接口上下文使用。"
           },
           "category_title": {
-            "type": "string"
+            "type": "string",
+            "description": "分类标题。"
           },
           "user_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户昵称。"
           },
           "user_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户头像地址。"
           }
         },
         "required": [
@@ -6634,25 +6884,32 @@
         "properties": {
           "updated_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录最后更新时间。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "封面图片地址。"
           },
           "nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "昵称。"
           },
           "avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "头像图片地址。"
           },
           "user_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的用户 ID。"
           },
           "article_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的文章 ID。"
           }
         },
         "required": [
@@ -6669,13 +6926,16 @@
         "type": "object",
         "properties": {
           "article_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的文章 ID。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "reply_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的 reply ID。"
           }
         },
         "required": [
@@ -6687,38 +6947,49 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "user_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的用户 ID。"
           },
           "reply_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的 reply ID。"
           },
           "root_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的根评论 ID。"
           },
           "digg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "点赞次数。"
           },
           "reply_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "reply 统计数量。"
           },
           "status": {
-            "type": "integer"
+            "type": "integer",
+            "description": "当前资源状态值。"
           },
           "user_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户昵称。"
           },
           "user_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户头像地址。"
           }
         },
         "required": [
@@ -6742,10 +7013,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CommentRootItem"
-            }
+            },
+            "description": "字段 `list` 的数组数据。"
           },
           "count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `count` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -6758,34 +7031,44 @@
         "properties": {
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "user_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的用户 ID。"
           },
           "reply_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的 reply ID。"
           },
           "digg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "点赞次数。"
           },
           "reply_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "reply 统计数量。"
           },
           "status": {
-            "type": "integer"
+            "type": "integer",
+            "description": "当前资源状态值。"
           },
           "user_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户昵称。"
           },
           "user_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户头像地址。"
           },
           "reply_user_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `reply_user_nickname` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -6805,19 +7088,23 @@
         "type": "object",
         "properties": {
           "root_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的根评论 ID。"
           },
           "reply_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "reply 统计数量。"
           },
           "list": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CommentReplyItem"
-            }
+            },
+            "description": "字段 `list` 的数组数据。"
           },
           "count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `count` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -6831,37 +7118,48 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
-            "type": "string"
+            "type": "string",
+            "description": "记录创建时间。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "digg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "点赞次数。"
           },
           "reply_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "reply 统计数量。"
           },
           "user_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的用户 ID。"
           },
           "user_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户昵称。"
           },
           "user_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户头像地址。"
           },
           "article_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的文章 ID。"
           },
           "article_title": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `article_title` 的业务含义请结合该接口上下文使用。"
           },
           "article_cover": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `article_cover` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -6882,16 +7180,20 @@
         "type": "object",
         "properties": {
           "digg_notice_enabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `digg_notice_enabled` 的业务含义请结合该接口上下文使用。"
           },
           "comment_notice_enabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `comment_notice_enabled` 的业务含义请结合该接口上下文使用。"
           },
           "favor_notice_enabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `favor_notice_enabled` 的业务含义请结合该接口上下文使用。"
           },
           "private_chat_notice_enabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `private_chat_notice_enabled` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -6905,7 +7207,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "t": {
             "type": "integer",
@@ -6913,7 +7216,8 @@
               1,
               2,
               3
-            ]
+            ],
+            "description": "字段 `t` 的业务含义请结合该接口上下文使用。"
           }
         }
       },
@@ -6921,7 +7225,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "t": {
             "type": "integer",
@@ -6929,7 +7234,8 @@
               1,
               2,
               3
-            ]
+            ],
+            "description": "字段 `t` 的业务含义请结合该接口上下文使用。"
           }
         }
       },
@@ -6937,16 +7243,20 @@
         "type": "object",
         "properties": {
           "comment_msg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "comment_msg 统计数量。"
           },
           "digg_favor_msg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "digg_favor_msg 统计数量。"
           },
           "private_msg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "private_msg 统计数量。"
           },
           "system_msg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "system_msg 统计数量。"
           }
         },
         "required": [
@@ -6960,64 +7270,81 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "updated_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录最后更新时间。"
           },
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "软删除时间；为空表示未删除。"
           },
           "type": {
-            "type": "integer"
+            "type": "integer",
+            "description": "当前对象的类型值。"
           },
           "receiver_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的 receiver ID。"
           },
           "action_user_id": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "关联的 action_user ID。"
           },
           "action_user_nickname": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "字段 `action_user_nickname` 的业务含义请结合该接口上下文使用。"
           },
           "action_user_avatar": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "字段 `action_user_avatar` 的业务含义请结合该接口上下文使用。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "article_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的文章 ID。"
           },
           "comment_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的 comment ID。"
           },
           "article_title": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `article_title` 的业务含义请结合该接口上下文使用。"
           },
           "link_title": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `link_title` 的业务含义请结合该接口上下文使用。"
           },
           "link_herf": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `link_herf` 的业务含义请结合该接口上下文使用。"
           },
           "is_read": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否已读。"
           },
           "read_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "read_at 时间。"
           }
         },
         "required": [
@@ -7041,22 +7368,28 @@
           "expire_time": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "字段 `expire_time` 的业务含义请结合该接口上下文使用。"
           },
           "user_visible_rule": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `user_visible_rule` 的业务含义请结合该接口上下文使用。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "icon": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `icon` 的业务含义请结合该接口上下文使用。"
           },
           "href": {
-            "type": "string"
+            "type": "string",
+            "description": "跳转链接地址。"
           }
         },
         "required": [
@@ -7068,26 +7401,33 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "create_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "create_at 时间。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "icon": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `icon` 的业务含义请结合该接口上下文使用。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "herf": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `herf` 的业务含义请结合该接口上下文使用。"
           },
           "is_read": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否已读。"
           }
         },
         "required": [
@@ -7104,20 +7444,25 @@
         "type": "object",
         "properties": {
           "followed_user_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的 followed_user ID。"
           },
           "followed_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `followed_nickname` 的业务含义请结合该接口上下文使用。"
           },
           "followed_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `followed_avatar` 的业务含义请结合该接口上下文使用。"
           },
           "followed_abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `followed_abstract` 的业务含义请结合该接口上下文使用。"
           },
           "follow_time": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "字段 `follow_time` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -7132,20 +7477,25 @@
         "type": "object",
         "properties": {
           "fans_user_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的 fans_user ID。"
           },
           "fans_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `fans_nickname` 的业务含义请结合该接口上下文使用。"
           },
           "fans_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `fans_avatar` 的业务含义请结合该接口上下文使用。"
           },
           "fans_abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `fans_abstract` 的业务含义请结合该接口上下文使用。"
           },
           "follow_time": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "字段 `follow_time` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -7163,7 +7513,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "session_id_list 列表数据。"
           }
         },
         "required": [
@@ -7177,7 +7528,8 @@
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "msg_id_list 列表数据。"
           }
         },
         "required": [
@@ -7191,7 +7543,8 @@
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "msg_id_list 列表数据。"
           }
         },
         "required": [
@@ -7202,38 +7555,48 @@
         "type": "object",
         "properties": {
           "session_id": {
-            "type": "string"
+            "type": "string",
+            "description": "关联的会话 ID。"
           },
           "receiver_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的 receiver ID。"
           },
           "receiver_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `receiver_nickname` 的业务含义请结合该接口上下文使用。"
           },
           "receiver_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `receiver_avatar` 的业务含义请结合该接口上下文使用。"
           },
           "last_msg_content": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `last_msg_content` 的业务含义请结合该接口上下文使用。"
           },
           "last_msg_time": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "字段 `last_msg_time` 的业务含义请结合该接口上下文使用。"
           },
           "unread_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "unread 统计数量。"
           },
           "is_top": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `is_top` 的业务含义请结合该接口上下文使用。"
           },
           "is_mute": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `is_mute` 的业务含义请结合该接口上下文使用。"
           },
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "软删除时间；为空表示未删除。"
           }
         },
         "required": [
@@ -7251,40 +7614,51 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "sender_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的 sender ID。"
           },
           "receiver_id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "关联的 receiver ID。"
           },
           "session_id": {
-            "type": "string"
+            "type": "string",
+            "description": "关联的会话 ID。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "send_time": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "字段 `send_time` 的业务含义请结合该接口上下文使用。"
           },
           "msg_status": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `msg_status` 的业务含义请结合该接口上下文使用。"
           },
           "msg_type": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `msg_type` 的业务含义请结合该接口上下文使用。"
           },
           "is_self": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `is_self` 的业务含义请结合该接口上下文使用。"
           },
           "is_read": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否已读。"
           },
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "软删除时间；为空表示未删除。"
           }
         },
         "required": [
@@ -7304,10 +7678,12 @@
         "type": "object",
         "properties": {
           "date": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `date` 的业务含义请结合该接口上下文使用。"
           },
           "count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `count` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -7319,25 +7695,32 @@
         "type": "object",
         "properties": {
           "flow_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "flow 统计数量。"
           },
           "user_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "user 统计数量。"
           },
           "article_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "article 统计数量。"
           },
           "message_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "message 统计数量。"
           },
           "comment_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "评论数。"
           },
           "new_login_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "new_login 统计数量。"
           },
           "new_sign_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "new_sign 统计数量。"
           }
         },
         "required": [
@@ -7354,16 +7737,19 @@
         "type": "object",
         "properties": {
           "growth_rate": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `growth_rate` 的业务含义请结合该接口上下文使用。"
           },
           "growth_num": {
-            "type": "integer"
+            "type": "integer",
+            "description": "字段 `growth_num` 的业务含义请结合该接口上下文使用。"
           },
           "date_count_list": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DateCountItem"
-            }
+            },
+            "description": "date_count_list 列表数据。"
           }
         },
         "required": [
@@ -7379,7 +7765,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DateCountItem"
-            }
+            },
+            "description": "date_count_list 列表数据。"
           }
         },
         "required": [
@@ -7390,7 +7777,8 @@
         "type": "object",
         "properties": {
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           }
         },
         "required": [
@@ -7401,10 +7789,12 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           }
         },
         "required": [
@@ -7416,10 +7806,12 @@
         "type": "object",
         "properties": {
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "摘要或简介文本。"
           },
           "category": {
             "allOf": [
@@ -7427,13 +7819,15 @@
                 "$ref": "#/components/schemas/AIMetainfoOption"
               }
             ],
-            "nullable": true
+            "nullable": true,
+            "description": "字段 `category` 的业务含义请结合该接口上下文使用。"
           },
           "tags": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AIMetainfoOption"
-            }
+            },
+            "description": "标签列表。"
           }
         },
         "required": [
@@ -7446,66 +7840,85 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "主键 ID。"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录创建时间。"
           },
           "updated_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "记录最后更新时间。"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "标题文本。"
           },
           "abstract": {
-            "type": "string"
+            "type": "string",
+            "description": "摘要或简介文本。"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "正文内容，通常为 Markdown 或富文本内容。"
           },
           "cover": {
-            "type": "string"
+            "type": "string",
+            "description": "封面图片地址。"
           },
           "view_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "浏览次数。"
           },
           "digg_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "点赞次数。"
           },
           "comment_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "评论数。"
           },
           "favor_count": {
-            "type": "integer"
+            "type": "integer",
+            "description": "收藏数。"
           },
           "comments_toggle": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否开启评论。"
           },
           "status": {
-            "type": "integer"
+            "type": "integer",
+            "description": "当前资源状态值。"
           },
           "tags": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "标签列表。"
           },
           "user_top": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `user_top` 的业务含义请结合该接口上下文使用。"
           },
           "admin_top": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "字段 `admin_top` 的业务含义请结合该接口上下文使用。"
           },
           "category_title": {
-            "type": "string"
+            "type": "string",
+            "description": "分类标题。"
           },
           "user_nickname": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户昵称。"
           },
           "user_avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "关联用户头像地址。"
           }
         },
         "required": [
@@ -7530,10 +7943,12 @@
         "type": "object",
         "properties": {
           "captcha_id": {
-            "type": "string"
+            "type": "string",
+            "description": "关联的 captcha ID。"
           },
           "base64": {
-            "type": "string"
+            "type": "string",
+            "description": "字段 `base64` 的业务含义请结合该接口上下文使用。"
           }
         },
         "required": [
@@ -7545,25 +7960,32 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "主键 ID。"
           },
           "pipeline": {
-            "type": "string"
+            "type": "string",
+            "description": "七牛处理队列名。"
           },
           "code": {
-            "type": "integer"
+            "type": "integer",
+            "description": "业务状态码，0 通常表示成功，其它值表示不同失败场景。"
           },
           "desc": {
-            "type": "string"
+            "type": "string",
+            "description": "补充描述信息。"
           },
           "reqid": {
-            "type": "string"
+            "type": "string",
+            "description": "请求 ID，用于排查问题。"
           },
           "inputBucket": {
-            "type": "string"
+            "type": "string",
+            "description": "七牛输入桶名。"
           },
           "inputKey": {
-            "type": "string"
+            "type": "string",
+            "description": "七牛输入对象 key。"
           },
           "items": {
             "type": "array",
@@ -7607,7 +8029,8 @@
                   }
                 }
               }
-            }
+            },
+            "description": "字段 `items` 的数组数据。"
           }
         }
       },
