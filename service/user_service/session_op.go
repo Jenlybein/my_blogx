@@ -74,7 +74,7 @@ func RefreshTokens(refreshToken string, meta SessionMeta) (accessToken string, n
 		return "", "", nil, nil, ErrRefreshTokenInvalid
 	}
 	// 校验用户状态
-	if err = user.ValidateUserStatus(); err != nil {
+	if err = currentUser.ValidateUserStatus(); err != nil {
 		return "", "", nil, nil, err
 	}
 
@@ -122,7 +122,7 @@ func SetRefreshTokenCookie(c *gin.Context, refreshToken string) {
 		HttpOnly: true,                 // 禁止JS读取，防止XSS窃取
 		SameSite: http.SameSiteLaxMode, // 防止CSRF
 		Secure:   isSecureCookie(),     // 生产环境HTTPS才发送
-		MaxAge:   int(time.Duration(global.Config.Jwt.RefreshExpire) * time.Second),
+		MaxAge:   int(time.Duration(global.Config.Jwt.RefreshExpire) * time.Hour / time.Second),
 	})
 }
 

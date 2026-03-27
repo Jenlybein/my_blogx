@@ -150,11 +150,12 @@ qiniu:
   access_key: ******_access_key1
   secret_key: ******_secret_key1
   bucket: myblogx
-  uri: ""
+  uri: "https://cdn.example.com"
   region: z2
   prefix: myblogx
-  size: 0
-  expiry: 0
+  size: 5
+  expiry: 1800
+  callback_url: ""
 ai:
   enable: true
   secret: "******_secret2

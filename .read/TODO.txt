@@ -57,10 +57,29 @@ QQ登录 - https://video.fengfengzhidao.com/play/17/3391
 发送手机验证码需要企业资质，而邮箱验证码可以用个人邮箱。因此，目前项目的设置为必须绑定邮箱后才能依靠邮箱进行密码修改。
 
 
-采用（客户端初步验证图片格式）-> （发送图片元信息给后端）->（后端签发临时签证）->（客户端上传图片到对象存储）->（后端回调对象存储中文件元数据-校验是否为真实图片，保证安全）
-
-
 利用mcp操控apifox写好接口测试
 
 
 分析：站点信息变更是否有更好的模式
+
+
+日志系统如何更好的存储数据到数据库里，又怎么返回给前端
+
+
+写个脚本，定期同步数据库与七牛云中图片结果，清除未记载在数据库的图片
+判断图片是否被使用是要增加一张引用表
+出现以下情况时，就建立引用数据： 
+- 每次文章保存时，解析 Markdown 里的图片 URL
+- 用户头像、文章封面、Banner、收藏夹封面
+参考的结构，非最终结果：
+type ImageRefModel struct {
+    ID         ctype.ID
+    ImageID    ctype.ID
+    OwnerType  string // article, user, banner, favorite
+    OwnerID    ctype.ID
+    Field      string // content, cover, avatar
+    CreatedAt  time.Time
+}
+
+
+七牛云启用内容审核，增加一个callback接口

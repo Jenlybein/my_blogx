@@ -81,7 +81,7 @@ river:
         - cover
         - comments_toggle
   charset: "utf8mb4"
-  mysqldump: "/usr/local/bin/mariadb-dump-wrapper"
+  mysqldump: "mysqldump"
   skip_master_data: true
   bulk_size: 128
   flush_bulk_time: 200
@@ -150,11 +150,12 @@ qiniu:
   access_key: ******_access_key1
   secret_key: ******_secret_key1
   bucket: myblogx
-  uri: ""
+  uri: "https://REDACTED_CDN_DOMAIN"
   region: z2
   prefix: myblogx
-  size: 0
-  expiry: 0
+  size: 5
+  expiry: 1800
+  callback_url: ""
 ai:
   enable: true
   secret: "******_secret2

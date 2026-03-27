@@ -70,34 +70,63 @@ func MustAuthenticateAccessTokenByGin(c *gin.Context) *AuthResult {
 // 流程：解析Token → 校验黑名单 → 查用户 → 校验状态 → 校验令牌版本 → 校验会话
 func AuthenticateAccessToken(token string) (*AuthResult, error) {
 	if token == "" {
+		global.Logger.Warn("访问令牌鉴权失败: token 为空")
 		return nil, ErrAuthRequired
 	}
 
 	// 解析令牌
 	claims, err := jwts.ParseToken(token)
-	if err != nil || claims.SessionID == 0 {
+	if err != nil {
+		global.Logger.Warnf("访问令牌鉴权失败: 解析 token 失败 err=%v", err)
+		return nil, ErrAuthInvalid
+	}
+	if claims.SessionID == 0 {
+		global.Logger.Warnf("访问令牌鉴权失败: session_id 为空 user_id=%s", claims.UserID.String())
 		return nil, ErrAuthInvalid
 	}
 
 	// 校验令牌是否在Redis黑名单中
-	if _, ok := redis_jwt.HasTokenBlack(token); !ok {
+	if blackType, ok := redis_jwt.HasTokenBlack(token); !ok {
+		global.Logger.Warnf(
+			"访问令牌鉴权失败: token 命中黑名单或黑名单检查异常 user_id=%s session_id=%s reason=%s",
+			claims.UserID.String(),
+			claims.SessionID.String(),
+			blackType.String(),
+		)
 		return nil, ErrAuthInvalid
 	}
 
 	// 查询用户是否存在，并校验令牌版本
-	var user models.UserModel
-	if err = global.DB.Take(&user, claims.UserID).Error; err != nil || !user.CheckTokenVersion(claims.TokenVersion) {
+	user, err := loadAuthUser(claims.UserID)
+	if err != nil {
+		global.Logger.Warnf("访问令牌鉴权失败: 查询用户失败 user_id=%s err=%v", claims.UserID.String(), err)
+		return nil, ErrAuthInvalid
+	}
+	if !user.CheckTokenVersion(claims.TokenVersion) {
+		global.Logger.Warnf(
+			"访问令牌鉴权失败: token_version 不匹配 user_id=%s token=%d db=%d",
+			claims.UserID.String(),
+			claims.TokenVersion,
+			user.TokenVersion,
+		)
 		return nil, ErrAuthInvalid
 	}
 
 	// 校验用户状态
 	if err = user.ValidateUserStatus(); err != nil {
+		global.Logger.Warnf("访问令牌鉴权失败: 用户状态无效 user_id=%s status=%d err=%v", user.ID.String(), user.Status, err)
 		return nil, err
 	}
 
 	// 校验会话是否有效（未吊销、未过期、归属正确）
 	session, err := getSession(claims.SessionID, claims.UserID)
 	if err != nil {
+		global.Logger.Warnf(
+			"访问令牌鉴权失败: 查询会话失败 user_id=%s session_id=%s err=%v",
+			claims.UserID.String(),
+			claims.SessionID.String(),
+			err,
+		)
 		return nil, ErrAuthInvalid
 	}
 
@@ -110,7 +139,7 @@ func AuthenticateAccessToken(token string) (*AuthResult, error) {
 	return &AuthResult{
 		Token:   token,
 		Claims:  claims,
-		User:    &user,
+		User:    user,
 		Session: session,
 	}, nil
 }
@@ -119,22 +148,26 @@ func AuthenticateAccessToken(token string) (*AuthResult, error) {
 // 用于内部服务、跨服务鉴权
 func AuthenticateSession(userID, sessionID ctype.ID) (*AuthResult, error) {
 	if userID == 0 || sessionID == 0 {
+		global.Logger.Warnf("会话鉴权失败: user_id 或 session_id 为空 user_id=%s session_id=%s", userID.String(), sessionID.String())
 		return nil, ErrAuthInvalid
 	}
 
 	// 查询用户是否存在
-	var user models.UserModel
-	if err := global.DB.Take(&user, userID).Error; err != nil {
+	user, err := loadAuthUser(userID)
+	if err != nil {
+		global.Logger.Warnf("会话鉴权失败: 查询用户失败 user_id=%s err=%v", userID.String(), err)
 		return nil, ErrAuthInvalid
 	}
 	// 校验用户状态（正常/禁用/封禁）
 	if err := user.ValidateUserStatus(); err != nil {
+		global.Logger.Warnf("会话鉴权失败: 用户状态无效 user_id=%s status=%d err=%v", user.ID.String(), user.Status, err)
 		return nil, err
 	}
 
 	// 查询会话：必须有效、未吊销、未过期
 	session, err := getSession(sessionID, userID)
 	if err != nil {
+		global.Logger.Warnf("会话鉴权失败: 查询会话失败 user_id=%s session_id=%s err=%v", userID.String(), sessionID.String(), err)
 		return nil, ErrAuthInvalid
 	}
 
@@ -149,9 +182,20 @@ func AuthenticateSession(userID, sessionID ctype.ID) (*AuthResult, error) {
 				Role:         user.Role,
 			},
 		},
-		User:    &user,
+		User:    user,
 		Session: session,
 	}, nil
+}
+
+func loadAuthUser(userID ctype.ID) (*models.UserModel, error) {
+	var snapshot models.UserModel
+	if err := global.DB.
+		Select("id", "username", "role", "status", "token_version").
+		Take(&snapshot, userID).Error; err != nil {
+		return nil, err
+	}
+
+	return &snapshot, nil
 }
 
 // 校验会话是否有效（未吊销、未过期、归属正确）

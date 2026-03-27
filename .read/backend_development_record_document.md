@@ -3016,9 +3016,9 @@ ES 里的文章计数来自索引文档，而项目里的点赞 / 收藏 / 浏�
 
 ## 申请证书
 
-进入服务器后台管理，开放 80 和 443 端口，并新增解析记录。
+### 安装 CertBot
 
-然后，在 Ubuntu 上通过 Snap 包管理器安装 `Let's Encrypt` 的 `Certbot` 工具（用于免费申请和管理 HTTPS 证书）
+在 Ubuntu 上通过 Snap 包管理器安装 `Let's Encrypt` 的 `Certbot` 工具（用于免费申请和管理 HTTPS 证书）
 
 ```bash
 apt update
@@ -3029,21 +3029,115 @@ snap install --classic certbot
 ln -sf /snap/bin/certbot /usr/bin/certbot
 ```
 
-用 `Certbot` 获取证书
+### HTTP-01 方式
+
+#### 简介
+
+Let’s Encrypt 会访问你的网站：
+
+```
+http://yourdomain.com/.well-known/acme-challenge/xxx
+```
+
+如果返回正确内容 → 证明你控制这个域名
+
+必须开放 **80端口**，在 80 端口放一个文件让 CA 访问，80 端口不能被占用（nginx / go 服务要停）
+
+CDN 场景容易失败
+
+#### 实操
+
+进入服务器后台管理，开放 80 和 443 端口，并新增解析记录。
+
+然后，用 `Certbot` 获取证书
 
 ```bash
-certbot certonly --standalone \
+sudo certbot certonly --standalone \
   -d 你的域名 \
   --agree-tos \
   -m 你的邮箱(用于接收失效信息) \
   --non-interactive
-  
+
 # 获取完后会提示证书位置
 # Certificate is saved at:
 # /etc/letsencrypt/live/你的域名/fullchain.pem
 # Key is saved at:
 # /etc/letsencrypt/live/你的域名/privkey.pem
 ```
+
+### DNS-01
+
+#### 简介
+
+Let’s Encrypt 会检查：
+
+```
+_acme-challenge.yourdomain.com 的 TXT 记录
+```
+
+如果存在指定值 → 验证通过
+
+#### 实操
+
+用 `Certbot` 获取证书
+
+```bash
+sudo certbot certonly \
+  -d 你的域名 \
+  --manual \
+  --preferred-challenges dns \
+  --agree-tos \
+  -m 你的邮箱
+```
+
+然后，弹出提示如下：
+```bash
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Please deploy a DNS TXT record under the name:
+
+_acme-challenge.你的域名
+
+with the following value:
+
+要填入的检验码
+
+Before continuing, verify the TXT record has been deployed. Depending on the DNS
+provider, this may take some time, from a few seconds to multiple minutes. You can
+check if it has finished deploying with aid of online tools, such as the Google
+Admin Toolbox: https://toolbox.googleapps.com/apps/dig/#TXT/_acme-challenge.你的域名.
+Look for one or more bolded line(s) below the line ';ANSWER'. It should show the
+value(s) you've just added.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Press Enter to Continue
+```
+
+这时，前往你的域名管理后台，添加一条解析记录：
+
+- 域名：_acme-challenge.你的域名
+- 类型：TXT
+- 记录值：上面提到的`要填入的检验码`
+
+添加完成后，使用访问工具，看看检验码有没有被检测出来：
+
+```bash
+# 浏览器访问：
+https://toolbox.googleapps.com/apps/dig/#TXT/_acme-challenge.你的域名
+```
+
+多次刷新，直到成功拿到对应的检验码，然后回到申请的地方按下 Enter 继续即可（一般要等个几分钟）
+
+```bash
+# 获取完后会提示证书位置
+# Certificate is saved at:
+# /etc/letsencrypt/live/你的域名/fullchain.pem
+# Key is saved at:
+# /etc/letsencrypt/live/你的域名/privkey.pem
+```
+
+
+
+### 拿出证书
 
 复制到部署目录
 
@@ -3068,8 +3162,6 @@ cp /etc/letsencrypt/live/你的域名/fullchain.pem /opt/myblogx/myblogx_server/
 cp /etc/letsencrypt/live/你的域名/privkey.pem /opt/myblogx/myblogx_server/deploy/nginx/cert/domain.key
 cd /opt/myblogx/myblogx_server/deploy && docker compose restart blog_web
 ```
-
-
 
 # 七、非功能性需求（忽略此部分，暂不更改，后续视开发进度进行补充）
 

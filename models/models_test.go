@@ -81,8 +81,8 @@ func TestModelMethods(t *testing.T) {
 		t.Fatal("PipelineName 不应为空")
 	}
 
-	img := models.ImageModel{Path: "uploads/a.png"}
-	if img.WebPath() != "/uploads/a.png" {
+	img := models.ImageModel{URL: "https://cdn.example.com/a.png"}
+	if img.WebPath() != "https://cdn.example.com/a.png" {
 		t.Fatalf("WebPath 错误: %s", img.WebPath())
 	}
 

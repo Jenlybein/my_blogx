@@ -23,13 +23,13 @@ type UserModel struct {
 	Email                 *string                 `gorm:"size:256;uniqueIndex:uk_user_email" json:"email"`
 	OpenID                *string                 `gorm:"size:64;uniqueIndex:uk_user_open_id" json:"open_id"` // qq 登录的 openid
 	Status                enum.UserStatus         `gorm:"default:1;index" json:"status"`
-	TokenVersion          uint32                  `gorm:"default:1" json:"-"`
-	LastPasswordChangedAt *time.Time              `json:"-"`
+	TokenVersion          uint32                  `gorm:"default:1" json:"token_version"`
+	LastPasswordChangedAt *time.Time              `json:"last_password_changed_at"`
 	Role                  enum.RoleType           `gorm:"default:0" json:"role"`
 	IP                    string                  `gorm:"size:64" json:"ip"`    // 注册时的 IP
 	Addr                  string                  `gorm:"size:256" json:"addr"` // 注册时的地址
-	UserConfModel         *UserConfModel          `gorm:"foreignKey:UserID;" json:"-"`
-	LoginList             []UserLoginModel        `gorm:"foreignKey:UserID" json:"-"`
+	UserConfModel         *UserConfModel          `gorm:"foreignKey:UserID;" json:"user_conf_model"`
+	LoginList             []UserLoginModel        `gorm:"foreignKey:UserID" json:"login_list"`
 }
 
 func (u *UserModel) BeforeCreate(tx *gorm.DB) (err error) {
