@@ -284,6 +284,7 @@ services:
       #   condition: service_healthy
     volumes:
       - ./blog_server/settings.yaml:/app/settings.yaml
+      - ./blog_server/site_default_settings.yaml:/app/site_default_settings.yaml
       - ./blog_server/uploads:/app/uploads
       - ./blog_server/logs:/app/logs
       - ./blog_server/var:/app/var

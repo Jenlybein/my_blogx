@@ -3,14 +3,18 @@ package site_api_test
 import (
 	"bytes"
 	"encoding/json"
-	"myblogx/api/site_api"
-	"myblogx/conf"
-	"myblogx/global"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"testing"
+
+	"myblogx/api/site_api"
+	"myblogx/conf"
+	confsite "myblogx/conf/site"
+	"myblogx/global"
+	"myblogx/models"
+	"myblogx/service/site_service"
+	"myblogx/test/testutil"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,26 +38,39 @@ func readSiteCode(t *testing.T, w *httptest.ResponseRecorder) int {
 
 func setupSiteApiEnv(t *testing.T) {
 	t.Helper()
-	cfgFile := filepath.Join(t.TempDir(), "settings.yaml")
-	global.Flags = &global.FlagRecord{File: cfgFile}
+	testutil.SetupSQLite(t, &models.RuntimeSiteConfigModel{})
 	global.Config = &conf.Config{
-		Site: conf.Site{},
+		Site: conf.Site{
+			SiteInfo: confsite.SiteInfo{
+				Title: "技术博客",
+				Logo:  "/logo.png",
+			},
+			Project: confsite.Project{
+				Title: "项目标题",
+				Icon:  "/favicon.ico",
+			},
+			Seo: confsite.Seo{
+				Keywords:    "go,blog",
+				Description: "站点描述",
+			},
+		},
 		QQ: conf.QQ{
 			AppID:    "app-id",
 			AppKey:   "app-key-origin",
 			Redirect: "https://example.com/callback",
 		},
-		Email: conf.Email{
-			Domain:   "smtp.example.com",
-			Port:     465,
-			AuthCode: "email-auth-origin",
-		},
-		QiNiu: conf.QiNiu{
-			SecretKey: "qiniu-secret-origin",
-		},
 		AI: conf.AI{
+			Enable:    true,
 			SecretKey: "ai-secret-origin",
+			BaseURL:   "https://ai.example.com/v1/chat/completions",
+			ChatModel: "gpt-test",
+			Nickname:  "AI 助手",
+			Avatar:    "/ai.png",
+			Abstract:  "你好",
 		},
+	}
+	if err := site_service.InitRuntimeConfig(); err != nil {
+		t.Fatalf("初始化运行时站点配置失败: %v", err)
 	}
 }
 
@@ -84,26 +101,39 @@ func TestSiteInfoViews(t *testing.T) {
 		}
 	})
 
+	t.Run("SEO 信息", func(t *testing.T) {
+		c, w := newSiteCtx(httptest.NewRequest(http.MethodGet, "/site/seo", nil))
+		api.SiteSEOView(c)
+		if code := readSiteCode(t, w); code != 0 {
+			t.Fatalf("SEO 接口应成功, body=%s", w.Body.String())
+		}
+		if !strings.Contains(w.Body.String(), "项目标题") || !strings.Contains(w.Body.String(), "站点描述") {
+			t.Fatalf("SEO 返回异常: %s", w.Body.String())
+		}
+	})
+
+	t.Run("AI 信息", func(t *testing.T) {
+		c, w := newSiteCtx(httptest.NewRequest(http.MethodGet, "/site/ai_info", nil))
+		api.SiteInfoAIView(c)
+		if code := readSiteCode(t, w); code != 0 {
+			t.Fatalf("AI 信息接口应成功, body=%s", w.Body.String())
+		}
+		if !strings.Contains(w.Body.String(), "AI 助手") {
+			t.Fatalf("AI 信息返回异常: %s", w.Body.String())
+		}
+	})
+
 	t.Run("管理员敏感信息脱敏", func(t *testing.T) {
-		type pair struct {
-			name string
-			key  string
-		}
-		cases := []pair{
-			{name: "email", key: "auth_code"},
-			{name: "qq", key: "app_key"},
-			{name: "qiniu", key: "secret_key"},
-			{name: "ai", key: "secret"},
-		}
-		for _, tc := range cases {
-			c, w := newSiteCtx(httptest.NewRequest(http.MethodGet, "/admin/"+tc.name, nil))
-			c.Set("requestUri", site_api.SiteInfoRequest{Name: tc.name})
+		cases := []string{"site", "ai"}
+		for _, name := range cases {
+			c, w := newSiteCtx(httptest.NewRequest(http.MethodGet, "/admin/"+name, nil))
+			c.Set("requestUri", site_api.SiteInfoRequest{Name: name})
 			api.SiteInfoAdminView(c)
 			if code := readSiteCode(t, w); code != 0 {
-				t.Fatalf("%s 管理接口应成功, body=%s", tc.name, w.Body.String())
+				t.Fatalf("%s 管理接口应成功, body=%s", name, w.Body.String())
 			}
-			if !strings.Contains(w.Body.String(), "******") {
-				t.Fatalf("%s 未脱敏, body=%s", tc.name, w.Body.String())
+			if name == "ai" && !strings.Contains(w.Body.String(), "******") {
+				t.Fatalf("%s 未脱敏, body=%s", name, w.Body.String())
 			}
 		}
 	})
@@ -134,28 +164,49 @@ func TestSiteUpdateView(t *testing.T) {
 	})
 
 	t.Run("JSON绑定失败", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/site/email", bytes.NewBufferString(`{"port":"bad"}`))
+		req := httptest.NewRequest(http.MethodPost, "/site/ai", bytes.NewBufferString(`{"timeout_sec":"bad"}`))
 		req.Header.Set("Content-Type", "application/json")
 		c, w := newSiteCtx(req)
-		c.Set("requestUri", site_api.SiteInfoRequest{Name: "email"})
+		c.Set("requestUri", site_api.SiteInfoRequest{Name: "ai"})
 		api.SiteUpdateView(c)
 		if code := readSiteCode(t, w); code == 0 {
 			t.Fatalf("JSON 类型错误应失败, body=%s", w.Body.String())
 		}
 	})
 
-	t.Run("敏感字段占位符保留原值", func(t *testing.T) {
-		body := `{"domain":"smtp2.example.com","port":465,"send_email":"a@b.com","auth_code":"******","send_nickname":"n","ssl":true,"tls":false}`
-		req := httptest.NewRequest(http.MethodPost, "/site/email", bytes.NewBufferString(body))
+	t.Run("AI 敏感字段占位符保留原值", func(t *testing.T) {
+		body := `{"enable":true,"secret":"******","base_url":"https://new-ai.example.com","chat_model":"gpt-4.1","nickname":"新助手","avatar":"/new-ai.png","abstract":"新的简介"}`
+		req := httptest.NewRequest(http.MethodPost, "/site/ai", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
 		c, w := newSiteCtx(req)
-		c.Set("requestUri", site_api.SiteInfoRequest{Name: "email"})
+		c.Set("requestUri", site_api.SiteInfoRequest{Name: "ai"})
 		api.SiteUpdateView(c)
 		if code := readSiteCode(t, w); code != 0 {
-			t.Fatalf("email 更新应成功, body=%s", w.Body.String())
+			t.Fatalf("ai 更新应成功, body=%s", w.Body.String())
 		}
-		if global.Config.Email.AuthCode != "email-auth-origin" {
-			t.Fatalf("占位符应保留原 auth_code, got=%s", global.Config.Email.AuthCode)
+		if global.Config.AI.SecretKey != "ai-secret-origin" {
+			t.Fatalf("占位符应保留原 ai secret, got=%s", global.Config.AI.SecretKey)
+		}
+		if global.Config.AI.BaseURL != "https://new-ai.example.com" {
+			t.Fatalf("AI base_url 未更新, got=%s", global.Config.AI.BaseURL)
+		}
+	})
+
+	t.Run("站点运行时配置写入数据库", func(t *testing.T) {
+		body := `{"site_info":{"title":"新站点","logo":"/new-logo.png","beian":"粤ICP备0001号","mode":1},"project":{"title":"新项目","icon":"/new.ico","web_path":"uploads/index.html"},"seo":{"keywords":"k1,k2","description":"新的描述"},"about":{"site_date":"","qq":"","wechat":"","gitee":"","bilibili":"","github":""},"login":{"qq_login":true,"username_pwd_login":true,"email_login":true,"captcha":false,"email_code_timeout":10,"login_fail_window_minute":15,"login_fail_user_max":5,"login_fail_ip_max":20,"email_send_window_second":60,"email_send_per_email_max":1,"email_send_per_ip_max":10},"index_right":{"list":[]},"article":{"skip_examining":true},"comment":{"skip_examining":true}}`
+		req := httptest.NewRequest(http.MethodPost, "/site/site", bytes.NewBufferString(body))
+		req.Header.Set("Content-Type", "application/json")
+		c, w := newSiteCtx(req)
+		c.Set("requestUri", site_api.SiteInfoRequest{Name: "site"})
+		api.SiteUpdateView(c)
+		if code := readSiteCode(t, w); code != 0 {
+			t.Fatalf("site 更新应成功, body=%s", w.Body.String())
+		}
+		if global.Config.Site.SiteInfo.Title != "新站点" {
+			t.Fatalf("站点标题未更新, got=%s", global.Config.Site.SiteInfo.Title)
+		}
+		if got := site_service.GetRuntimeSite().Seo.Description; got != "新的描述" {
+			t.Fatalf("运行时站点配置未更新, got=%s", got)
 		}
 	})
 }

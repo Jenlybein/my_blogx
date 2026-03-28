@@ -3,7 +3,6 @@ module myblogx
 go 1.25.1
 
 require (
-	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/alicebob/miniredis/v2 v2.37.0
 	github.com/blackstork-io/goldmark-markdown v0.1.3
 	github.com/bwmarrin/snowflake v0.3.0
@@ -48,7 +47,6 @@ require (
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/alex-ant/gomath v0.0.0-20160516115720-89013a210a82 // indirect
-	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect

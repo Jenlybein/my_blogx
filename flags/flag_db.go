@@ -23,6 +23,7 @@ func FlagDB(db *gorm.DB) {
 		&models.UserTopArticleModel{},
 		&models.ImageModel{},
 		&models.ImageRefModel{},
+		&models.RuntimeSiteConfigModel{},
 		&models.CommentModel{},
 		&models.LogModel{},
 		&models.BannerModel{},

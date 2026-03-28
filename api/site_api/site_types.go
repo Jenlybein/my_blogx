@@ -11,3 +11,12 @@ type SiteAIResponse struct {
 	Avatar   string `json:"avatar"`
 	Abstract string `json:"abstract"`
 }
+
+type SiteSEOResponse struct {
+	SiteTitle    string `json:"site_title"`
+	ProjectTitle string `json:"project_title"`
+	Logo         string `json:"logo"`
+	Icon         string `json:"icon"`
+	Keywords     string `json:"keywords"`
+	Description  string `json:"description"`
+}

@@ -107,44 +107,6 @@ upload:
     - gif
     - webp
   upload_dir: images001
-site:
-  site_info:
-    title: 技术博客
-    logo: ""
-    beian: ""
-    mode: 1
-  project:
-    title: 技术博客
-    icon: /xxx.png
-    web_path: uploads/index.html
-  seo:
-    keywords: ""
-    description: ""
-  about:
-    site_date: ""
-    qq: ""
-    wechat: ""
-    gitee: ""
-    bilibili: ""
-    github: ""
-  login:
-    qq_login: false
-    username_pwd_login: true
-    email_login: true
-    captcha: false
-    email_code_timeout: 5
-    login_fail_window_minute: 15
-    login_fail_user_max: 5
-    login_fail_ip_max: 20
-    email_send_window_second: 60
-    email_send_per_email_max: 1
-    email_send_per_ip_max: 10
-  index_right:
-    list: []
-  article:
-    skip_examining: true
-  comment:
-    skip_examining: true
 email:
   domain: ******_domain1
   port: ******_port5
@@ -168,16 +130,3 @@ qiniu:
   size: 5
   expiry: 1800
   callback_url: ""
-ai:
-  enable: true
-  secret: "******_secret2
-  base_url: "******_base_url1
-  chat_model: "gpt-3.5-turbo"
-  reason_model: ""
-  timeout_sec:
-  max_input_chars:
-  temperature:
-  daily_quota:
-  abstract: "你好！我是我的博客的AI助手，可以帮助你找到喜欢的文章！"
-  nickname: "博客AI助手"
-  avatar: ""

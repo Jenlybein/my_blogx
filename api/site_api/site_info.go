@@ -5,6 +5,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/service/redis_service/redis_site"
+	"myblogx/service/site_service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,9 +20,22 @@ func (s SiteApi) SiteInfoView(c *gin.Context) {
 	// 站点版本
 	case "site":
 		redis_site.SetFlow()
-		rep := global.Config.Site
+		rep := site_service.GetRuntimeSite()
 		rep.About.Version = global.Version
 		data = rep
+	case "seo":
+		site := site_service.GetRuntimeSite()
+		data = SiteSEOResponse{
+			SiteTitle:    site.SiteInfo.Title,
+			ProjectTitle: site.Project.Title,
+			Logo:         site.SiteInfo.Logo,
+			Icon:         site.Project.Icon,
+			Keywords:     site.Seo.Keywords,
+			Description:  site.Seo.Description,
+		}
+	default:
+		res.FailWithMsg("站点信息不存在", c)
+		return
 	}
 
 	res.OkWithData(data, c)
@@ -34,20 +48,12 @@ func (s SiteApi) SiteInfoAdminView(c *gin.Context) {
 	var data any
 
 	switch cr.Name {
-	case "email":
-		rep := global.Config.Email
-		rep.AuthCode = sensitive_place_holder
-		data = rep
-	case "qq":
-		rep := global.Config.QQ
-		rep.AppKey = sensitive_place_holder
-		data = rep
-	case "qiniu":
-		rep := global.Config.QiNiu
-		rep.SecretKey = sensitive_place_holder
+	case "site":
+		rep := site_service.GetRuntimeSite()
+		rep.About.Version = global.Version
 		data = rep
 	case "ai":
-		rep := global.Config.AI
+		rep := site_service.GetRuntimeAI()
 		rep.SecretKey = sensitive_place_holder
 		data = rep
 	default:

@@ -10,6 +10,7 @@
 # 要脱敏的文件列表
 files=(
   "settings.yaml"
+  "site_default_settings.yaml"
   # "src/config/.env"
   # "application.yml"
 )

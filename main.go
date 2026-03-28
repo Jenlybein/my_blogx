@@ -28,6 +28,9 @@ func main() {
 	global.ESClient = core.EsConnect(&global.Config.ES)
 
 	flags.Run(flag, global.DB)
+	if err := core.InitRuntimeSite(); err != nil {
+		panic(err)
+	}
 
 	core.InitMySQLES()
 	core.InitImageRefRiver()
