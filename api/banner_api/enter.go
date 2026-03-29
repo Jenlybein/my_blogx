@@ -7,6 +7,8 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/log_service"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,6 +33,14 @@ func (BannerApi) BannerCreateView(c *gin.Context) {
 		res.FailWithError(err, c)
 		return
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:  "banner_create",
+		TargetType:  "banner",
+		TargetID:    strconv.FormatUint(uint64(model.ID), 10),
+		Success:     true,
+		Message:     "创建轮播图成功",
+		RequestBody: cr,
+	})
 
 	res.OkWithMsg("创建轮播图成功", c)
 }
@@ -70,6 +80,16 @@ func (BannerApi) BannerRemoveView(c *gin.Context) {
 			return
 		}
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:  "banner_remove",
+		TargetType:  "banner",
+		Success:     true,
+		Message:     fmt.Sprintf("请求删除轮播图%d个, 成功%d条", len(cr.IDList), len(list)),
+		RequestBody: map[string]any{"id_list": cr.IDList},
+		ResponseBody: map[string]any{
+			"deleted_count": len(list),
+		},
+	})
 
 	res.OkWithMsg(fmt.Sprintf("请求删除轮播图%d个, 成功%d条", len(cr.IDList), len(list)), c)
 }
@@ -93,6 +113,14 @@ func (BannerApi) BannerUpdateView(c *gin.Context) {
 		res.FailWithError(err, c)
 		return
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:  "banner_update",
+		TargetType:  "banner",
+		TargetID:    strconv.FormatUint(uint64(model.ID), 10),
+		Success:     true,
+		Message:     "更新轮播图成功",
+		RequestBody: cr,
+	})
 
 	res.OkWithMsg("更新轮播图成功", c)
 }

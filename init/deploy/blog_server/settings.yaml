@@ -13,15 +13,19 @@ log:
   app: blogx_server
   dir: ./logs
   level: info
+  stdout_format: json
+  request_log_enabled: true
+  query_default_limit: 20
+  query_max_limit: 200
 db:
-  - host: ******_addr1
+  - host: mysql-master
     port: ******_port2
     user: admin
     password: ******_password1
     dbname: blogx
     source: mysql
-  - host: ******_addr1
-    port: ******_port3
+  - host: mysql-slave
+    port: ******_port2
     user: admin
     password: ******_password1
     dbname: blogx
@@ -32,7 +36,7 @@ gorm:
   max_open_conns: 100
   conn_max_lifetime: 1
 redis:
-  addr: ******_addr1
+  addr: redis
   port: ******_port4
   username: default
   password: ******_password1
@@ -47,19 +51,29 @@ kafka:
     password: ******_password2
 es:
   addresses:
-    - http://******_addr1:9200
+    - http://es:9200
   username: elastic
   password: ******_password1
   index: article_index
-  addr: ******_addr1:9200
+  addr: es:9200
   is_https: false
+clickhouse:
+  enabled: true
+  addresses:
+    - clickhouse:9000
+  database: blogx_logs
+  username: default
+  password: ******_password1
+  dial_timeout: 5
+  max_open_conns: 10
+  max_idle_conns: 5
 river:
   enabled: true
   server_id: 1001
   flavor: mysql
   data_dir: ./var
   mysql:
-    addr: ******_addr1:******_port2
+    addr: mysql-master:******_port2
     user: admin
     password: ******_password1
   source:
@@ -91,7 +105,7 @@ image_ref_river:
   flavor: mysql
   schema: blogx
   mysql:
-    addr: ******_addr1:******_port2
+    addr: mysql-master:******_port2
     user: admin
     password: ******_password1
   charset: "utf8mb4"
@@ -124,7 +138,7 @@ qiniu:
   access_key: ******_access_key1
   secret_key: ******_secret_key1
   bucket: myblogx
-  uri: "https://cdn.example.com"
+  uri: "https://REDACTED_CDN_DOMAIN"
   region: z2
   prefix: myblogx
   size: 5

@@ -35,7 +35,7 @@ func (f *FavoriteModel) BeforeDelete(tx *gorm.DB) (err error) {
 
 	for _, favor := range favorList {
 		if err = redis_article.SetCacheFavorite(favor.ArticleID, -1); err != nil {
-			global.Logger.Errorf("文章收藏数据减一失败 err: %v", err)
+			global.Logger.Errorf("文章收藏数据减一失败: 错误=%v", err)
 		}
 	}
 

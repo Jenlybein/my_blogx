@@ -18,8 +18,8 @@ import (
 )
 
 type CommentCreateRequest struct {
-	Content   string `json:"content" binding:"required"`
-	ArticleID ctype.ID `json:"article_id" binding:"required"`
+	Content   string    `json:"content" binding:"required"`
+	ArticleID ctype.ID  `json:"article_id" binding:"required"`
 	ReplyId   *ctype.ID `json:"reply_id"`
 }
 
@@ -105,11 +105,11 @@ func (CommentApi) CommentCreateView(c *gin.Context) {
 
 		// 只有已发布评论才计入前台计数
 		if err := redis_article.SetCacheComment(cr.ArticleID, 1); err != nil {
-			global.Logger.Errorf("写入评论计数缓存失败 article_id=%d err=%v", cr.ArticleID, err)
+			global.Logger.Errorf("写入评论计数缓存失败: 文章ID=%d 错误=%v", cr.ArticleID, err)
 		}
 		if rootCommentID != 0 {
 			if err := redis_comment.SetCacheReply(rootCommentID, 1); err != nil {
-				global.Logger.Errorf("写入回复数缓存失败 root_comment_id=%d err=%v", rootCommentID, err)
+				global.Logger.Errorf("写入回复数缓存失败: 根评论ID=%d 错误=%v", rootCommentID, err)
 			}
 		}
 		res.OkWithMsg("评论成功", c)

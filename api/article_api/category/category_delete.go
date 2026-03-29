@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/log_service"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -29,14 +30,14 @@ func (CategoryApi) CategoryDeleteView(c *gin.Context) {
 
 	var list []models.CategoryModel
 	if err := global.DB.Where(query).Find(&list).Error; err != nil {
-		global.Logger.Errorf("寻找对应的分类失败 err: %v", err)
+		global.Logger.Errorf("查找对应分类失败: 错误=%v", err)
 		res.FailWithMsg("寻找对应的分类失败", c)
 		return
 	}
 
 	if len(list) > 0 {
 		if err := global.DB.Delete(&list).Error; err != nil {
-			global.Logger.Errorf("删除对应的分类失败 err: %v", err)
+			global.Logger.Errorf("删除对应分类失败: 错误=%v", err)
 			res.FailWithMsg("删除分类失败", c)
 			return
 		}
@@ -44,6 +45,16 @@ func (CategoryApi) CategoryDeleteView(c *gin.Context) {
 		res.FailWithMsg("未找到需删除的分类", c)
 		return
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:  "category_delete",
+		TargetType:  "category",
+		Success:     true,
+		Message:     fmt.Sprintf("删除分类成功，共删除 %d 条", len(list)),
+		RequestBody: map[string]any{"id_list": cr.IDList},
+		ResponseBody: map[string]any{
+			"deleted_count": len(list),
+		},
+	})
 
 	res.OkWithMsg(fmt.Sprintf("删除分类成功，共删除 %d 条", len(list)), c)
 }

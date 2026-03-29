@@ -7,7 +7,7 @@ import (
 
 func InitMySQLES() {
 	if !global.Config.River.Enabled {
-		global.Logger.Infof("配置中未启用mysql同步操作")
+		global.Logger.Infof("配置中未启用 MySQL 同步任务")
 		return
 	}
 

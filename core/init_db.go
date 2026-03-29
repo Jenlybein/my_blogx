@@ -91,8 +91,8 @@ func InitDB(dbCfg []conf.DB) *gorm.DB {
 	logConfig := logger.Config{
 		SlowThreshold:             time.Second, // 慢查询阈值（超过 1 秒标红）
 		LogLevel:                  logger.Warn, // SQL 日志级别（Debug 核心）
-		Colorful:                  true,        // 彩色输出（开发环境友好）
-		IgnoreRecordNotFoundError: true,        // 忽略记录不存在错误
+		Colorful:                  global.Config.Log.StdoutFormat == "text",
+		IgnoreRecordNotFoundError: true, // 忽略记录不存在错误
 
 	}
 	if global.Config.GORM.Debug {
@@ -119,7 +119,7 @@ func InitDB(dbCfg []conf.DB) *gorm.DB {
 		global.Logger.Fatalf("数据库连接失败: %s", err)
 	}
 
-	global.Logger.Infof("数据库连接成功 %s", dsn)
+	global.Logger.Infof("数据库连接成功 %s", DB.SafeDSN())
 
 	// 从配置文件中读取 gorm 配置
 	gormConf := global.Config.GORM

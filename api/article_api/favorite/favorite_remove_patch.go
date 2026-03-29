@@ -55,14 +55,14 @@ func (f FavoriteApi) FavoriteRemovePatchView(c *gin.Context) {
 			res.FailWithMsg("未找到需要取消收藏的文章", c)
 			return
 		}
-		global.Logger.Errorf("批量取消收藏失败 favorite_id=%d err=%v", cr.FavoriteID, err)
+		global.Logger.Errorf("批量取消收藏失败: 收藏夹ID=%d 错误=%v", cr.FavoriteID, err)
 		res.FailWithMsg("批量取消收藏失败", c)
 		return
 	}
 
 	for _, relation := range relationList {
 		if err := redis_article.SetCacheFavorite(relation.ArticleID, -1); err != nil {
-			global.Logger.Errorf("更新文章收藏缓存失败 article_id=%d err=%v", relation.ArticleID, err)
+			global.Logger.Errorf("更新文章收藏缓存失败: 文章ID=%d 错误=%v", relation.ArticleID, err)
 		}
 	}
 

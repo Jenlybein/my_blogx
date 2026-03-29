@@ -7,8 +7,10 @@ import (
 	"myblogx/models"
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
+	"myblogx/service/log_service"
 	"myblogx/service/user_service"
 	"myblogx/utils/maps"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -49,6 +51,22 @@ func (ProfileApi) AdminUserInfoUpdateView(c *gin.Context) {
 			return
 		}
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName: "admin_user_update",
+		TargetType: "user",
+		TargetID:   strconv.FormatUint(uint64(cr.UserID), 10),
+		Success:    true,
+		Message:    "管理员更新用户信息成功",
+		RequestBody: map[string]any{
+			"user_id":   cr.UserID,
+			"username":  cr.Username,
+			"nickname":  cr.Nickname,
+			"avatar":    cr.Avatar,
+			"abstract":  cr.Abstract,
+			"role":      cr.Role,
+			"status":    cr.Status,
+		},
+	})
 
 	res.OkWithMsg("用户信息更新成功", c)
 }

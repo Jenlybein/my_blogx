@@ -42,7 +42,7 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 			return
 		}
 		if err := redis_comment.SetCacheDigg(id.ID, -1); err != nil {
-			global.Logger.Errorf("回写评论点赞缓存失败 comment_id=%d err=%v", id.ID, err)
+			global.Logger.Errorf("回写评论点赞缓存失败: 评论ID=%d 错误=%v", id.ID, err)
 		}
 		res.OkWithMsg("取消点赞成功", c)
 		return
@@ -65,7 +65,7 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 		return
 	}
 	if err := redis_comment.SetCacheDigg(id.ID, 1); err != nil {
-		global.Logger.Errorf("写入评论点赞缓存失败 comment_id=%d err=%v", id.ID, err)
+		global.Logger.Errorf("写入评论点赞缓存失败: 评论ID=%d 错误=%v", id.ID, err)
 	}
 	go message_service.InsertCommentDiggMessage(message_service.CommentDiggMessage{
 		ReceiverID:   comment.UserID,

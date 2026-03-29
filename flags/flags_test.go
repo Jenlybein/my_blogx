@@ -75,9 +75,6 @@ func TestFlagDB(t *testing.T) {
 	if !db.Migrator().HasTable(&models.ArticleModel{}) {
 		t.Fatal("ArticleModel 表未迁移")
 	}
-	if !db.Migrator().HasTable(&models.LogModel{}) {
-		t.Fatal("LogModel 表未迁移")
-	}
 }
 
 func TestFlagESIndexNoOp(t *testing.T) {

@@ -6,7 +6,9 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/log_service"
 	"myblogx/service/message_service"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,6 +49,16 @@ func (ArticleApi) ArticleExamineView(c *gin.Context) {
 			LinkHerf:     fmt.Sprintf("/article/%d", article.ID),
 		})
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName: "article_examine",
+		TargetType: "article",
+		TargetID:   strconv.FormatUint(uint64(article.ID), 10),
+		Success:    true,
+		Message:    "文章审核成功",
+		RequestBody: map[string]any{
+			"status": cr.Status,
+		},
+	})
 
 	res.OkWithMsg("文章审核成功", c)
 }

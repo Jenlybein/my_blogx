@@ -49,11 +49,11 @@ func SyncArticle() {
 				},
 			})
 			if err != nil {
-				global.Logger.Errorf("同步文章任务同步%s失败 key: %s err: %v", metric.name, metric.activeKey, err)
+				global.Logger.Errorf("同步文章任务同步%s失败: Redis键=%s 错误=%v", metric.name, metric.activeKey, err)
 				continue
 			}
 			if affected > 0 {
-				global.Logger.Infof("同步文章任务同步%s成功 key: %s affected: %d", metric.name, metric.activeKey, affected)
+				global.Logger.Infof("同步文章任务同步%s成功: Redis键=%s 影响数量=%d", metric.name, metric.activeKey, affected)
 			}
 			totalAffected += affected
 		}
@@ -78,7 +78,7 @@ func applyArticleDelta(column string, articleID ctype.ID, delta int) error {
 
 	// 如果文章不存在，记录告警但不中断整批任务。
 	if db.RowsAffected == 0 {
-		global.Logger.Warnf("同步文章任务更新行不存在 article_id: %d column: %s delta: %d", articleID, column, delta)
+		global.Logger.Warnf("同步文章任务更新行不存在: 文章ID=%d 字段=%s 增量=%d", articleID, column, delta)
 	}
 	return nil
 }

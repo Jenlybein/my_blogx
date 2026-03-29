@@ -7,7 +7,9 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/log_service"
 	"myblogx/utils/jwts"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -32,6 +34,13 @@ func (CategoryApi) CategoryCreateUpdateView(c *gin.Context) {
 			res.FailWithMsg(fmt.Sprintf("创建分类失败 %v", err), c)
 			return
 		}
+		log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+			ActionName:  "category_create",
+			TargetType:  "category",
+			Success:     true,
+			Message:     "创建分类成功",
+			RequestBody: cr,
+		})
 		res.OkWithMsg("创建成功", c)
 		return
 	}
@@ -51,5 +60,13 @@ func (CategoryApi) CategoryCreateUpdateView(c *gin.Context) {
 		res.FailWithMsg(fmt.Sprintf("更新分类失败 %v", err), c)
 		return
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:  "category_update",
+		TargetType:  "category",
+		TargetID:    strconv.FormatUint(uint64(category.ID), 10),
+		Success:     true,
+		Message:     "更新分类成功",
+		RequestBody: cr,
+	})
 	res.OkWithMsg("更新分类成功", c)
 }

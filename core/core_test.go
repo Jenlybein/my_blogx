@@ -62,7 +62,7 @@ func TestInitLogrusCreatesDailyFile(t *testing.T) {
 	})
 	logger.Info("hello-log")
 
-	logFile := filepath.Join(dir, time.Now().Format("2006-01-02"), "blogx-test.log")
+	logFile := filepath.Join(dir, "runtime_logs", time.Now().Format("2006-01-02"), "blogx-test.log")
 	b, err := os.ReadFile(logFile)
 	if err != nil {
 		t.Fatalf("读取日志文件失败: %v", err)

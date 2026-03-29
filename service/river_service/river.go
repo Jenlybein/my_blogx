@@ -14,7 +14,7 @@ import (
 )
 
 // ErrRuleNotExist 是规则不存在的错误
-var ErrRuleNotExist = errors.New("rule is not exist")
+var ErrRuleNotExist = errors.New("规则不存在")
 
 // River 是一个可插拔的服务，它从Elasticsearch中拉取数据然后将其索引到Elasticsearch中。
 type River struct {
@@ -210,7 +210,7 @@ func (r *River) parseSource() (map[string][]string, error) {
 	}
 
 	if len(r.rules) == 0 {
-		return nil, errors.Errorf("no source data defined")
+		return nil, errors.Errorf("未定义可同步的数据源")
 	}
 
 	return wildTables, nil
@@ -285,7 +285,7 @@ func (r *River) prepareRule() error {
 
 		// 检查表是否有主键，没有主键的表会被忽略（因为无法进行有效的同步）
 		if len(rule.TableInfo.PKColumns) == 0 {
-			global.Logger.Errorf("ignored table without a primary key: %s\n", rule.TableInfo.Name)
+			global.Logger.Errorf("忽略未配置主键的数据表: %s", rule.TableInfo.Name)
 		} else {
 			// 只保留有主键的表规则
 			rules[key] = rule
@@ -309,7 +309,7 @@ func (r *River) Run() error {
 
 	pos := r.master.Position()
 	if err := r.canal.RunFrom(pos); err != nil {
-		global.Logger.Errorf("start canal err %v", err)
+		global.Logger.Errorf("启动 Canal 同步失败: %v", err)
 		return errors.Trace(err)
 	}
 
@@ -323,7 +323,7 @@ func (r *River) Ctx() context.Context {
 
 // Close 关闭River
 func (r *River) Close() {
-	global.Logger.Infof("closing river")
+	global.Logger.Infof("开始关闭 River 同步服务")
 
 	r.cancel()
 

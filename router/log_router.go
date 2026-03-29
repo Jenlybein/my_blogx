@@ -10,11 +10,17 @@ import (
 )
 
 func LogRouter(r *gin.RouterGroup) {
-	Group := r.Group("logs")
-	Group.Use(mw.AuthMiddleware, mw.AdminMiddleware)
+	group := r.Group("logs")
+	group.Use(mw.AuthMiddleware, mw.AdminMiddleware)
 
 	app := api.App.LogApi
-	Group.GET("", mw.BindQuery[log_api.LogListRequest], app.LogListView)
-	Group.GET(":id", mw.BindUri[models.IDRequest], app.LogReadView)
-	Group.DELETE("", mw.BindJson[models.IDListRequest], app.LogRemoveView)
+
+	group.GET("runtime", mw.BindQuery[log_api.RuntimeLogListRequest], app.RuntimeLogListView)
+	group.GET("runtime/:id", mw.BindUri[models.IDRequest], app.RuntimeLogDetailView)
+
+	group.GET("login", mw.BindQuery[log_api.LoginLogListRequest], app.LoginLogListView)
+	group.GET("login/:id", mw.BindUri[models.IDRequest], app.LoginLogDetailView)
+
+	group.GET("action", mw.BindQuery[log_api.ActionAuditListRequest], app.ActionAuditListView)
+	group.GET("action/:id", mw.BindUri[models.IDRequest], app.ActionAuditDetailView)
 }

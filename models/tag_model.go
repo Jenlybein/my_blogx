@@ -33,7 +33,7 @@ func (t *TagModel) BeforeDelete(tx *gorm.DB) (err error) {
 	}
 	if global.Redis != nil {
 		if err = redis_tag.SetCacheArticleCount(t.ID, -len(relationList)); err != nil {
-			global.Logger.Errorf("标签文章数缓存减少失败 tag_id=%d err=%v", t.ID, err)
+			global.Logger.Errorf("标签文章数缓存减少失败: 标签ID=%d 错误=%v", t.ID, err)
 		}
 	}
 	return nil

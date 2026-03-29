@@ -9,7 +9,9 @@ import (
 	"myblogx/models"
 	"myblogx/models/ctype"
 	"myblogx/service/es_service"
+	"myblogx/service/log_service"
 	"myblogx/utils/jwts"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -47,6 +49,13 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 			res.FailWithMsg(fmt.Sprintf("创建标签失败: %v", err), c)
 			return
 		}
+		log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+			ActionName:  "tag_create",
+			TargetType:  "tag",
+			Success:     true,
+			Message:     "创建标签成功",
+			RequestBody: cr,
+		})
 		res.OkWithMsg("创建标签成功", c)
 		return
 	}
@@ -93,9 +102,17 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 	}
 	if len(affectedArticleIDs) > 0 {
 		if err := es_service.UpdateESDocsTags(affectedArticleIDs); err != nil {
-			global.Logger.Errorf("标签改名后刷新 ES 标签失败 tag_id=%d err=%v", tag.ID, err)
+			global.Logger.Errorf("标签改名后刷新 ES 标签失败: 标签ID=%d 错误=%v", tag.ID, err)
 		}
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:  "tag_update",
+		TargetType:  "tag",
+		TargetID:    strconv.FormatUint(uint64(tag.ID), 10),
+		Success:     true,
+		Message:     "更新标签成功",
+		RequestBody: cr,
+	})
 	res.OkWithMsg("更新标签成功", c)
 }
 

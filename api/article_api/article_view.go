@@ -70,7 +70,7 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 				return
 			}
 			// 记录详细错误日志（建议使用日志库，如 zap）
-			global.Logger.Errorf("数据库验证文章失败 %v, article_id: %d", err, cr.ArticleID)
+			global.Logger.Errorf("数据库验证文章失败: 错误=%v 文章ID=%d", err, cr.ArticleID)
 			res.FailWithMsg("服务器内部错误", c)
 			return
 		}
@@ -91,7 +91,7 @@ func (ArticleApi) ArticleVisitView(c *gin.Context) {
 				"deleted_at": nil,
 			}),
 		}).Create(&articleHistory).Error; err != nil {
-			global.Logger.Errorf("数据库更新浏览历史失败 %v, article_id: %d", err, cr.ArticleID)
+			global.Logger.Errorf("数据库更新浏览历史失败: 错误=%v 文章ID=%d", err, cr.ArticleID)
 			res.FailWithMsg("服务器内部错误", c)
 			return
 		}

@@ -3,21 +3,21 @@ services:
     image: "mysql:5.7"
     container_name: mysql-master
     restart: unless-stopped
-    privileged: true # 容器内的root用户与宿主机root用户权限相同
+    privileged: true
     environment:
-      MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD # root用户的密码
-      TZ: "Asia/Shanghai" # 设置时区
+      MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD
+      TZ: "Asia/Shanghai"
       MYSQL_DATABASE: "blogx"
     command:
     ports:
-      - 3306:3306 # 映射宿主机端口：容器端口
-    volumes: # 宿主机配置目录或文件挂载到容器
+      - 3306:3306
+    volumes:
       - ./sql_master/my.cnf:/etc/mysql/my.cnf
       - ./sql_master/mysql-files:/var/lib/mysql-files
       - ./sql_master/data:/var/lib/mysql
       - ./sql_master/log:/var/log/
-      - ./sql_master/init.sql:/docker-entrypoint-initdb.d/init.sql # 挂载初始化脚本
-    healthcheck: # 健康检查，确保主库启动完成
+      - ./sql_master/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
       test:
         [
           "CMD",
@@ -41,20 +41,20 @@ services:
     restart: unless-stopped
     privileged: true
     environment:
-      MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD # root用户的密码
+      MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD
     command:
     ports:
-      - 3307:3306 # 映射宿主机端口：容器端口
-    volumes: # 宿主机配置目录或文件挂载到容器
+      - 3307:3306
+    volumes:
       - ./sql_slave/my.cnf:/etc/mysql/my.cnf
       - ./sql_slave/mysql-files:/var/lib/mysql-files
       - ./sql_slave/data:/var/lib/mysql
       - ./sql_slave/log:/var/log/
-      - ./sql_slave/init.sql:/docker-entrypoint-initdb.d/init.sql # 挂载初始化脚本
-      - ./sql_slave/init.sh:/docker-entrypoint-initdb.d/init.sh # 挂载初始化脚本
+      - ./sql_slave/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./sql_slave/init.sh:/docker-entrypoint-initdb.d/init.sh
     depends_on:
       mysql-master:
-        condition: service_healthy # 等待主库健康检查通过后再启动
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -72,26 +72,25 @@ services:
     networks:
       blogx_network:
         ipv4_address: 10.2.0.3
+
   es:
     build:
       context: ./es
       dockerfile: Dockerfile
     image: "myblogx-elasticsearch:7.12.0"
+    pull_policy: never
     container_name: es
     restart: unless-stopped
     privileged: true
     environment:
       discovery.type: single-node
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
-      # 启用ES安全功能
       xpack.security.enabled: "true"
       xpack.security.transport.ssl.enabled: "true"
-      # 跨域配置（前端工具如 elasticvue 访问需要）
       http.cors.enabled: true
       http.cors.allow-origin: "*"
       http.cors.allow-headers: "X-Requested-With,Content-Type,Authorization"
-      # 设置内置用户的初始密码
-      ELASTIC_PASSWORD: "REDACTED_SHARED_PASSWORD" # elastic用户的初始密码
+      ELASTIC_PASSWORD: "REDACTED_SHARED_PASSWORD"
     ports:
       - 9200:9200
     volumes:
@@ -109,6 +108,7 @@ services:
     networks:
       blogx_network:
         ipv4_address: 10.2.0.4
+
   redis:
     image: "redis:7.4.7"
     container_name: redis
@@ -128,7 +128,8 @@ services:
     networks:
       blogx_network:
         ipv4_address: 10.2.0.5
-  # kafka:
+
+    # kafka:
   #   image: apache/kafka:3.9.0
   #   container_name: kafka
   #   hostname: kafka
@@ -262,13 +263,44 @@ services:
   #     blogx_network:
   #       ipv4_address: 10.2.0.6
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.3
+    container_name: clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: blogx_logs # 初始化创建的默认数据库（与日志库一致）
+      CLICKHOUSE_PASSWORD: REDACTED_SHARED_PASSWORD # 默认登录密码（与 Fluent Bit 配置一致）
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1 # 开启默认权限管理，允许远程连接和账号管理
+    ports:
+      # HTTP 接口端口（Fluent Bit 写入用）
+      - 8123:8123
+      # 原生 TCP 端口（客户端连接、程序直连用）
+      - 9000:9000
+    volumes:
+      - ./clickhouse/data:/var/lib/clickhouse
+      - ./clickhouse/logs:/var/log/clickhouse-server
+      - ./clickhouse/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'clickhouse-client --user default --password REDACTED_SHARED_PASSWORD --query "SELECT 1" || exit 1',
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
+    networks:
+      blogx_network:
+        ipv4_address: 10.2.0.9
+
   blogx_server:
     restart: unless-stopped
     build:
       context: ../..
       dockerfile: Dockerfile
     environment:
-      TZ: "Asia/Shanghai" # 设置时区
+      TZ: "Asia/Shanghai"
       ES_WAIT_URL: "http://es:9200/_cluster/health?wait_for_status=yellow&timeout=5s"
       ES_WAIT_AUTH_HEADER: "Authorization: Basic ZWxhc3RpYzpteWJsb2d4QWJjMTIzNDU="
     depends_on:
@@ -278,10 +310,10 @@ services:
         condition: service_healthy
       es:
         condition: service_healthy
+      clickhouse:
+        condition: service_healthy
       redis:
         condition: service_healthy
-      # kafka:
-      #   condition: service_healthy
     volumes:
       - ./blog_server/settings.yaml:/app/settings.yaml
       - ./blog_server/site_default_settings.yaml:/app/site_default_settings.yaml
@@ -302,11 +334,29 @@ services:
       [
         "/bin/sh",
         "-c",
-        "until wget -S -O /dev/null http://es:9200 2>&1 | grep -q '401 Unauthorized'; do echo '等待 ES 完整启动...'; sleep 3; done; exec /app/main",
+        "until wget -q --header=\"$$ES_WAIT_AUTH_HEADER\" -O /dev/null \"$$ES_WAIT_URL\"; do echo '等待 ES 完整启动...'; sleep 3; done; exec /app/main",
       ]
     networks:
       blogx_network:
         ipv4_address: 10.2.0.7
+
+  fluent-bit:
+    image: fluent/fluent-bit:3.2
+    container_name: fluent-bit
+    restart: unless-stopped
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      blogx_server:
+        condition: service_started
+    volumes:
+      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - ./blog_server/logs:/logs:ro
+      - ./fluent-bit/state:/fluent-bit/state
+    networks:
+      blogx_network:
+        ipv4_address: 10.2.0.10
 
   blog_web:
     image: nginx:latest
@@ -323,7 +373,7 @@ services:
       - "80:80"
       - "443:443"
 
-networks: # 定义容器连接网络
+networks:
   blogx_network:
     driver: bridge
     ipam:

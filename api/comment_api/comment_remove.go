@@ -73,32 +73,32 @@ func (CommentApi) CommentRemoveView(c *gin.Context) {
 		return
 	}
 	if err := global.DB.Delete(&models.CommentDiggModel{}, "comment_id IN ?", deleteIDs).Error; err != nil {
-		global.Logger.Errorf("删除评论点赞记录失败 comment_ids=%v err=%v", deleteIDs, err)
+		global.Logger.Errorf("删除评论点赞记录失败: 评论ID列表=%v 错误=%v", deleteIDs, err)
 	}
 	for _, commentID := range deleteIDs {
 		if err := redis_comment.DelCacheDigg(commentID); err != nil {
-			global.Logger.Errorf("删除评论点赞缓存失败 comment_id=%d err=%v", commentID, err)
+			global.Logger.Errorf("删除评论点赞缓存失败: 评论ID=%d 错误=%v", commentID, err)
 		}
 	}
 
 	// 删除已发布评论时，回滚文章评论数缓存。
 	if articleDelta != 0 {
 		if err := redis_article.SetCacheComment(target.ArticleID, articleDelta); err != nil {
-			global.Logger.Errorf("回写文章评论缓存失败 article_id=%d delta=%d err=%v", target.ArticleID, articleDelta, err)
+			global.Logger.Errorf("回写文章评论缓存失败: 文章ID=%d 增量=%d 错误=%v", target.ArticleID, articleDelta, err)
 		}
 	}
 
 	// 删除一级评论时，删除根评论回复数缓存。
 	if isRoot {
 		if err := redis_comment.DelCacheReply(target.ID); err != nil {
-			global.Logger.Errorf("删除评论回复缓存失败 root_id=%d err=%v", target.ID, err)
+			global.Logger.Errorf("删除评论回复缓存失败: 根评论ID=%d 错误=%v", target.ID, err)
 		}
 	}
 
 	// 删除已发布二级评论时，回滚根评论回复数缓存。
 	if !isRoot && target.Status == enum.CommentStatusPublished && target.RootID != 0 {
 		if err := redis_comment.SetCacheReply(target.RootID, -1); err != nil {
-			global.Logger.Errorf("回写根评论回复缓存失败 root_id=%d delta=-1 err=%v", target.RootID, err)
+			global.Logger.Errorf("回写根评论回复缓存失败: 根评论ID=%d 增量=-1 错误=%v", target.RootID, err)
 		}
 	}
 

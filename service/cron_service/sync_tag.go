@@ -40,7 +40,7 @@ func applyTagArticleCountDeltaToDB(tagID ctype.ID, delta int) error {
 		return db.Error
 	}
 	if db.RowsAffected == 0 {
-		global.Logger.Warnf("同步标签任务更新行不存在 tag_id=%d delta=%d", tagID, delta)
+		global.Logger.Warnf("同步标签任务更新行不存在: 标签ID=%d 增量=%d", tagID, delta)
 	}
 	return nil
 }

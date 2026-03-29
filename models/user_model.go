@@ -29,7 +29,6 @@ type UserModel struct {
 	IP                    string                  `gorm:"size:64" json:"ip"`    // 注册时的 IP
 	Addr                  string                  `gorm:"size:256" json:"addr"` // 注册时的地址
 	UserConfModel         *UserConfModel          `gorm:"foreignKey:UserID;" json:"user_conf_model"`
-	LoginList             []UserLoginModel        `gorm:"foreignKey:UserID" json:"login_list"`
 }
 
 func (u *UserModel) BeforeCreate(tx *gorm.DB) (err error) {

@@ -143,7 +143,7 @@ func InsertArticleFavorMessage(content ArticleFavorMessage) {
 // 插入一条系统消息
 func InsertSystemMessage(content SystemMessage) {
 	if content.ReceiverID == 0 {
-		global.Logger.Errorf("创建系统消息失败: receiver_id 不能为空")
+		global.Logger.Errorf("创建系统消息失败: 接收者ID不能为空")
 		return
 	}
 

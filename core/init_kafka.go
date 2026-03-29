@@ -15,15 +15,15 @@ import (
 func KafkaMysqlClientInit(kafkaCfg *conf.Kafka) *kafka_service.KafkaMysqlClient {
 	// 配置校验
 	if len(kafkaCfg.Mysql.Brokers) == 0 {
-		global.Logger.Warn("kafka brokers 为空，不初始化 MySQL Kafka 客户端")
+		global.Logger.Warn("Kafka Broker 列表为空，不初始化 MySQL Kafka 客户端")
 		return nil
 	}
 	if kafkaCfg.Mysql.Topic == "" {
-		global.Logger.Warn("kafka topic 为空，不初始化 MySQL Kafka 客户端")
+		global.Logger.Warn("Kafka 主题为空，不初始化 MySQL Kafka 客户端")
 		return nil
 	}
 	if kafkaCfg.Mysql.GroupID == "" {
-		global.Logger.Warn("kafka group_id 为空，不初始化 MySQL Kafka 客户端")
+		global.Logger.Warn("Kafka 消费组 ID 为空，不初始化 MySQL Kafka 客户端")
 		return nil
 	}
 
@@ -50,12 +50,12 @@ func KafkaMysqlClientInit(kafkaCfg *conf.Kafka) *kafka_service.KafkaMysqlClient 
 
 	conn, err := dialer.DialContext(ctx, "tcp", kafkaCfg.Mysql.Brokers[0])
 	if err != nil {
-		global.Logger.Fatalf("kafka 连接失败: %v", err)
+		global.Logger.Fatalf("Kafka 连接失败: %v", err)
 		return nil
 	}
 	_ = conn.Close()
 
-	global.Logger.Infof("kafka 连接成功: %s", kafkaCfg.Mysql.Brokers[0])
+	global.Logger.Infof("Kafka 连接成功: %s", kafkaCfg.Mysql.Brokers[0])
 
 	writer := &kafka.Writer{
 		Addr:                   kafka.TCP(kafkaCfg.Mysql.Brokers...),

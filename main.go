@@ -18,13 +18,14 @@ func main() {
 	}
 
 	global.Config = core.ReadCfg(&flag.File)
-	global.Logger = core.InitLogrus(&global.Config.Log)
 	if err := core.InitSnowflake(); err != nil {
 		panic(err)
 	}
+	global.Logger = core.InitLogrus(&global.Config.Log)
 	global.Redis = core.InitRedis(&global.Config.Redis)
 	// global.KafkaMysqlClient = core.KafkaMysqlClientInit(&global.Config.Kafka)
 	global.DB = core.InitDB(global.Config.DB)
+	global.ClickHouse = core.InitClickHouse(&global.Config.ClickHouse)
 	global.ESClient = core.EsConnect(&global.Config.ES)
 
 	flags.Run(flag, global.DB)

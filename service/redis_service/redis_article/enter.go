@@ -212,12 +212,12 @@ func SetUserArticleHistoryCache(articleID, userID int) {
 	nextDay := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
 
 	if err := global.Redis.HSet(context.Background(), key, field, "").Err(); err != nil {
-		global.Logger.Errorf("err: %v", err)
+		global.Logger.Errorf("写入用户阅读历史缓存失败: 错误=%v", err)
 		return
 	}
 
 	if err := global.Redis.ExpireAt(context.Background(), key, nextDay).Err(); err != nil {
-		global.Logger.Errorf("err: %v", err)
+		global.Logger.Errorf("设置用户阅读历史缓存过期时间失败: 错误=%v", err)
 		return
 	}
 }
@@ -241,12 +241,12 @@ func SetGuestArticleHistoryCache(articleID int, hash string) {
 	nextDay := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
 
 	if err := global.Redis.HSet(context.Background(), key, field, "").Err(); err != nil {
-		global.Logger.Errorf("err: %v", err)
+		global.Logger.Errorf("写入访客阅读历史缓存失败: 错误=%v", err)
 		return
 	}
 
 	if err := global.Redis.ExpireAt(context.Background(), key, nextDay).Err(); err != nil {
-		global.Logger.Errorf("err: %v", err)
+		global.Logger.Errorf("设置访客阅读历史缓存过期时间失败: 错误=%v", err)
 		return
 	}
 }

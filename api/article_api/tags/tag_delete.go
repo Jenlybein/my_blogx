@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/service/log_service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,5 +44,15 @@ func (TagsApi) TagDeleteView(c *gin.Context) {
 		res.FailWithMsg("删除标签失败", c)
 		return
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:  "tag_delete",
+		TargetType:  "tag",
+		Success:     true,
+		Message:     fmt.Sprintf("删除标签成功，共删除 %d 条", len(list)),
+		RequestBody: map[string]any{"id_list": cr.IDList},
+		ResponseBody: map[string]any{
+			"deleted_count": len(list),
+		},
+	})
 	res.OkWithMsg(fmt.Sprintf("删除标签成功，共删除 %d 条", len(list)), c)
 }

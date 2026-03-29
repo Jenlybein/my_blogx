@@ -8,8 +8,10 @@ import (
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/es_service"
+	"myblogx/service/log_service"
 	"myblogx/utils/jwts"
 	"myblogx/utils/markdown"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -75,8 +77,25 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 	applyTagArticleCountDelta(buildTagArticleCountDelta(nil, tagIDs))
 	if len(tagIDs) > 0 {
 		if err := es_service.UpdateESDocsTags([]ctype.ID{article.ID}); err != nil {
-			global.Logger.Errorf("创建文章后刷新 ES 标签失败 article_id=%d err=%v", article.ID, err)
+			global.Logger.Errorf("创建文章后刷新 ES 标签失败: 文章ID=%d 错误=%v", article.ID, err)
 		}
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName: "article_create",
+		TargetType: "article",
+		TargetID:   strconv.FormatUint(uint64(article.ID), 10),
+		Success:    true,
+		Message:    "创建文章成功",
+		RequestBody: map[string]any{
+			"title":           cr.Title,
+			"abstract":        cr.Abstract,
+			"cover":           cr.Cover,
+			"category_id":     cr.CategoryID,
+			"status":          cr.Status,
+			"comments_toggle": cr.CommentsToggle,
+			"tag_ids":         cr.TagIDs,
+			"content_length":  len(cr.Content),
+		},
+	})
 	res.OkWithMsg("创建文章成功", c)
 }

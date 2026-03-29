@@ -10,6 +10,7 @@ type Config struct {
 	Redis         Redis         `yaml:"redis"`
 	Kafka         Kafka         `yaml:"kafka"`
 	ES            ES            `yaml:"es"`
+	ClickHouse    ClickHouse    `yaml:"clickhouse"`
 	River         River         `yaml:"river"`
 	ImageRefRiver ImageRefRiver `yaml:"image_ref_river"`
 	Upload        Upload        `yaml:"upload"`

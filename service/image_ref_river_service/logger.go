@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"myblogx/utils/logsafe"
 	"runtime"
 
 	"github.com/sirupsen/logrus"
@@ -20,7 +21,10 @@ type simpleLogrusHandler struct {
 func (h *simpleLogrusHandler) Handle(_ context.Context, r slog.Record) error {
 	entry := h.logger.WithFields(logrus.Fields{})
 	r.Attrs(func(a slog.Attr) bool {
-		entry = entry.WithField(a.Key, a.Value.Any())
+		key, value, ok := logsafe.SlogAttrToField(a)
+		if ok {
+			entry = entry.WithField(key, value)
+		}
 		return true
 	})
 

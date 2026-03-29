@@ -94,7 +94,7 @@ func LockTask(taskID ctype.ID, ttl time.Duration) (unlock func(), locked bool, e
 	return func() {
 		// 执行Lua脚本释放锁
 		if _, releaseErr := releaseUploadTaskLockScript.Run(ctx, global.Redis, []string{uploadTaskLockKey(taskID)}, token).Result(); releaseErr != nil {
-			global.Logger.Warnf("释放图片上传任务锁失败: taskID=%s err=%v", taskID.String(), releaseErr)
+			global.Logger.Warnf("释放图片上传任务锁失败: 任务ID=%s 错误=%v", taskID.String(), releaseErr)
 		}
 	}, true, nil
 }

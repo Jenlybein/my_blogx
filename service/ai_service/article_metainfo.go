@@ -40,13 +40,13 @@ var (
 // ArticleMetainfo 是文章元信息推荐时使用的候选项。
 type Metainfos struct {
 	ID    ctype.ID `json:"id"`
-	Title string `json:"title"`
+	Title string   `json:"title"`
 }
 
 // MetainfoRequest 是生成文章元信息时的请求参数。
 type MetainfoRequest struct {
 	UserID  ctype.ID `json:"user_id"`
-	Content string `json:"content"`
+	Content string   `json:"content"`
 }
 
 // MetainfoResponse 是 AI 生成并校验后的文章元信息。
@@ -76,14 +76,14 @@ func GenerateArticleMetainfo(uid ctype.ID, content string) (*MetainfoResponse, e
 	var categoryOptions []Metainfos
 	if err := global.DB.Model(&models.CategoryModel{}).Where("user_id = ?", uid).Order("id asc").
 		Select("id", "title").Scan(&categoryOptions).Error; err != nil {
-		global.Logger.Errorf("查询文章分类候选失败 user_id=%d err=%v", uid, err)
+		global.Logger.Errorf("查询文章分类候选失败: 用户ID=%d 错误=%v", uid, err)
 		return nil, fmt.Errorf("查询分类候选失败: %w", err)
 	}
 
 	// 加载文章标签候选
 	var tagOptions []Metainfos
 	if err := global.DB.Model(&models.TagModel{}).Where("is_enabled = ?", true).Order("sort desc, id asc").Select("id", "title").Scan(&tagOptions).Error; err != nil {
-		global.Logger.Errorf("查询文章标签候选失败 err=%v", err)
+		global.Logger.Errorf("查询文章标签候选失败: 错误=%v", err)
 		return nil, fmt.Errorf("查询标签候选失败: %w", err)
 	}
 
@@ -155,7 +155,7 @@ func normalizeArticleMetainfoReply(
 
 	var payload MetainfoResponse
 	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
-		global.Logger.Errorf("解析文章元信息 JSON 失败 err=%v raw=%s", err, raw)
+		global.Logger.Errorf("解析文章元信息 JSON 失败: 错误=%v 原始内容=%s", err, raw)
 		return nil, fmt.Errorf("文章元信息结果不是有效 JSON: %w", err)
 	}
 
@@ -190,4 +190,3 @@ func normalizeArticleMetainfoReply(
 
 	return result, nil
 }
-

@@ -1,106 +1,171 @@
 package log_api
 
 import (
-	"fmt"
+	"database/sql"
+
 	"myblogx/common"
 	"myblogx/common/res"
-	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/ctype"
-	"myblogx/models/enum"
 	"myblogx/service/log_service"
 
 	"github.com/gin-gonic/gin"
 )
 
-type LogApi struct {
-}
+type LogApi struct{}
 
-type LogListRequest struct {
+type RuntimeLogListRequest struct {
 	common.PageInfo
-	LogType     enum.LogType      `form:"log_type"`     // 日志类型
-	Level       enum.LogLevelType `form:"level"`        // 日志级别
-	UserID      ctype.ID          `form:"user_id"`      // 用户ID
-	IP          string            `form:"ip"`           // 操作IP
-	LoginStatus bool              `form:"login_status"` // 登录状态
-	ServiceName string            `form:"service_name"` // 服务名称
+	StartAt string   `form:"start_at"`
+	EndAt   string   `form:"end_at"`
+	Service string   `form:"service"`
+	Level   string   `form:"level"`
+	Host    string   `form:"host"`
+	Method  string   `form:"method"`
+	Path    string   `form:"path"`
+	UserID  ctype.ID `form:"user_id"`
 }
 
-type LogListResponse struct {
-	models.LogModel
-	UserNickname string `json:"user_nickname"`
-	UserAvatar   string `json:"user_avatar"`
+type LoginLogListRequest struct {
+	common.PageInfo
+	StartAt   string   `form:"start_at"`
+	EndAt     string   `form:"end_at"`
+	UserID    ctype.ID `form:"user_id"`
+	IP        string   `form:"ip"`
+	Username  string   `form:"username"`
+	LoginType string   `form:"login_type"`
+	EventName string   `form:"event_name"`
+	Success   *bool    `form:"success"`
 }
 
-func (l *LogApi) LogListView(c *gin.Context) {
-	// 分页 查询(精确匹配，模糊查询)
-	cr := middleware.GetBindQuery[LogListRequest](c)
+type ActionAuditListRequest struct {
+	common.PageInfo
+	StartAt    string   `form:"start_at"`
+	EndAt      string   `form:"end_at"`
+	UserID     ctype.ID `form:"user_id"`
+	IP         string   `form:"ip"`
+	ActionName string   `form:"action_name"`
+	TargetType string   `form:"target_type"`
+	TargetID   string   `form:"target_id"`
+	Success    *bool    `form:"success"`
+}
 
-	list, count, err := common.ListQuery(models.LogModel{
-		LogType:     cr.LogType,
-		Level:       cr.Level,
-		UserID:      cr.UserID,
-		IP:          cr.IP,
-		LoginStatus: cr.LoginStatus,
-		ServiceName: cr.ServiceName,
-	}, common.Options{
-		PageInfo: cr.PageInfo,
-		Likes:    []string{"Title"},
-		Preloads: []string{"UserModel"},
-		Debug:    true,
-		// DefaultOrder: "created_at DESC",
+func (l *LogApi) RuntimeLogListView(c *gin.Context) {
+	cr := middleware.GetBindQuery[RuntimeLogListRequest](c)
+	list, count, err := log_service.ListRuntimeLogs(log_service.RuntimeLogQuery{
+		PageInfo: common.PageInfo{
+			Limit: cr.Limit,
+			Page:  cr.Page,
+			Key:   cr.Key,
+		},
+		LogTimeRange: log_service.LogTimeRange{
+			StartAt: cr.StartAt,
+			EndAt:   cr.EndAt,
+		},
+		Service: cr.Service,
+		Level:   cr.Level,
+		Host:    cr.Host,
+		Method:  cr.Method,
+		Path:    cr.Path,
+		UserID:  cr.UserID,
+		Key:     cr.Key,
 	})
 	if err != nil {
 		res.FailWithError(err, c)
 		return
 	}
-
-	var _list = make([]LogListResponse, 0)
-	for _, logModel := range list {
-		_list = append(_list, LogListResponse{
-			LogModel:     logModel,
-			UserNickname: logModel.UserModel.Nickname,
-			UserAvatar:   logModel.UserModel.Avatar,
-		})
-	}
-
-	res.OkWithList(_list, int(count), c)
+	res.OkWithList(list, int(count), c)
 }
 
-func (l *LogApi) LogReadView(c *gin.Context) {
-	// 已读状态修改
+func (l *LogApi) RuntimeLogDetailView(c *gin.Context) {
 	cr := middleware.GetBindUri[models.IDRequest](c)
+	item, err := log_service.GetRuntimeLog(uint64(cr.ID))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			res.FailWithMsg("运行日志不存在", c)
+			return
+		}
+		res.FailWithError(err, c)
+		return
+	}
+	res.OkWithData(item, c)
+}
 
-	var log models.LogModel
-	err := global.DB.Take(&log, cr.ID).Error
+func (l *LogApi) LoginLogListView(c *gin.Context) {
+	cr := middleware.GetBindQuery[LoginLogListRequest](c)
+	list, count, err := log_service.ListLoginEvents(log_service.LoginEventQuery{
+		PageInfo: common.PageInfo{
+			Limit: cr.Limit,
+			Page:  cr.Page,
+		},
+		LogTimeRange: log_service.LogTimeRange{
+			StartAt: cr.StartAt,
+			EndAt:   cr.EndAt,
+		},
+		UserID:    cr.UserID,
+		IP:        cr.IP,
+		Username:  cr.Username,
+		LoginType: cr.LoginType,
+		EventName: cr.EventName,
+		Success:   cr.Success,
+	})
 	if err != nil {
 		res.FailWithError(err, c)
 		return
 	}
-
-	// 如果日志已读，则返回错误
-	if !log.IsRead {
-		global.DB.Model(&log).Update("is_read", true)
-	}
-
-	res.OkWithData("日志读取成功", c)
+	res.OkWithList(list, int(count), c)
 }
 
-func (l *LogApi) LogRemoveView(c *gin.Context) {
-	cr := middleware.GetBindJson[models.IDListRequest](c)
-
-	log := log_service.GetLog(c)
-	log.SetShowRequest()
-	log.SetShowResponse()
-
-	var logList []models.LogModel
-	global.DB.Find(&logList, "id IN ?", cr.IDList)
-
-	if len(logList) > 0 {
-		global.DB.Delete(&logList)
+func (l *LogApi) LoginLogDetailView(c *gin.Context) {
+	cr := middleware.GetBindUri[models.IDRequest](c)
+	item, err := log_service.GetLoginEvent(uint64(cr.ID))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			res.FailWithMsg("登录事件不存在", c)
+			return
+		}
+		res.FailWithError(err, c)
+		return
 	}
+	res.OkWithData(item, c)
+}
 
-	msg := fmt.Sprintf("删除了 %d 条日志", len(logList))
-	res.OkWithData(msg, c)
+func (l *LogApi) ActionAuditListView(c *gin.Context) {
+	cr := middleware.GetBindQuery[ActionAuditListRequest](c)
+	list, count, err := log_service.ListActionAudits(log_service.ActionAuditQuery{
+		PageInfo: common.PageInfo{
+			Limit: cr.Limit,
+			Page:  cr.Page,
+		},
+		LogTimeRange: log_service.LogTimeRange{
+			StartAt: cr.StartAt,
+			EndAt:   cr.EndAt,
+		},
+		UserID:     cr.UserID,
+		IP:         cr.IP,
+		ActionName: cr.ActionName,
+		TargetType: cr.TargetType,
+		TargetID:   cr.TargetID,
+		Success:    cr.Success,
+	})
+	if err != nil {
+		res.FailWithError(err, c)
+		return
+	}
+	res.OkWithList(list, int(count), c)
+}
+
+func (l *LogApi) ActionAuditDetailView(c *gin.Context) {
+	cr := middleware.GetBindUri[models.IDRequest](c)
+	item, err := log_service.GetActionAudit(uint64(cr.ID))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			res.FailWithMsg("操作审计日志不存在", c)
+			return
+		}
+		res.FailWithError(err, c)
+		return
+	}
+	res.OkWithData(item, c)
 }

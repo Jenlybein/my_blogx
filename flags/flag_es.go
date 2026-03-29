@@ -41,31 +41,31 @@ func FlagESIndex() {
 		fmt.Println("无效的选择，不执行任何操作")
 	}
 
-	// 初始化ES pipeline
+	// 初始化 ES 流水线
 	pipelineName := article.PipelineName()
 
-	fmt.Println("请输入pipeline设置: ")
-	fmt.Println("1. 初始化文章pipeline设置")
-	fmt.Println("2. 删除文章pipeline设置")
+	fmt.Println("请输入流水线设置: ")
+	fmt.Println("1. 初始化文章流水线设置")
+	fmt.Println("2. 删除文章流水线设置")
 
 	var pipelineChoice int
 	fmt.Scanln(&pipelineChoice)
 
 	switch pipelineChoice {
 	case 1:
-		// 初始化文章pipeline设置
+		// 初始化文章流水线设置
 		if err := es_service.CreatePipelineForce(pipelineName, article.Pipeline()); err != nil {
-			global.Logger.Errorf("初始化pipeline失败: %v", err)
+			global.Logger.Errorf("初始化流水线失败: %v", err)
 			return
 		}
-		global.Logger.Infof("pipeline %s 初始化成功", pipelineName)
+		global.Logger.Infof("流水线 %s 初始化成功", pipelineName)
 	case 2:
-		// 删除文章pipeline设置
+		// 删除文章流水线设置
 		if err := es_service.DeletePipeline(pipelineName); err != nil {
-			global.Logger.Errorf("删除pipeline失败: %v", err)
+			global.Logger.Errorf("删除流水线失败: %v", err)
 			return
 		}
-		global.Logger.Infof("pipeline %s 删除成功", pipelineName)
+		global.Logger.Infof("流水线 %s 删除成功", pipelineName)
 	default:
 		fmt.Println("无效的选择，不执行任何操作")
 	}

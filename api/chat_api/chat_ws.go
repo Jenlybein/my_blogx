@@ -88,7 +88,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 	// 升级成 ws 连接
 	rawConn, err := chatWSUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		global.Logger.Errorf("升级聊天 ws 连接失败 user_id=%d err=%v", claims.UserID, err)
+		global.Logger.Errorf("升级聊天 WebSocket 连接失败: 用户ID=%d 错误=%v", claims.UserID, err)
 		return
 	}
 
@@ -98,22 +98,22 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 	store.Register(conn)
 	defer func() {
 		if err := conn.Close(); err != nil {
-			global.Logger.Warnf("关闭聊天 ws 连接失败 user_id=%d err=%v", claims.UserID, err)
+			global.Logger.Warnf("关闭聊天 WebSocket 连接失败: 用户ID=%d 错误=%v", claims.UserID, err)
 		}
 		store.Unregister(conn)
-		global.Logger.Infof("聊天 ws 已清理 user_id=%d online_conn_count=%d", claims.UserID, store.Count(claims.UserID))
+		global.Logger.Infof("聊天 WebSocket 已清理: 用户ID=%d 在线连接数=%d", claims.UserID, store.Count(claims.UserID))
 	}()
 
 	// 配置聊天 ws 连接
 	configureChatWSConn(conn)
-	global.Logger.Infof("聊天 ws 已连接 user_id=%d online_conn_count=%d", claims.UserID, store.Count(claims.UserID))
+	global.Logger.Infof("聊天 WebSocket 已连接: 用户ID=%d 在线连接数=%d", claims.UserID, store.Count(claims.UserID))
 
 	// 心跳检测
 	done := make(chan struct{})
 	defer close(done)
 	go func() {
 		if err := conn.RunPingLoop(done, chatWSPingPeriod, chatWSWriteWait); err != nil {
-			global.Logger.Warnf("聊天 ws ping 失败 user_id=%d err=%v", conn.UserID, err)
+			global.Logger.Warnf("聊天 WebSocket 心跳失败: 用户ID=%d 错误=%v", conn.UserID, err)
 		}
 	}()
 
@@ -122,9 +122,9 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		msgType, msgContent, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
-				global.Logger.Warnf("聊天 ws 读取异常关闭 user_id=%d err=%v", claims.UserID, err)
+				global.Logger.Warnf("聊天 WebSocket 读取异常关闭: 用户ID=%d 错误=%v", claims.UserID, err)
 			} else {
-				global.Logger.Infof("聊天 ws 已断开 user_id=%d err=%v", claims.UserID, err)
+				global.Logger.Infof("聊天 WebSocket 已断开: 用户ID=%d 原因=%v", claims.UserID, err)
 			}
 			return
 		}
@@ -137,7 +137,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		var req ChatRequest
 		if err := json.Unmarshal(msgContent, &req); err != nil {
 			if err := res.SendConnFailWithMsg("消息格式错误", conn, chatWSWriteWait); err != nil {
-				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				global.Logger.Warnf("聊天 WebSocket 写入失败: 用户ID=%d 错误=%v", claims.UserID, err)
 				return
 			}
 			continue
@@ -147,7 +147,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		var revUser models.UserModel
 		if err := global.DB.Preload("UserConfModel").First(&revUser, req.ReceiverID).Error; err != nil {
 			if err := res.SendConnFailWithMsg("接收人不存在", conn, chatWSWriteWait); err != nil {
-				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				global.Logger.Warnf("聊天 WebSocket 写入失败: 用户ID=%d 错误=%v", claims.UserID, err)
 				return
 			}
 			continue
@@ -157,7 +157,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		reservation, err := chat_service.CheckAndReserveChatSend(claims.UserID, &revUser)
 		if err != nil {
 			if err := res.SendConnFailWithMsg(err.Error(), conn, chatWSWriteWait); err != nil {
-				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				global.Logger.Warnf("聊天 WebSocket 写入失败: 用户ID=%d 错误=%v", claims.UserID, err)
 				return
 			}
 			continue
@@ -191,20 +191,20 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		if msgErr != nil {
 			_ = reservation.Rollback()
 			if err := res.SendConnFailWithMsg("消息发送失败", conn, chatWSWriteWait); err != nil {
-				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				global.Logger.Warnf("聊天 WebSocket 写入失败: 用户ID=%d 错误=%v", claims.UserID, err)
 				return
 			}
-			global.Logger.Warnf("聊天消息落库失败 user_id=%d err=%v", claims.UserID, msgErr)
+			global.Logger.Warnf("聊天消息写入数据库失败: 用户ID=%d 错误=%v", claims.UserID, msgErr)
 			continue
 		}
 		if err := reservation.Commit(); err != nil {
-			global.Logger.Warnf("聊天消息提交限流状态失败 user_id=%d err=%v", claims.UserID, err)
+			global.Logger.Warnf("聊天消息提交限流状态失败: 用户ID=%d 错误=%v", claims.UserID, err)
 		}
 
 		// 检测接收人是否在线
 		if !store.IsOnline(req.ReceiverID) {
 			if err := res.SendConnFailWithMsg("接收人不在线", conn, chatWSWriteWait); err != nil {
-				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				global.Logger.Warnf("聊天 WebSocket 写入失败: 用户ID=%d 错误=%v", claims.UserID, err)
 				return
 			}
 			continue
@@ -226,7 +226,7 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		if req.ReceiverID == claims.UserID {
 			if successCount := res.SendWsMsg(item, store, req.ReceiverID); successCount == 0 {
 				if err := res.SendConnOkWithMsg("给自己发送消息", conn, chatWSWriteWait); err != nil {
-					global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+					global.Logger.Warnf("聊天 WebSocket 写入失败: 用户ID=%d 错误=%v", claims.UserID, err)
 					return
 				}
 			}
@@ -234,14 +234,14 @@ func (ChatApi) ChatWsView(c *gin.Context) {
 		}
 		if successCount := res.SendWsMsg(item, store, req.ReceiverID); successCount == 0 {
 			if err := res.SendConnFailWithMsg("消息发送失败", conn, chatWSWriteWait); err != nil {
-				global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+				global.Logger.Warnf("聊天 WebSocket 写入失败: 用户ID=%d 错误=%v", claims.UserID, err)
 				return
 			}
 		}
 
 		// DEBUG：给自己也发一份
 		// if err := res.SendConnOkWithData(item, conn, chatWSWriteWait); err != nil {
-		// 	global.Logger.Warnf("聊天 ws 写入失败 user_id=%d err=%v", claims.UserID, err)
+		// 	global.Logger.Warnf("聊天 WebSocket 写入失败: 用户ID=%d 错误=%v", claims.UserID, err)
 		// 	return
 		// }
 	}

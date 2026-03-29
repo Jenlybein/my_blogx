@@ -9,3 +9,16 @@ const (
 	QQLoginType       LoginType = 2 // QQ登录
 	EmailLoginType    LoginType = 3 // 邮箱登录
 )
+
+func (l LoginType) String() string {
+	switch l {
+	case PasswordLoginType:
+		return "password"
+	case QQLoginType:
+		return "qq"
+	case EmailLoginType:
+		return "email"
+	default:
+		return ""
+	}
+}

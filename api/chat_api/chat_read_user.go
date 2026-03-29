@@ -73,7 +73,7 @@ func (ChatApi) ChatMsgReadUserView(c *gin.Context) {
 		for _, push := range pushList {
 			successCount := res.SendWsMsg(push, chat_service.GetOnlineUserStore(), senderID)
 			if successCount == 0 {
-				global.Logger.Infof("聊天已读回执未推送到在线连接 sender_id=%d session_id=%s", senderID, push.SessionID)
+				global.Logger.Infof("聊天已读回执未推送到在线连接: 发送者ID=%d 会话ID=%s", senderID, push.SessionID)
 			}
 		}
 	}

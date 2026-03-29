@@ -2,9 +2,9 @@ package core
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -12,11 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestLogFormatterFormat(t *testing.T) {
-	f := &LogFormatter{}
+func TestCommonFieldsHookFire(t *testing.T) {
 	logger := logrus.New()
-	logger.SetReportCaller(true)
-
 	entry := &logrus.Entry{
 		Logger:  logger,
 		Time:    time.Date(2026, 3, 2, 12, 0, 0, 0, time.Local),
@@ -24,27 +21,34 @@ func TestLogFormatterFormat(t *testing.T) {
 		Message: "hello",
 	}
 
-	b, err := f.Format(entry)
-	if err != nil {
-		t.Fatalf("Format 失败: %v", err)
+	hook := CommonFieldsHook{}
+	if err := hook.Fire(entry); err != nil {
+		t.Fatalf("CommonFieldsHook Fire 失败: %v", err)
 	}
-	s := string(b)
-	if !strings.Contains(s, "hello") || !strings.Contains(s, "[info]") {
-		t.Fatalf("无 caller 格式输出异常: %s", s)
+	if entry.Data["log_kind"] != "runtime" {
+		t.Fatalf("log_kind 未写入: %#v", entry.Data)
+	}
+	if entry.Data["message"] != nil {
+		t.Fatalf("CommonFieldsHook 不应覆盖 message 字段")
 	}
 
-	entry.Caller = &runtime.Frame{
-		File:     "a/b/c.go",
-		Line:     12,
-		Function: "pkg.fn",
+	formatter := &logrus.JSONFormatter{
+		TimestampFormat: "2006-01-02 15:04:05.000",
+		FieldMap: logrus.FieldMap{
+			logrus.FieldKeyTime: "ts",
+			logrus.FieldKeyMsg:  "message",
+		},
 	}
-	b, err = f.Format(entry)
+	b, err := formatter.Format(entry)
 	if err != nil {
-		t.Fatalf("带 caller 的 Format 失败: %v", err)
+		t.Fatalf("JSON Format 失败: %v", err)
 	}
-	s = string(b)
-	if !strings.Contains(s, "c.go:12") || !strings.Contains(s, "pkg.fn") {
-		t.Fatalf("带 caller 格式输出异常: %s", s)
+	var body map[string]any
+	if err = json.Unmarshal(b, &body); err != nil {
+		t.Fatalf("JSON 解析失败: %v", err)
+	}
+	if body["message"] != "hello" {
+		t.Fatalf("message 字段异常: %#v", body["message"])
 	}
 }
 
@@ -57,6 +61,13 @@ func TestFileDateHookFire(t *testing.T) {
 		logPath:  dir,
 		fileDate: "2000-01-01",
 		appName:  "app",
+		formatter: &logrus.JSONFormatter{
+			TimestampFormat: "2006-01-02 15:04:05.000",
+			FieldMap: logrus.FieldMap{
+				logrus.FieldKeyTime: "ts",
+				logrus.FieldKeyMsg:  "message",
+			},
+		},
 	}
 
 	entry := &logrus.Entry{

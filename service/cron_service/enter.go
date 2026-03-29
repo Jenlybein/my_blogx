@@ -49,7 +49,7 @@ func runLockedSyncTask(taskName, lockKey string, lockTTL time.Duration, syncFunc
 
 	unlock, err := redis_service.LockArticleSync(ctx, lockKey, lockTTL)
 	if err != nil {
-		global.Logger.Errorf("%s获取锁失败 err: %v", taskName, err)
+		global.Logger.Errorf("%s获取锁失败: 错误=%v", taskName, err)
 		return
 	}
 	if unlock == nil {
@@ -60,11 +60,11 @@ func runLockedSyncTask(taskName, lockKey string, lockTTL time.Duration, syncFunc
 
 	affected, err := syncFunc(ctx)
 	if err != nil {
-		global.Logger.Errorf("%s失败 err: %v", taskName, err)
+		global.Logger.Errorf("%s执行失败: 错误=%v", taskName, err)
 		return
 	}
 	if affected > 0 {
-		global.Logger.Infof("%s成功 affected: %d", taskName, affected)
+		global.Logger.Infof("%s执行成功: 影响数量=%d", taskName, affected)
 	}
 }
 
@@ -97,13 +97,13 @@ func syncHashCounterMetric(ctx context.Context, config hashCounterSyncConfig) (i
 	for idStr, deltaStr := range rawMap {
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
-			global.Logger.Warnf("%s忽略非法%s key: %s %s: %s", logPrefix, config.idName, config.activeKey, config.idName, idStr)
+			global.Logger.Warnf("%s忽略非法%s: Redis键=%s %s=%s", logPrefix, config.idName, config.activeKey, config.idName, idStr)
 			continue
 		}
 
 		delta, err := strconv.Atoi(deltaStr)
 		if err != nil {
-			global.Logger.Warnf("%s忽略非法增量 key: %s %s: %s delta: %s", logPrefix, config.activeKey, config.idName, idStr, deltaStr)
+			global.Logger.Warnf("%s忽略非法增量: Redis键=%s %s=%s 增量=%s", logPrefix, config.activeKey, config.idName, idStr, deltaStr)
 			continue
 		}
 
@@ -122,9 +122,9 @@ func syncHashCounterMetric(ctx context.Context, config hashCounterSyncConfig) (i
 
 	for id, delta := range deltaMap {
 		if err := config.applyDelta(id, delta); err != nil {
-			global.Logger.Warnf("%s写库失败，准备回补缓存 key: %s %s: %d delta: %d err: %v", logPrefix, config.activeKey, config.idName, id, delta, err)
+			global.Logger.Warnf("%s写库失败，准备回补缓存: Redis键=%s %s=%d 增量=%d 错误=%v", logPrefix, config.activeKey, config.idName, id, delta, err)
 			if requeueErr := global.Redis.HIncrBy(ctx, config.activeKey, strconv.FormatUint(uint64(id), 10), int64(delta)).Err(); requeueErr != nil {
-				global.Logger.Errorf("%s回补缓存失败 key: %s %s: %d delta: %d err: %v", logPrefix, config.activeKey, config.idName, id, delta, requeueErr)
+				global.Logger.Errorf("%s回补缓存失败: Redis键=%s %s=%d 增量=%d 错误=%v", logPrefix, config.activeKey, config.idName, id, delta, requeueErr)
 			}
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"myblogx/utils/logsafe"
 	"runtime"
 
 	"github.com/sirupsen/logrus"
@@ -28,7 +29,10 @@ func (h *simpleLogrusHandler) Handle(ctx context.Context, r slog.Record) error {
 
 	// 添加 slog 的属性
 	r.Attrs(func(a slog.Attr) bool {
-		entry = entry.WithField(a.Key, a.Value.Any())
+		key, value, ok := logsafe.SlogAttrToField(a)
+		if ok {
+			entry = entry.WithField(key, value)
+		}
 		return true
 	})
 

@@ -111,7 +111,7 @@ func (a *ArticleModel) BeforeDelete(tx *gorm.DB) (err error) {
 	if global.Redis != nil {
 		for _, relation := range articleTagList {
 			if cacheErr := redis_tag.SetCacheArticleCount(relation.TagID, -1); cacheErr != nil {
-				global.Logger.Errorf("标签文章数缓存减少失败 tag_id=%d err=%v", relation.TagID, cacheErr)
+				global.Logger.Errorf("标签文章数缓存减少失败: 标签ID=%d 错误=%v", relation.TagID, cacheErr)
 			}
 		}
 	}

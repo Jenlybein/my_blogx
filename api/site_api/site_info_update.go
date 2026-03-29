@@ -4,6 +4,7 @@ import (
 	"myblogx/common/res"
 	"myblogx/conf"
 	"myblogx/middleware"
+	"myblogx/service/log_service"
 	"myblogx/service/site_service"
 
 	"github.com/gin-gonic/gin"
@@ -36,6 +37,14 @@ func (s SiteApi) SiteUpdateView(c *gin.Context) {
 			res.FailWithError(err, c)
 			return
 		}
+		log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+			ActionName:  "site_runtime_update",
+			TargetType:  "runtime_site_config",
+			TargetID:    "site",
+			Success:     true,
+			Message:     "更新站点运行时配置成功",
+			RequestBody: *s,
+		})
 	case *conf.AI:
 		current := site_service.GetRuntimeAI()
 		if s.SecretKey == sensitive_place_holder {
@@ -45,6 +54,22 @@ func (s SiteApi) SiteUpdateView(c *gin.Context) {
 			res.FailWithError(err, c)
 			return
 		}
+		log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+			ActionName: "site_runtime_update",
+			TargetType: "runtime_site_config",
+			TargetID:   "ai",
+			Success:    true,
+			Message:    "更新 AI 运行时配置成功",
+			RequestBody: map[string]any{
+				"enable":     s.Enable,
+				"model":      s.ChatModel,
+				"base_url":   s.BaseURL,
+				"nickname":   s.Nickname,
+				"avatar":     s.Avatar,
+				"abstract":   s.Abstract,
+				"secret_key": "***",
+			},
+		})
 	default:
 		res.FailWithMsg("站点信息不存在", c)
 		return

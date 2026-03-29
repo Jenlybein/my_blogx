@@ -13,6 +13,10 @@ log:
   app: blogx_server
   dir: ./logs
   level: info
+  stdout_format: json
+  request_log_enabled: true
+  query_default_limit: 20
+  query_max_limit: 200
 db:
   - host: ******_addr1
     port: ******_port2
@@ -53,6 +57,16 @@ es:
   index: article_index
   addr: ******_addr1:9200
   is_https: false
+clickhouse:
+  enabled: true
+  addresses:
+    - ******_addr1:9000
+  database: blogx_logs
+  username: default
+  password: ******_password1
+  dial_timeout: 5
+  max_open_conns: 10
+  max_idle_conns: 5
 river:
   enabled: true
   server_id: 1001

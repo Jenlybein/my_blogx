@@ -41,7 +41,7 @@ func LockArticleSync(ctx context.Context, lockKey string, lockTTL time.Duration)
 		// KEYS[1] = lockKey Redis Key）；
 		// ARGV[1] = token（抢锁时生成的唯一标识）。
 		if _, err := releaseLockScript.Run(ctx, global.Redis, []string{lockKey}, token).Result(); err != nil {
-			global.Logger.Errorf("同步文章任务释放锁失败 err: %v", err)
+			global.Logger.Errorf("同步文章任务释放锁失败: 错误=%v", err)
 		}
 	}, nil
 }

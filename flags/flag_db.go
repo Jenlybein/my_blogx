@@ -25,9 +25,7 @@ func FlagDB(db *gorm.DB) {
 		&models.ImageRefModel{},
 		&models.RuntimeSiteConfigModel{},
 		&models.CommentModel{},
-		&models.LogModel{},
 		&models.BannerModel{},
-		&models.UserLoginModel{},
 		&models.GlobalNotifModel{},
 		&models.CommentDiggModel{},
 		&models.ArticleMessageModel{},
@@ -41,15 +39,10 @@ func FlagDB(db *gorm.DB) {
 		global.Logger.Error("数据库迁移失败", err)
 		return
 	}
-	if db.Migrator().HasColumn(&models.LogModel{}, "password") {
-		if err := db.Migrator().DropColumn(&models.LogModel{}, "password"); err != nil {
-			global.Logger.Errorf("删除日志表 password 列失败: %v", err)
-		}
-	}
-	if db.Migrator().HasTable("image_upload_task_models") {
-		if err := db.Migrator().DropTable("image_upload_task_models"); err != nil {
-			global.Logger.Errorf("删除旧图片上传任务表失败: %v", err)
-		}
-	}
+	// if db.Migrator().HasTable("image_upload_task_models") {
+	// 	if err := db.Migrator().DropTable("image_upload_task_models"); err != nil {
+	// 		global.Logger.Errorf("删除旧图片上传任务表失败: %v", err)
+	// 	}
+	// }
 	global.Logger.Info("数据库迁移成功")
 }

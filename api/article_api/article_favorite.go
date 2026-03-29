@@ -51,12 +51,12 @@ func (ArticleApi) ArticleFavoriteSaveView(c *gin.Context) {
 		})
 
 		if err := redis_article.SetCacheFavorite(cr.ArticleID, 1); err != nil {
-			global.Logger.Errorf("文章收藏数据加一失败 err: %v", err)
+			global.Logger.Errorf("文章收藏数据加一失败: 错误=%v", err)
 		}
 		res.OkWithMsg("收藏成功", c)
 	} else {
 		if err := redis_article.SetCacheFavorite(cr.ArticleID, -1); err != nil {
-			global.Logger.Errorf("文章收藏数据减一失败 err: %v", err)
+			global.Logger.Errorf("文章收藏数据减一失败: 错误=%v", err)
 		}
 		res.OkWithMsg("取消收藏成功", c)
 	}

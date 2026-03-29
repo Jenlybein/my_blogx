@@ -88,12 +88,12 @@ func (h *eventHandler) OnRow(e *canal.RowsEvent) error {
 	case canal.UpdateAction:
 		reqs, err = h.r.makeUpdateRequest(rule, e.Rows)
 	default:
-		err = errors.Errorf("invalid rows action %s", e.Action)
+		err = errors.Errorf("无效的行事件操作: %s", e.Action)
 	}
 
 	if err != nil {
 		h.r.cancel()
-		return errors.Errorf("make %s ES request err %v, close sync", e.Action, err)
+		return errors.Errorf("构建 %s 的 ES 请求失败，停止同步: %v", e.Action, err)
 	}
 
 	h.r.syncCh <- reqs
@@ -170,7 +170,7 @@ func (r *River) syncLoop() {
 		if needFlush {
 			// TODO: retry some times?
 			if err := r.doBulk(reqs); err != nil {
-				global.Logger.Errorf("do ES bulk err %v, close sync", err)
+				global.Logger.Errorf("执行 ES 批量同步失败，停止同步: %v", err)
 				r.cancel()
 				return
 			}
@@ -179,7 +179,7 @@ func (r *River) syncLoop() {
 
 		if needSavePos {
 			if err := r.master.Save(pos); err != nil {
-				global.Logger.Errorf("save sync position %s err %v, close sync", pos, err)
+				global.Logger.Errorf("保存同步位点失败，停止同步: 位点=%s 错误=%v", pos, err)
 				r.cancel()
 				return
 			}
@@ -231,7 +231,7 @@ func (r *River) makeDeleteRequest(rule *rule.Rule, rows [][]interface{}) ([]*es_
 // makeUpdateRequest 创建更新请求
 func (r *River) makeUpdateRequest(rule *rule.Rule, rows [][]interface{}) ([]*es_service.BulkRequest, error) {
 	if len(rows)%2 != 0 {
-		return nil, errors.Errorf("invalid update rows event, must have 2x rows, but %d", len(rows))
+		return nil, errors.Errorf("更新行事件数据不完整，更新事件必须成对出现，当前行数: %d", len(rows))
 	}
 
 	reqs := make([]*es_service.BulkRequest, 0, len(rows))
@@ -295,7 +295,7 @@ func (r *River) makeReqColumnData(col *schema.TableColumn, value interface{}) in
 			eNum := value - 1
 			if eNum < 0 || eNum >= int64(len(col.EnumValues)) {
 				// 我们之前插入了无效的枚举值，所以返回空
-				global.Logger.Warnf("invalid binlog enum index %d, for enum %v", eNum, col.EnumValues)
+				global.Logger.Warnf("无效的 binlog 枚举索引: 索引=%d 枚举值=%v", eNum, col.EnumValues)
 				return ""
 			}
 

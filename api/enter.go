@@ -11,7 +11,7 @@ import (
 	"myblogx/api/comment_api"
 	"myblogx/api/data_api"
 	"myblogx/api/follow_api"
-	global_notif_api "myblogx/api/global_msg_api"
+	"myblogx/api/global_msg_api"
 	"myblogx/api/image_api"
 	"myblogx/api/log_api"
 	"myblogx/api/search_api"

@@ -121,7 +121,7 @@
   "paths": {
     "/api/site/qq_url": {
       "get": {
-        "summary": "站点信息：QQ",
+        "summary": "站点信息：QQ 登录地址",
         "deprecated": false,
         "description": "获取 QQ 登录跳转地址。前端在发起 QQ 授权登录前应先调用该接口。",
         "tags": [
@@ -144,9 +144,9 @@
     },
     "/api/site/ai_info": {
       "get": {
-        "summary": "站点信息：AI",
+        "summary": "站点信息：AI 公开信息",
         "deprecated": false,
-        "description": "获取站点 AI 助手公开配置，例如昵称、头像、是否启用等，用于前端初始化展示。",
+        "description": "获取站点 AI 助手公开配置，例如昵称、头像、简介和是否启用。",
         "tags": [
           "站点配置/公开"
         ],
@@ -178,161 +178,6 @@
             }
           }
         }
-      }
-    },
-    "/api/logs": {
-      "get": {
-        "summary": "获取列表",
-        "deprecated": false,
-        "description": "需要管理员权限。",
-        "tags": [
-          "日志管理"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageQuery"
-          },
-          {
-            "$ref": "#/components/parameters/LimitQuery"
-          },
-          {
-            "name": "log_type",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "日志类型筛选值。"
-          },
-          {
-            "name": "level",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "日志级别筛选值。"
-          },
-          {
-            "name": "user_id",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "目标用户 ID，用于筛选或指定用户。"
-          },
-          {
-            "name": "ip",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "IP 地址筛选值。"
-          },
-          {
-            "name": "login_status",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "登录结果状态筛选值。"
-          },
-          {
-            "name": "service_name",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "服务名筛选值。"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiMessageResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "list": {
-                              "type": "array",
-                              "items": {
-                                "$ref": "#/components/schemas/LogListItem"
-                              }
-                            },
-                            "count": {
-                              "type": "integer"
-                            }
-                          },
-                          "required": [
-                            "list",
-                            "count"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      },
-      "delete": {
-        "summary": "日志删除",
-        "deprecated": false,
-        "description": "需要管理员权限。",
-        "tags": [
-          "日志管理"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IdListRequest"
-              },
-              "example": {
-                "id_list": [
-                  1,
-                  2
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiStringDataResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
       }
     },
     "/api/banners": {
@@ -4483,43 +4328,11 @@
         ]
       }
     },
-    "/api/logs/{id}": {
-      "get": {
-        "summary": "日志读取",
-        "deprecated": false,
-        "description": "需要管理员权限。",
-        "tags": [
-          "日志管理"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiStringDataResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
     "/api/site/{name}": {
       "get": {
         "summary": "获取站点公开配置",
         "deprecated": false,
-        "description": "获取指定站点公开配置。路径中的 name 用于区分 site、qq、ai 等公开配置项。",
+        "description": "获取站点公开配置。当前支持的 name 为 site 和 seo。",
         "tags": [
           "站点配置/公开"
         ],
@@ -4534,22 +4347,28 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
                     },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "type": "object"
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/components/schemas/SiteRuntimeConfig"
+                            },
+                            {
+                              "$ref": "#/components/schemas/SiteSEOResponseData"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
                     }
-                  },
-                  "required": [
-                    "code",
-                    "msg",
-                    "data"
                   ]
                 }
               }
@@ -4558,11 +4377,11 @@
         }
       },
       "put": {
-        "summary": "更新站点配置",
+        "summary": "更新站点运行时配置",
         "deprecated": false,
-        "description": "按路径中的 name 更新对应站点配置。不同 name 对应不同 JSON 结构，请按字段说明传值。",
+        "description": "管理员更新数据库中的运行时站点配置。当前支持的 name 为 site 和 ai。不会修改 settings.yaml，也不会修改前端 HTML 文件。",
         "tags": [
-          "站点配置/公开"
+          "站点配置/管理"
         ],
         "parameters": [
           {
@@ -4574,7 +4393,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SiteUpdateRequest"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SiteRuntimeConfig"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AIRuntimeConfig"
+                  }
+                ]
               }
             }
           }
@@ -4585,19 +4411,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
-                    },
-                    "msg": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "msg"
-                  ]
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
             }
@@ -4614,7 +4428,7 @@
       "get": {
         "summary": "获取站点后台配置",
         "deprecated": false,
-        "description": "管理员获取后台站点配置详情。路径中的 name 用于区分 site、email、qq、qiniu、ai 等配置。",
+        "description": "管理员获取后台站点配置详情。当前支持的 name 为 site 和 ai。",
         "tags": [
           "站点配置/管理"
         ],
@@ -4629,22 +4443,28 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
                     },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "type": "object"
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/components/schemas/SiteRuntimeConfig"
+                            },
+                            {
+                              "$ref": "#/components/schemas/AIRuntimeConfig"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
                     }
-                  },
-                  "required": [
-                    "code",
-                    "msg",
-                    "data"
                   ]
                 }
               }
@@ -5539,6 +5359,535 @@
                   "required": [
                     "code",
                     "msg"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/site/seo": {
+      "get": {
+        "summary": "站点信息：SEO",
+        "deprecated": false,
+        "description": "获取站点默认 SEO 信息，适合 Nuxt 等前端在 SSR 或页面切换时拉取。",
+        "tags": [
+          "站点配置/公开"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SiteSEOResponseData"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/logs/runtime": {
+      "get": {
+        "summary": "运行日志列表",
+        "deprecated": false,
+        "description": "管理员分页查询运行日志、请求日志、错误日志和任务日志。未传时间范围时默认查询最近 7 天。",
+        "tags": [
+          "日志管理"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageQuery"
+          },
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          },
+          {
+            "name": "start_at",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "开始时间，格式：2006-01-02 15:04:05"
+          },
+          {
+            "name": "end_at",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "结束时间，格式：2006-01-02 15:04:05"
+          },
+          {
+            "name": "service",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "服务名。"
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "日志级别。"
+          },
+          {
+            "name": "host",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "主机名。"
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "请求方法。"
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "请求路径，支持模糊匹配。"
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "用户 ID。"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "关键词，会在 message、path、request_id 中模糊搜索。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/RuntimeLogListData"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/logs/runtime/{id}": {
+      "get": {
+        "summary": "运行日志详情",
+        "deprecated": false,
+        "description": "管理员按事件 ID 查询单条运行日志详情。",
+        "tags": [
+          "日志管理"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdPath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/RuntimeLogRecord"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/logs/login": {
+      "get": {
+        "summary": "登录事件日志列表",
+        "deprecated": false,
+        "description": "管理员分页查询登录成功、失败、登出等登录事件日志。未传时间范围时默认查询最近 7 天。",
+        "tags": [
+          "日志管理"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageQuery"
+          },
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          },
+          {
+            "name": "start_at",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "开始时间，格式：2006-01-02 15:04:05"
+          },
+          {
+            "name": "end_at",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "结束时间，格式：2006-01-02 15:04:05"
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "用户 ID。"
+          },
+          {
+            "name": "ip",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "登录 IP。"
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "用户名，支持模糊匹配。"
+          },
+          {
+            "name": "login_type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "登录方式。"
+          },
+          {
+            "name": "event_name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "事件名，例如 login_success。"
+          },
+          {
+            "name": "success",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "是否成功。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/LoginEventListData"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/logs/login/{id}": {
+      "get": {
+        "summary": "登录事件日志详情",
+        "deprecated": false,
+        "description": "管理员按事件 ID 查询单条登录事件日志详情。",
+        "tags": [
+          "日志管理"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdPath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/LoginEventRecord"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/logs/action": {
+      "get": {
+        "summary": "操作审计日志列表",
+        "deprecated": false,
+        "description": "管理员分页查询后台操作审计日志。未传时间范围时默认查询最近 7 天。",
+        "tags": [
+          "日志管理"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageQuery"
+          },
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          },
+          {
+            "name": "start_at",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "开始时间，格式：2006-01-02 15:04:05"
+          },
+          {
+            "name": "end_at",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "结束时间，格式：2006-01-02 15:04:05"
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "用户 ID。"
+          },
+          {
+            "name": "ip",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "操作 IP。"
+          },
+          {
+            "name": "action_name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "操作名称。"
+          },
+          {
+            "name": "target_type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "目标类型。"
+          },
+          {
+            "name": "target_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "目标 ID，支持模糊匹配。"
+          },
+          {
+            "name": "success",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "是否成功。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ActionAuditListData"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/logs/action/{id}": {
+      "get": {
+        "summary": "操作审计日志详情",
+        "deprecated": false,
+        "description": "管理员按事件 ID 查询单条操作审计日志详情。",
+        "tags": [
+          "日志管理"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdPath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ActionAuditRecord"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
                   ]
                 }
               }
@@ -8251,8 +8600,711 @@
         }
       },
       "SiteUpdateRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SiteRuntimeConfig"
+          },
+          {
+            "$ref": "#/components/schemas/AIRuntimeConfig"
+          }
+        ],
+        "description": "站点运行时配置更新请求体。实际结构取决于路径参数 name，目前支持 site 和 ai。"
+      },
+      "SiteSEOResponseData": {
         "type": "object",
-        "description": "动态站点配置更新请求体。实际结构取决于路径参数 name，可选值包括 site、email、qq、qiniu、ai。"
+        "properties": {
+          "site_title": {
+            "type": "string",
+            "description": "站点标题。"
+          },
+          "project_title": {
+            "type": "string",
+            "description": "项目标题。"
+          },
+          "logo": {
+            "type": "string",
+            "description": "站点 Logo 地址。"
+          },
+          "icon": {
+            "type": "string",
+            "description": "站点图标地址。"
+          },
+          "keywords": {
+            "type": "string",
+            "description": "默认 SEO 关键词。"
+          },
+          "description": {
+            "type": "string",
+            "description": "默认 SEO 描述。"
+          }
+        },
+        "required": [
+          "site_title",
+          "project_title",
+          "logo",
+          "icon",
+          "keywords",
+          "description"
+        ]
+      },
+      "SiteComponentInfo": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "组件标题。"
+          },
+          "enable": {
+            "type": "boolean",
+            "description": "是否启用。"
+          }
+        },
+        "required": [
+          "title",
+          "enable"
+        ]
+      },
+      "SiteSiteInfoConfig": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "站点标题。"
+          },
+          "logo": {
+            "type": "string",
+            "description": "站点 Logo 地址。"
+          },
+          "beian": {
+            "type": "string",
+            "description": "备案号。"
+          },
+          "mode": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "description": "站点模式：1 社区模式，2 博客模式。"
+          }
+        },
+        "required": [
+          "title",
+          "logo",
+          "beian",
+          "mode"
+        ]
+      },
+      "SiteProjectConfig": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "项目标题。"
+          },
+          "icon": {
+            "type": "string",
+            "description": "项目图标地址。"
+          },
+          "web_path": {
+            "type": "string",
+            "description": "前端访问路径。"
+          }
+        },
+        "required": [
+          "title",
+          "icon",
+          "web_path"
+        ]
+      },
+      "SiteSeoConfig": {
+        "type": "object",
+        "properties": {
+          "keywords": {
+            "type": "string",
+            "description": "SEO 关键词。"
+          },
+          "description": {
+            "type": "string",
+            "description": "SEO 描述。"
+          }
+        },
+        "required": [
+          "keywords",
+          "description"
+        ]
+      },
+      "SiteAboutConfig": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "系统版本号。"
+          },
+          "site_date": {
+            "type": "string",
+            "description": "建站日期。"
+          },
+          "qq": {
+            "type": "string",
+            "description": "QQ。"
+          },
+          "wechat": {
+            "type": "string",
+            "description": "微信。"
+          },
+          "gitee": {
+            "type": "string",
+            "description": "Gitee 地址。"
+          },
+          "bilibili": {
+            "type": "string",
+            "description": "B 站地址。"
+          },
+          "github": {
+            "type": "string",
+            "description": "GitHub 地址。"
+          }
+        },
+        "required": [
+          "version",
+          "site_date",
+          "qq",
+          "wechat",
+          "gitee",
+          "bilibili",
+          "github"
+        ]
+      },
+      "SiteLoginConfig": {
+        "type": "object",
+        "properties": {
+          "qq_login": {
+            "type": "boolean"
+          },
+          "username_pwd_login": {
+            "type": "boolean"
+          },
+          "email_login": {
+            "type": "boolean"
+          },
+          "captcha": {
+            "type": "boolean"
+          },
+          "email_code_timeout": {
+            "type": "integer",
+            "description": "邮箱验证码有效期，单位：分钟。"
+          },
+          "login_fail_window_minute": {
+            "type": "integer"
+          },
+          "login_fail_user_max": {
+            "type": "integer"
+          },
+          "login_fail_ip_max": {
+            "type": "integer"
+          },
+          "email_send_window_second": {
+            "type": "integer"
+          },
+          "email_send_per_email_max": {
+            "type": "integer"
+          },
+          "email_send_per_ip_max": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "qq_login",
+          "username_pwd_login",
+          "email_login",
+          "captcha",
+          "email_code_timeout",
+          "login_fail_window_minute",
+          "login_fail_user_max",
+          "login_fail_ip_max",
+          "email_send_window_second",
+          "email_send_per_email_max",
+          "email_send_per_ip_max"
+        ]
+      },
+      "SiteIndexRightConfig": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiteComponentInfo"
+            },
+            "description": "首页右侧组件列表。"
+          }
+        },
+        "required": [
+          "list"
+        ]
+      },
+      "SiteArticleConfig": {
+        "type": "object",
+        "properties": {
+          "skip_examining": {
+            "type": "boolean",
+            "description": "文章是否免审核。"
+          }
+        },
+        "required": [
+          "skip_examining"
+        ]
+      },
+      "SiteCommentConfig": {
+        "type": "object",
+        "properties": {
+          "skip_examining": {
+            "type": "boolean",
+            "description": "评论是否免审核。"
+          }
+        },
+        "required": [
+          "skip_examining"
+        ]
+      },
+      "SiteRuntimeConfig": {
+        "type": "object",
+        "properties": {
+          "site_info": {
+            "$ref": "#/components/schemas/SiteSiteInfoConfig"
+          },
+          "project": {
+            "$ref": "#/components/schemas/SiteProjectConfig"
+          },
+          "seo": {
+            "$ref": "#/components/schemas/SiteSeoConfig"
+          },
+          "about": {
+            "$ref": "#/components/schemas/SiteAboutConfig"
+          },
+          "login": {
+            "$ref": "#/components/schemas/SiteLoginConfig"
+          },
+          "index_right": {
+            "$ref": "#/components/schemas/SiteIndexRightConfig"
+          },
+          "article": {
+            "$ref": "#/components/schemas/SiteArticleConfig"
+          },
+          "comment": {
+            "$ref": "#/components/schemas/SiteCommentConfig"
+          }
+        },
+        "required": [
+          "site_info",
+          "project",
+          "seo",
+          "about",
+          "login",
+          "index_right",
+          "article",
+          "comment"
+        ]
+      },
+      "AIRuntimeConfig": {
+        "type": "object",
+        "properties": {
+          "enable": {
+            "type": "boolean",
+            "description": "是否启用 AI。"
+          },
+          "secret": {
+            "type": "string",
+            "description": "AI SecretKey。管理员读取时可能返回占位符。"
+          },
+          "base_url": {
+            "type": "string",
+            "description": "AI BaseURL。"
+          },
+          "chat_model": {
+            "type": "string",
+            "description": "对话模型名称。"
+          },
+          "reason_model": {
+            "type": "string",
+            "description": "推理模型名称。"
+          },
+          "timeout_sec": {
+            "type": "integer",
+            "description": "请求超时秒数。"
+          },
+          "max_input_chars": {
+            "type": "integer",
+            "description": "最大输入字符数。"
+          },
+          "temperature": {
+            "type": "number",
+            "description": "采样温度。"
+          },
+          "daily_quota": {
+            "type": "integer",
+            "description": "每日配额。"
+          },
+          "abstract": {
+            "type": "string",
+            "description": "AI 简介。"
+          },
+          "nickname": {
+            "type": "string",
+            "description": "AI 昵称。"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "AI 头像地址。"
+          }
+        },
+        "required": [
+          "enable",
+          "secret",
+          "base_url",
+          "chat_model",
+          "reason_model",
+          "timeout_sec",
+          "max_input_chars",
+          "temperature",
+          "daily_quota",
+          "abstract",
+          "nickname",
+          "avatar"
+        ]
+      },
+      "RuntimeLogRecord": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "integer"
+          },
+          "ts": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "env": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "func": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "status_code": {
+            "type": "integer"
+          },
+          "latency_ms": {
+            "type": "integer"
+          },
+          "event_name": {
+            "type": "string"
+          },
+          "error_type": {
+            "type": "string"
+          },
+          "error_stack": {
+            "type": "string"
+          },
+          "extra_json": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "ts",
+          "service",
+          "env",
+          "host",
+          "instance_id",
+          "level",
+          "message",
+          "request_id",
+          "trace_id",
+          "file",
+          "func",
+          "user_id",
+          "ip",
+          "method",
+          "path",
+          "status_code",
+          "latency_ms",
+          "event_name",
+          "error_type",
+          "error_stack",
+          "extra_json"
+        ]
+      },
+      "LoginEventRecord": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "integer"
+          },
+          "ts": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "env": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "event_name": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "login_type": {
+            "type": "string"
+          },
+          "success": {
+            "type": "integer",
+            "description": "1 表示成功，0 表示失败。"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "addr": {
+            "type": "string"
+          },
+          "ua": {
+            "type": "string"
+          },
+          "extra_json": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "ts",
+          "service",
+          "env",
+          "host",
+          "instance_id",
+          "level",
+          "message",
+          "request_id",
+          "trace_id",
+          "user_id",
+          "ip",
+          "event_name",
+          "username",
+          "login_type",
+          "success",
+          "reason",
+          "addr",
+          "ua",
+          "extra_json"
+        ]
+      },
+      "ActionAuditRecord": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "integer"
+          },
+          "ts": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "env": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "status_code": {
+            "type": "integer"
+          },
+          "action_name": {
+            "type": "string"
+          },
+          "target_type": {
+            "type": "string"
+          },
+          "target_id": {
+            "type": "string"
+          },
+          "success": {
+            "type": "integer",
+            "description": "1 表示成功，0 表示失败。"
+          },
+          "request_body": {
+            "type": "string"
+          },
+          "response_body": {
+            "type": "string"
+          },
+          "extra_json": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "ts",
+          "service",
+          "env",
+          "host",
+          "instance_id",
+          "level",
+          "message",
+          "request_id",
+          "trace_id",
+          "user_id",
+          "ip",
+          "method",
+          "path",
+          "status_code",
+          "action_name",
+          "target_type",
+          "target_id",
+          "success",
+          "request_body",
+          "response_body",
+          "extra_json"
+        ]
+      },
+      "RuntimeLogListData": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuntimeLogRecord"
+            }
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "list",
+          "count"
+        ]
+      },
+      "LoginEventListData": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoginEventRecord"
+            }
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "list",
+          "count"
+        ]
+      },
+      "ActionAuditListData": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionAuditRecord"
+            }
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "list",
+          "count"
+        ]
       }
     },
     "responses": {
@@ -8332,7 +9384,7 @@
         "schema": {
           "type": "string"
         },
-        "description": "站点配置名。公开接口通常使用 site；管理员接口支持 site/email/qq/qiniu/ai。"
+        "description": "站点配置名。公开接口当前支持 site、seo；管理员读取和更新当前支持 site、ai。"
       },
       "PageQuery": {
         "name": "page",

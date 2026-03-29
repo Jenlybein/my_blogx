@@ -225,7 +225,7 @@ func confirmUploadTask(taskID ctype.ID, objectMeta *uploadedObjectMeta, validate
 		task.ErrorMsg = err.Error()
 		// 保存失败状态
 		if saveErr := saveUploadTask(task, finalizedTaskKeepAlive); saveErr != nil {
-			global.Logger.Warnf("保存失败的图片上传任务状态失败: taskID=%s err=%v", task.ID.String(), saveErr)
+			global.Logger.Warnf("保存失败的图片上传任务状态失败: 任务ID=%s 错误=%v", task.ID.String(), saveErr)
 		}
 		return nil, err
 	}
@@ -239,7 +239,7 @@ func confirmUploadTask(taskID ctype.ID, objectMeta *uploadedObjectMeta, validate
 	// 如果是重复文件，删除七牛上多余的对象
 	if verified.ShouldDeleteUpload {
 		if delErr := DeleteObject(task.Bucket, task.ObjectKey); delErr != nil {
-			global.Logger.Warnf("删除重复上传的七牛对象失败: key=%s err=%v", task.ObjectKey, delErr)
+			global.Logger.Warnf("删除重复上传的七牛对象失败: 对象键=%s 错误=%v", task.ObjectKey, delErr)
 		}
 	}
 	return result, nil
@@ -373,10 +373,10 @@ func persistConfirmedTask(task *ImageUploadTask, verified *verifiedImage) (*Conf
 
 	// 保存完成状态的任务到缓存
 	if saveErr := saveUploadTask(task, finalizedTaskKeepAlive); saveErr != nil {
-		global.Logger.Warnf("保存成功的图片上传任务状态失败: taskID=%s err=%v", task.ID.String(), saveErr)
+		global.Logger.Warnf("保存成功的图片上传任务状态失败: 任务ID=%s 错误=%v", task.ID.String(), saveErr)
 	}
 	if err = applyPendingAuditStatusIfAny(result.Image); err != nil {
-		global.Logger.Warnf("应用七牛审核结果失败: image_id=%s key=%s err=%v", result.Image.ID.String(), result.Image.ObjectKey, err)
+		global.Logger.Warnf("应用七牛审核结果失败: 图片ID=%s 对象键=%s 错误=%v", result.Image.ID.String(), result.Image.ObjectKey, err)
 	}
 	return &result, nil
 }

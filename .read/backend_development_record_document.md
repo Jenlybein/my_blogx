@@ -764,6 +764,22 @@ go get github.com/go-redis/redis/v8
 
 注意，由于 ES 比较占资源，所以一般要考虑用 **2核4G** 以上的服务器
 
+### 2.6.4 服务器宿主机资源分配
+
+在宿主机输入以下内容：
+```bash
+echo 'vm.max_map_count=262144' | sudo tee /etc/sysctl.d/99-blogx.conf
+echo 'vm.overcommit_memory=1' | sudo tee -a /etc/sysctl.d/99-blogx.conf
+sudo sysctl --system
+```
+
+- `vm.max_map_count=262144`
+  - 提高进程可用的内存映射数量
+  - 给 Elasticsearch 用
+- `vm.overcommit_memory=1`
+  - 允许更宽松的内存超额分配策略
+  - 给 Redis 的 fork/持久化用
+
 # 三、数据结构
 
 **明确需求**：

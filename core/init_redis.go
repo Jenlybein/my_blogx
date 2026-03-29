@@ -18,10 +18,10 @@ func InitRedis(redisCfg *conf.Redis) *redis.Client {
 
 	_, err := redisDB.Ping(context.Background()).Result()
 	if err != nil {
-		global.Logger.Fatalf("redis 连接失败: %v", err)
+		global.Logger.Fatalf("Redis 连接失败: %v", err)
 	}
 
-	global.Logger.Infof("redis 连接成功: %s", redisDB.Options().Addr)
+	global.Logger.Infof("Redis 连接成功: %s", redisDB.Options().Addr)
 
 	return redisDB
 }

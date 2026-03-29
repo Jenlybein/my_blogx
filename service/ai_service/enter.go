@@ -95,14 +95,14 @@ func BaseRequest(req Request) (*http.Response, error) {
 	// 2. 序列化请求体
 	byteData, err := json.Marshal(req)
 	if err != nil {
-		global.Logger.Errorf("请求体序列化失败 err: %v", err)
+		global.Logger.Errorf("请求体序列化失败: 错误=%v", err)
 		return nil, fmt.Errorf("请求体序列化失败: %w", err)
 	}
 
 	// 3. 创建HTTP请求
 	reqHTTP, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(byteData))
 	if err != nil {
-		global.Logger.Errorf("创建HTTP请求失败 err: %v", err)
+		global.Logger.Errorf("创建 HTTP 请求失败: 错误=%v", err)
 		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
 
@@ -114,7 +114,7 @@ func BaseRequest(req Request) (*http.Response, error) {
 	client := &http.Client{}
 	res, err := client.Do(reqHTTP)
 	if err != nil {
-		global.Logger.Errorf("发送AI请求失败 err: %v", err)
+		global.Logger.Errorf("发送 AI 请求失败: 错误=%v", err)
 		return nil, fmt.Errorf("发送请求失败: %w", err)
 	}
 
@@ -161,7 +161,7 @@ func chatWithModel(msgList []Message, model string) (string, error) {
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
 		if global.Logger != nil {
-			global.Logger.Errorf("解析AI响应失败 err: %v", err)
+			global.Logger.Errorf("解析 AI 响应失败: 错误=%v", err)
 		}
 		return "", fmt.Errorf("解析响应失败: %w", err)
 	}
@@ -234,7 +234,7 @@ func chatStreamWithModel(msgList []Message, model string) (chan string, chan err
 			var item StreamData
 			if err := json.Unmarshal([]byte(data), &item); err != nil {
 				if global.Logger != nil {
-					global.Logger.Warnf("流式数据解析错误 err: %v, 原始数据: %s", err, text)
+					global.Logger.Warnf("流式数据解析错误: 错误=%v 原始数据=%s", err, text)
 				}
 				continue // 单个数据解析失败，继续处理下一条
 			}
@@ -248,7 +248,7 @@ func chatStreamWithModel(msgList []Message, model string) (chan string, chan err
 		// 检查scanner错误
 		if err := scanner.Err(); err != nil {
 			if global.Logger != nil {
-				global.Logger.Errorf("读取流式响应失败 err: %v", err)
+				global.Logger.Errorf("读取流式响应失败: 错误=%v", err)
 			}
 			errChan <- fmt.Errorf("读取响应流失败: %w", err)
 		}

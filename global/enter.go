@@ -3,6 +3,7 @@
 package global
 
 import (
+	"database/sql"
 	"myblogx/conf"
 	"myblogx/service/kafka_service"
 
@@ -24,6 +25,7 @@ var (
 	Config            *conf.Config
 	Logger            *logrus.Logger
 	DB                *gorm.DB
+	ClickHouse        *sql.DB
 	Redis             *redis.Client
 	KafkaMysqlClient  *kafka_service.KafkaMysqlClient
 	ESClient          *elasticsearch.Client

@@ -18,12 +18,6 @@ import (
 func (ImageApi) ImageRemoveView(c *gin.Context) {
 	cr := middleware.GetBindJson[models.IDListRequest](c)
 
-	log := log_service.GetLog(c)
-	log.SetShowRequest()
-	log.SetShowResponse()
-	log.ShowRequestHeader()
-	log.ShowResponseHeader()
-
 	var list []models.ImageModel
 	if err := global.DB.Find(&list, "id IN ?", cr.IDList).Error; err != nil {
 		res.FailWithError(err, c)
@@ -56,5 +50,15 @@ func (ImageApi) ImageRemoveView(c *gin.Context) {
 	}
 
 	msg := fmt.Sprintf("操作成功，删除了 %d 张图片", len(list))
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:  "image_remove",
+		TargetType:  "image",
+		Success:     true,
+		Message:     msg,
+		RequestBody: map[string]any{"id_list": cr.IDList},
+		ResponseBody: map[string]any{
+			"deleted_count": len(list),
+		},
+	})
 	res.OkWithData(msg, c)
 }

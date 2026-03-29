@@ -40,7 +40,7 @@ func applyCommentDiggDelta(commentID ctype.ID, delta int) error {
 		return db.Error
 	}
 	if db.RowsAffected == 0 {
-		global.Logger.Warnf("同步评论点赞数任务更新行不存在 comment_id: %d delta: %d", commentID, delta)
+		global.Logger.Warnf("同步评论点赞数任务更新行不存在: 评论ID=%d 增量=%d", commentID, delta)
 	}
 	return nil
 }

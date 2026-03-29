@@ -56,7 +56,7 @@ func loadMasterInfo(dataDir string) (*masterInfo, error) {
 
 // Save 保存MySQL位置信息到文件
 func (m *masterInfo) Save(pos mysql.Position) error {
-	global.Logger.Debugf("save position %s", pos)
+	global.Logger.Debugf("保存同步位点: %s", pos)
 
 	m.Lock()
 	defer m.Unlock()
@@ -90,7 +90,7 @@ func (m *masterInfo) Save(pos mysql.Position) error {
 	}
 
 	if err = WriteFileAtomic(m.filePath, buf.Bytes(), 0644); err != nil {
-		global.Logger.Errorf("canal save master info to file %s err %v", m.filePath, err)
+		global.Logger.Errorf("保存 Canal 主库位点文件失败: 文件=%s 错误=%v", m.filePath, err)
 	}
 
 	return errors.Trace(err)

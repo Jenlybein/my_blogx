@@ -29,14 +29,14 @@ func (FavoriteApi) FavoriteDeleteView(c *gin.Context) {
 
 	var list []models.FavoriteModel
 	if err := global.DB.Where(query).Find(&list).Error; err != nil {
-		global.Logger.Errorf("寻找对应的收藏夹失败 err: %v", err)
+		global.Logger.Errorf("查找对应收藏夹失败: 错误=%v", err)
 		res.FailWithMsg("寻找对应的收藏夹失败", c)
 		return
 	}
 
 	if len(list) > 0 {
 		if err := global.DB.Delete(&list).Error; err != nil {
-			global.Logger.Errorf("删除对应的收藏夹失败 err: %v", err)
+			global.Logger.Errorf("删除对应收藏夹失败: 错误=%v", err)
 			res.FailWithMsg("删除收藏夹失败", c)
 			return
 		}

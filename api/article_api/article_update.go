@@ -8,8 +8,10 @@ import (
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/service/es_service"
+	"myblogx/service/log_service"
 	"myblogx/utils/jwts"
 	"myblogx/utils/markdown"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -116,12 +118,34 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 	if cr.TagIDs != nil {
 		applyTagArticleCountDelta(buildTagArticleCountDelta(oldTagIDs, newTagIDs))
 		if err := es_service.UpdateESDocsTags([]ctype.ID{article.ID}); err != nil {
-			global.Logger.Errorf("更新文章标签后刷新 ES 标签失败 article_id=%d err=%v", article.ID, err)
+			global.Logger.Errorf("更新文章标签后刷新 ES 标签失败: 文章ID=%d 错误=%v", article.ID, err)
 		}
 	} else if cr.Content != nil {
 		if err := es_service.UpdateESDocsContent([]ctype.ID{article.ID}); err != nil {
-			global.Logger.Errorf("更新文章正文后刷新 ES 文档失败 article_id=%d err=%v", article.ID, err)
+			global.Logger.Errorf("更新文章正文后刷新 ES 文档失败: 文章ID=%d 错误=%v", article.ID, err)
 		}
 	}
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName: "article_update",
+		TargetType: "article",
+		TargetID:   strconv.FormatUint(uint64(article.ID), 10),
+		Success:    true,
+		Message:    "更新文章成功",
+		RequestBody: map[string]any{
+			"title":           cr.Title,
+			"abstract":        cr.Abstract,
+			"cover":           cr.Cover,
+			"category_id":     cr.CategoryID,
+			"status":          updateMap["status"],
+			"comments_toggle": cr.CommentsToggle,
+			"tag_ids":         cr.TagIDs,
+			"content_length": func() int {
+				if cr.Content == nil {
+					return 0
+				}
+				return len(*cr.Content)
+			}(),
+		},
+	})
 	res.OkWithMsg("更新文章成功", c)
 }

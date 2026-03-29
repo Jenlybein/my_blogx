@@ -58,20 +58,20 @@ func SetTokenBlack(token string, blackType BlackType) {
 	// 获取 token 原本的过期时间
 	claims, err := jwts.ParseToken(token)
 	if err != nil || claims == nil {
-		global.Logger.Errorf("将Token放入黑名单时解析失败 err: %v", err)
+		global.Logger.Errorf("将令牌放入黑名单时解析失败: 错误=%v", err)
 		return
 	}
 
 	// 计算 token 剩余过期时间
 	expire := claims.ExpiresAt - time.Now().Unix()
 	if expire <= 0 {
-		global.Logger.Errorf("token 已过期，无法放入黑名单")
+		global.Logger.Errorf("令牌已过期，无法放入黑名单")
 		return
 	}
 
 	_, err = global.Redis.Set(context.Background(), key, blackType.RedisValue(), time.Duration(expire)*time.Second).Result()
 	if err != nil {
-		global.Logger.Errorf("将Token放入黑名单时出错 err: %v", err)
+		global.Logger.Errorf("将令牌放入黑名单时出错: 错误=%v", err)
 		return
 	}
 }
@@ -88,13 +88,13 @@ func HasTokenBlack(token string) (blackType BlackType, ok bool) {
 		if err == redis.Nil {
 			return 0, true
 		}
-		global.Logger.Errorf("检查Token是否在黑名单时出错 err: %v", err)
+		global.Logger.Errorf("检查令牌是否在黑名单时出错: 错误=%v", err)
 		return 0, false
 	}
 
 	blackType, err = BlackTypeFromRedisValue(has)
 	if err != nil {
-		global.Logger.Errorf("string 转换 BlackType 失败: %v", err)
+		global.Logger.Errorf("字符串转换为黑名单类型失败: %v", err)
 		return 0, false
 	}
 

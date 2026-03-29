@@ -10,7 +10,9 @@ import (
 	"myblogx/service/db_service"
 	"myblogx/utils/jwts"
 	"net/http"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -30,12 +32,30 @@ func InitGlobals() {
 	if global.Config == nil {
 		global.Config = &conf.Config{}
 	}
+	if global.Config.Log.Dir == "" {
+		global.Config.Log.Dir = defaultTestLogDir()
+	}
+	if global.Config.Log.App == "" {
+		global.Config.Log.App = "test"
+	}
+	if global.Config.Log.StdoutFormat == "" {
+		global.Config.Log.StdoutFormat = "json"
+	}
 	if global.Config.System.ServerID == 0 {
 		global.Config.System.ServerID = 1
 	}
 	if err := db_service.InitSnowflake(global.Config.System.ServerID); err != nil {
 		panic(fmt.Errorf("初始化测试雪花 ID 生成器失败: %w", err))
 	}
+}
+
+func defaultTestLogDir() string {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "./logs/test_logs"
+	}
+	projectRoot := filepath.Dir(filepath.Dir(filepath.Dir(filename)))
+	return filepath.Join(projectRoot, "logs", "test_logs")
 }
 
 func SetupMiniRedis(t *testing.T) *miniredis.Miniredis {
