@@ -44,6 +44,7 @@ func setupCommentEnv(t *testing.T) *models.UserModel {
 	db := testutil.SetupSQLite(t,
 		&models.UserModel{},
 		&models.UserConfModel{},
+		&models.UserFollowModel{},
 		&models.ArticleModel{},
 		&models.CommentModel{},
 		&models.CommentDiggModel{},

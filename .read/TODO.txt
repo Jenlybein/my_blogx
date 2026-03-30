@@ -58,15 +58,6 @@ AI 博客助手
 比如自动生成英文摘要、中英双语文章、标题翻译、术语解释。对技术博客挺实用，尤其如果你想做搜索流量扩展。
 
 
-日志模块整体进行分析，如何重构更好？
-日志系统如何更好的存储数据到数据库里，又怎么返回给前端
-修改 middleware，jwt 每天登录接入时，如果是第一次被使用，则记录该用户今天登录了。
-目前了解 ELK、Clickhouse。
-
-
-站点配置修改的接口是否已经完善？
-
-
 了解 ELK ：https://www.cnblogs.com/crazymakercircle/p/18561362
 最新架构使用：
 应用日志/容器日志
@@ -84,15 +75,8 @@ AI 博客助手
 【告警】Grafana Alert 或平台自带告警 https://cloud.tencent.com/developer/article/1807679
 
 
-
-目前优化方案：
-1. 新增一个专用采集中间件，在Router上挂载的接口就会采集请求体。
-2. 日志层再有两个字段，例如： UseRawRequestBody bool \UseRawResponseBody bool
-3. 先想“采集并存起来”，第一阶段先只落盘/入库，不大改clickhouse。
-4. 中间件中会自动处理信息脱敏。
-5. 不能无限制把 body 写进去，大于16kb则取各字段的值截断，保留完整字段名。
-6. 一个中间件 + 独立开关，参考：mw.CaptureLogBody(选择其中一个)，可选：{Req, Resp, Both}
-
-
 docker compose 里存在密码，怎么办?
 后续全面转向环境变量配置， https://www.doubao.com/chat/38419183522472450
+
+
+站点配置修改的接口是否已经完善？

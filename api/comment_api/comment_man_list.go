@@ -9,6 +9,8 @@ import (
 	"myblogx/models"
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
+	"myblogx/models/enum/relationship_enum"
+	"myblogx/service/follow_service"
 	"myblogx/service/redis_service/redis_comment"
 	"myblogx/utils/jwts"
 
@@ -33,6 +35,7 @@ type CommentManListResponse struct {
 	UserID       ctype.ID `json:"user_id"`
 	UserNickname string   `json:"user_nickname"`
 	UserAvatar   string   `json:"user_avatar"`
+	Relation     int8     `json:"relation,omitempty"`
 	ArticleID    ctype.ID `json:"article_id"`
 	ArticleTitle string   `json:"article_title"`
 	ArticleCover string   `json:"article_cover"`
@@ -101,6 +104,20 @@ func (CommentApi) CommentManListView(c *gin.Context) {
 	replyCountMap := redis_comment.GetBatchCacheReply(commentIDs)
 	diggCountMap := redis_comment.GetBatchCacheDigg(commentIDs)
 
+	relationMap := make(map[ctype.ID]relationship_enum.Relation)
+	if cr.Type == 1 {
+		userIDs := make([]ctype.ID, 0, len(commentList))
+		seen := make(map[ctype.ID]struct{}, len(commentList))
+		for _, item := range commentList {
+			if _, ok := seen[item.UserID]; ok {
+				continue
+			}
+			seen[item.UserID] = struct{}{}
+			userIDs = append(userIDs, item.UserID)
+		}
+		relationMap = follow_service.CalUserRelationshipBatch(claims.UserID, userIDs)
+	}
+
 	list := make([]CommentManListResponse, 0, len(commentList))
 	for _, item := range commentList {
 		item.ReplyCount += replyCountMap[item.ID]
@@ -114,6 +131,7 @@ func (CommentApi) CommentManListView(c *gin.Context) {
 			UserID:       item.UserID,
 			UserNickname: item.UserModel.Nickname,
 			UserAvatar:   item.UserModel.Avatar,
+			Relation:     int8(relationMap[item.UserID]),
 			ArticleID:    item.ArticleID,
 			ArticleTitle: item.ArticleModel.Title,
 			ArticleCover: item.ArticleModel.Cover,

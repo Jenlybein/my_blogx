@@ -33,9 +33,11 @@ func readCode(t *testing.T, w *httptest.ResponseRecorder) int {
 
 func TestProfileHandlers(t *testing.T) {
 	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.TagModel{})
+	email := "u1@example.com"
 	user := models.UserModel{
 		Username: "u1",
 		Password: "x",
+		Email:    &email,
 		Nickname: "nick",
 		Role:     enum.RoleUser,
 	}
@@ -63,6 +65,23 @@ func TestProfileHandlers(t *testing.T) {
 		api.UserDetailView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("用户详情失败, code=%d body=%s", code, w.Body.String())
+		}
+
+		var body struct {
+			Code int `json:"code"`
+			Data struct {
+				Email       *string `json:"email"`
+				HasPassword bool    `json:"has_password"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("解析用户详情响应失败: %v", err)
+		}
+		if body.Data.Email == nil || *body.Data.Email != email {
+			t.Fatalf("用户详情返回邮箱错误: %+v", body.Data.Email)
+		}
+		if !body.Data.HasPassword {
+			t.Fatalf("用户详情应返回已绑定密码")
 		}
 	}
 

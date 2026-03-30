@@ -7,31 +7,31 @@
   },
   "tags": [
     {
+      "name": "站点配置"
+    },
+    {
       "name": "站点配置/公开"
     },
     {
       "name": "站点配置/管理"
     },
     {
-      "name": "日志管理"
-    },
-    {
-      "name": "图片管理/上传任务"
-    },
-    {
-      "name": "图片管理/回调"
-    },
-    {
-      "name": "图片管理/资源"
-    },
-    {
-      "name": "轮播管理/公开"
+      "name": "轮播管理"
     },
     {
       "name": "轮播管理/管理"
     },
     {
+      "name": "轮播管理/公开"
+    },
+    {
       "name": "验证码"
+    },
+    {
+      "name": "用户管理"
+    },
+    {
+      "name": "用户管理/后台"
     },
     {
       "name": "用户管理/认证"
@@ -40,19 +40,22 @@
       "name": "用户管理/资料"
     },
     {
-      "name": "用户管理/后台"
+      "name": "用户管理/登录日志"
     },
     {
-      "name": "用户管理/登录日志"
+      "name": "文章管理"
     },
     {
       "name": "文章管理/文章"
     },
     {
-      "name": "文章管理/分类"
+      "name": "文章管理/收藏夹"
     },
     {
-      "name": "文章管理/收藏夹"
+      "name": "文章管理/访问历史"
+    },
+    {
+      "name": "文章管理/分类"
     },
     {
       "name": "文章管理/标签"
@@ -61,34 +64,46 @@
       "name": "文章管理/置顶"
     },
     {
-      "name": "文章管理/访问历史"
-    },
-    {
-      "name": "评论管理/公开"
+      "name": "评论管理"
     },
     {
       "name": "评论管理/用户"
     },
     {
-      "name": "站内消息/消息"
+      "name": "评论管理/公开"
+    },
+    {
+      "name": "站内消息"
     },
     {
       "name": "站内消息/配置"
     },
     {
+      "name": "站内消息/消息"
+    },
+    {
       "name": "站内消息/用户"
+    },
+    {
+      "name": "全局消息"
+    },
+    {
+      "name": "全局消息/管理"
     },
     {
       "name": "全局消息/用户"
     },
     {
-      "name": "全局消息/管理"
+      "name": "粉丝与关注"
     },
     {
       "name": "粉丝与关注/关注"
     },
     {
       "name": "粉丝与关注/粉丝"
+    },
+    {
+      "name": "私信模块"
     },
     {
       "name": "私信模块/会话"
@@ -100,13 +115,22 @@
       "name": "私信模块/WebSocket"
     },
     {
+      "name": "搜索模块"
+    },
+    {
       "name": "搜索模块/文章"
+    },
+    {
+      "name": "AI模块"
     },
     {
       "name": "AI模块/元信息"
     },
     {
       "name": "AI模块/搜索"
+    },
+    {
+      "name": "数据统计"
     },
     {
       "name": "数据统计/概览"
@@ -116,6 +140,21 @@
     },
     {
       "name": "数据统计/文章"
+    },
+    {
+      "name": "图片管理"
+    },
+    {
+      "name": "图片管理/上传任务"
+    },
+    {
+      "name": "图片管理/回调"
+    },
+    {
+      "name": "图片管理/资源"
+    },
+    {
+      "name": "日志管理"
     }
   ],
   "paths": {
@@ -127,7 +166,19 @@
         "tags": [
           "站点配置/公开"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -137,9 +188,11 @@
                   "$ref": "#/components/schemas/ApiQQUrlResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/site/ai_info": {
@@ -150,7 +203,19 @@
         "tags": [
           "站点配置/公开"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -175,9 +240,271 @@
                   ]
                 }
               }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/site/{name}": {
+      "get": {
+        "summary": "获取站点公开配置",
+        "deprecated": false,
+        "description": "获取站点公开配置。当前支持的 name 为 site 和 seo。",
+        "tags": [
+          "站点配置/公开"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "站点配置名。公开接口当前支持 site、seo；管理员读取和更新当前支持 site、ai。",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
           }
-        }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/components/schemas/SiteRuntimeConfig"
+                            },
+                            {
+                              "$ref": "#/components/schemas/SiteSEOResponseData"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "summary": "更新站点运行时配置",
+        "deprecated": false,
+        "description": "管理员更新数据库中的运行时站点配置。当前支持的 name 为 site 和 ai。不会修改 settings.yaml，也不会修改前端 HTML 文件。",
+        "tags": [
+          "站点配置/管理"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "站点配置名。公开接口当前支持 site、seo；管理员读取和更新当前支持 site、ai。",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SiteRuntimeConfig"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AIRuntimeConfig"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/site/seo": {
+      "get": {
+        "summary": "站点信息：SEO",
+        "deprecated": false,
+        "description": "获取站点默认 SEO 信息，适合 Nuxt 等前端在 SSR 或页面切换时拉取。",
+        "tags": [
+          "站点配置/公开"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SiteSEOResponseData"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/site/admin/{name}": {
+      "get": {
+        "summary": "获取站点后台配置",
+        "deprecated": false,
+        "description": "管理员获取后台站点配置详情。当前支持的 name 为 site 和 ai。",
+        "tags": [
+          "站点配置/管理"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "站点配置名。公开接口当前支持 site、seo；管理员读取和更新当前支持 site、ai。",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/components/schemas/SiteRuntimeConfig"
+                            },
+                            {
+                              "$ref": "#/components/schemas/AIRuntimeConfig"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/banners": {
@@ -188,9 +515,20 @@
         "tags": [
           "轮播管理/管理"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -202,7 +540,8 @@
                 "show": false
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -213,7 +552,63 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "删除轮播图",
+        "deprecated": false,
+        "description": "需要管理员权限。",
+        "tags": [
+          "轮播管理/管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdListRequest"
+              },
+              "example": {
+                "id_list": [
+                  2,
+                  4
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                }
+              }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -231,18 +626,44 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageQuery"
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
           {
-            "$ref": "#/components/parameters/LimitQuery"
+            "name": "limit",
+            "in": "query",
+            "description": "每页条数",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
           {
             "name": "show",
             "in": "query",
+            "description": "是否显示",
+            "required": false,
             "schema": {
               "type": "boolean"
-            },
-            "description": "是否显示"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -284,33 +705,58 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
-        }
-      },
-      "delete": {
-        "summary": "删除轮播图",
+        },
+        "security": []
+      }
+    },
+    "/api/banners/{id}": {
+      "put": {
+        "summary": "更新轮播图",
         "deprecated": false,
         "description": "需要管理员权限。",
         "tags": [
           "轮播管理/管理"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/IdListRequest"
+                "$ref": "#/components/schemas/BannerCreateRequest"
               },
               "example": {
-                "id_list": [
-                  2,
-                  4
-                ]
+                "cover": "/xxx/xx.jpg",
+                "href": "http://REDACTED_DOMAIN",
+                "show": true
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -321,7 +767,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -339,7 +786,19 @@
         "tags": [
           "验证码"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -364,9 +823,11 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/users/admin/list": {
@@ -377,7 +838,19 @@
         "tags": [
           "用户管理/后台"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -417,7 +890,59 @@
                   ]
                 }
               }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/admin/info": {
+      "put": {
+        "summary": "管理员更新用户信息",
+        "deprecated": false,
+        "description": "需要管理员权限。",
+        "tags": [
+          "用户管理/后台"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUserInfoUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                }
+              }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -435,9 +960,20 @@
         "tags": [
           "用户管理/认证"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -445,22 +981,23 @@
               },
               "examples": {
                 "email_login": {
-                  "summary": "邮箱登录验证码",
                   "value": {
                     "type": 4,
                     "email": "user@example.com"
-                  }
+                  },
+                  "summary": "邮箱登录验证码"
                 },
                 "register": {
-                  "summary": "邮箱注册验证码",
                   "value": {
                     "type": 1,
                     "email": "user@example.com"
-                  }
+                  },
+                  "summary": "邮箱注册验证码"
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -484,9 +1021,11 @@
                   }
                 }
               }
-            }
+            },
+            "headers": {}
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/users/email/register": {
@@ -497,9 +1036,20 @@
         "tags": [
           "用户管理/认证"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -509,7 +1059,8 @@
                 "pwd": "123456"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -520,9 +1071,11 @@
                   "$ref": "#/components/schemas/ApiStringDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/users/qq": {
@@ -533,9 +1086,20 @@
         "tags": [
           "用户管理/认证"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -545,7 +1109,8 @@
                 "code": "abc"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -556,9 +1121,11 @@
                   "$ref": "#/components/schemas/ApiStringDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/users/login": {
@@ -569,9 +1136,20 @@
         "tags": [
           "用户管理/认证"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -579,15 +1157,16 @@
               },
               "examples": {
                 "simple": {
-                  "summary": "密码登录示例",
                   "value": {
                     "username": "testAdmin",
                     "password": "123456"
-                  }
+                  },
+                  "summary": "密码登录示例"
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -608,9 +1187,425 @@
                   }
                 }
               }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/users/password/renewal/email": {
+      "put": {
+        "summary": "修改密码-邮箱",
+        "deprecated": false,
+        "description": "已登录用户通过邮箱验证码修改密码。成功后会使旧登录态失效。",
+        "tags": [
+          "用户管理/认证"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
           }
-        }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePasswordRequest"
+              },
+              "example": {
+                "old_password": "123456",
+                "new_password": "654321"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/password/recovery/email": {
+      "put": {
+        "summary": "忘记密码-邮箱",
+        "deprecated": false,
+        "description": "未登录或忘记密码场景下，通过邮箱验证码重置密码。成功后旧登录态会失效。",
+        "tags": [
+          "用户管理/认证"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              },
+              "example": {
+                "new_password": "654321"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/users/email/bind": {
+      "put": {
+        "summary": "邮箱绑定",
+        "deprecated": false,
+        "description": "为当前登录用户绑定邮箱地址。应先获取邮箱验证码，再提交 email_id 与验证码。",
+        "tags": [
+          "用户管理/认证"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailVerifyRequest"
+              },
+              "example": {
+                "email_id": "abc",
+                "email_code": "1234"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/email/login": {
+      "post": {
+        "summary": "邮箱验证码登录",
+        "deprecated": false,
+        "description": "先调用邮箱验证码发送接口，再使用 email_id 与 email_code 完成登录。成功后返回 access token。\n\n调用顺序：\n1. 先调用邮箱验证码发送接口拿到 email_id。\n2. 用户输入邮件中的验证码。\n3. 调用本接口提交 email_id 与 email_code。\n4. 成功后拿到 access token，并按常规登录态使用。",
+        "tags": [
+          "用户管理/认证"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailVerifyRequest"
+              },
+              "examples": {
+                "simple": {
+                  "value": {
+                    "email_id": "abc123",
+                    "email_code": "123456"
+                  },
+                  "summary": "邮箱验证码登录示例"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "登录成功",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx.yyy"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/users/refresh": {
+      "post": {
+        "summary": "刷新登录令牌",
+        "deprecated": false,
+        "description": "通过 HttpOnly refresh_token Cookie 换取新的 access token。当前接口主要用于 access token 过期后的续期，不需要在 body 中再传 token。\n\n调用顺序：\n1. 前端检测 access token 失效或即将失效。\n2. 携带浏览器自动附带的 refresh_token Cookie 调用本接口。\n3. 成功后拿到新的 access token。\n4. 用新的 access token 重试原先的受保护请求。",
+        "tags": [
+          "用户管理/认证"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "刷新成功",
+                    "value": {
+                      "code": 0,
+                      "msg": "成功",
+                      "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new.xxx"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "refreshTokenCookie": []
+          }
+        ]
+      }
+    },
+    "/api/users/logout": {
+      "post": {
+        "summary": "退出当前登录",
+        "deprecated": false,
+        "description": "退出当前设备登录态。通常在前端用户主动退出时调用，会清理当前会话对应的登录状态。",
+        "tags": [
+          "用户管理/认证"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/logout/all": {
+      "post": {
+        "summary": "退出全部设备",
+        "deprecated": false,
+        "description": "退出当前账号在所有设备上的登录态。适合修改密码后或用户希望强制全端下线时调用。",
+        "tags": [
+          "用户管理/认证"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/users/detail": {
@@ -621,7 +1616,19 @@
         "tags": [
           "用户管理/资料"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -646,7 +1653,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -674,6 +1682,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -700,7 +1719,59 @@
                   ]
                 }
               }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/info": {
+      "put": {
+        "summary": "用户更新信息",
+        "deprecated": false,
+        "description": "更新当前登录用户资料，例如昵称、头像、简介和个人展示配置。",
+        "tags": [
+          "用户管理/资料"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserInfoUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                }
+              }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -737,6 +1808,17 @@
             "example": "2",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
           }
         ],
@@ -779,203 +1861,8 @@
                   ]
                 }
               }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/users/password/renewal/email": {
-      "put": {
-        "summary": "修改密码-邮箱",
-        "deprecated": false,
-        "description": "已登录用户通过邮箱验证码修改密码。成功后会使旧登录态失效。",
-        "tags": [
-          "用户管理/认证"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePasswordRequest"
-              },
-              "example": {
-                "old_password": "123456",
-                "new_password": "654321"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/users/password/recovery/email": {
-      "put": {
-        "summary": "忘记密码-邮箱",
-        "deprecated": false,
-        "description": "未登录或忘记密码场景下，通过邮箱验证码重置密码。成功后旧登录态会失效。",
-        "tags": [
-          "用户管理/认证"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResetPasswordRequest"
-              },
-              "example": {
-                "new_password": "654321"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users/email/bind": {
-      "put": {
-        "summary": "邮箱绑定",
-        "deprecated": false,
-        "description": "为当前登录用户绑定邮箱地址。应先获取邮箱验证码，再提交 email_id 与验证码。",
-        "tags": [
-          "用户管理/认证"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EmailVerifyRequest"
-              },
-              "example": {
-                "email_id": "abc",
-                "email_code": "1234"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/users/info": {
-      "put": {
-        "summary": "用户更新信息",
-        "deprecated": false,
-        "description": "更新当前登录用户资料，例如昵称、头像、简介和个人展示配置。",
-        "tags": [
-          "用户管理/资料"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserInfoUpdateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/users/admin/info": {
-      "put": {
-        "summary": "管理员更新用户信息",
-        "deprecated": false,
-        "description": "需要管理员权限。",
-        "tags": [
-          "用户管理/后台"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AdminUserInfoUpdateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
-                }
-              }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1053,6 +1940,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -1094,9 +1992,11 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
-        }
+        },
+        "security": []
       },
       "post": {
         "summary": "发布文章",
@@ -1105,9 +2005,20 @@
         "tags": [
           "文章管理/文章"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1115,7 +2026,6 @@
               },
               "examples": {
                 "publish_article": {
-                  "summary": "发布文章示例",
                   "value": {
                     "title": "测试文章",
                     "abstract": "这是一篇用于联调的文章摘要。",
@@ -1128,11 +2038,13 @@
                     "cover": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/ljZa0YMcc2u6lyAqG-ALnuhewGrY",
                     "comments_toggle": true,
                     "status": 2
-                  }
+                  },
+                  "summary": "发布文章示例"
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1153,7 +2065,8 @@
                   }
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1169,16 +2082,28 @@
         "tags": [
           "文章管理/文章"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IdListRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1189,7 +2114,386 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/articles/view": {
+      "post": {
+        "summary": "文章访问量&访问历史",
+        "deprecated": false,
+        "description": "记录文章浏览量与访问历史。文章详情页打开后通常调用一次。",
+        "tags": [
+          "文章管理/文章"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleViewCountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/articles/{id}": {
+      "put": {
+        "summary": "更新文章",
+        "deprecated": false,
+        "description": "更新指定文章。通常用于文章编辑页保存，未提交的字段会按接口实现使用新值覆盖旧值。",
+        "tags": [
+          "文章管理/文章"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "get": {
+        "summary": "文章详情",
+        "deprecated": false,
+        "description": "获取指定文章详情。适合文章详情页初始化，也会返回文章统计与作者信息。",
+        "tags": [
+          "文章管理/文章"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ArticleDetailResponseData"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "用户删除文章",
+        "deprecated": false,
+        "description": "删除当前用户自己的文章。删除后文章不再对外展示。",
+        "tags": [
+          "文章管理/文章"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/articles/{id}/digg": {
+      "put": {
+        "summary": "文章点赞",
+        "deprecated": false,
+        "description": "文章点赞。通常用于更新已有资源，请按 JSON 请求体提供需要修改的字段。 调用时需要在请求头中携带 Bearer access token。",
+        "tags": [
+          "文章管理/文章"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "data",
+                    "msg"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/articles/{id}/examine": {
+      "post": {
+        "summary": "审核文章",
+        "deprecated": false,
+        "description": "管理员审核文章，通过或驳回。需要管理员权限。",
+        "tags": [
+          "文章管理/文章"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "integer",
+                    "enum": [
+                      3,
+                      4
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              },
+              "example": {
+                "status": 3,
+                "reason": ""
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg"
+                  ]
+                }
+              }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1207,16 +2511,28 @@
         "tags": [
           "文章管理/收藏夹"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ArticleFavoriteRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1227,7 +2543,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1243,16 +2560,28 @@
         "tags": [
           "文章管理/收藏夹"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/FavoriteRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1263,7 +2592,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1279,16 +2609,28 @@
         "tags": [
           "文章管理/收藏夹"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IdListRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1299,7 +2641,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1334,6 +2677,17 @@
             "example": "1",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
           }
         ],
@@ -1403,27 +2757,134 @@
             },
             "headers": {}
           }
-        }
+        },
+        "security": []
       }
     },
-    "/api/articles/view": {
-      "post": {
-        "summary": "文章访问量&访问历史",
+    "/api/articles/favorite/contents": {
+      "get": {
+        "summary": "查询收藏夹文章",
         "deprecated": false,
-        "description": "记录文章浏览量与访问历史。文章详情页打开后通常调用一次。",
+        "description": "获取某个收藏夹中的文章列表。需要提供 favorite_id。",
         "tags": [
-          "文章管理/文章"
+          "文章管理/收藏夹"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页条数",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "favorite_id",
+            "in": "query",
+            "description": "目标收藏夹 ID。",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "list": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/FavoriteArticleItem"
+                              }
+                            },
+                            "count": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "list",
+                            "count"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "批删收藏夹文章",
+        "deprecated": false,
+        "description": "批量移除收藏夹中的文章关联关系，不会删除文章本身。",
+        "tags": [
+          "文章管理/收藏夹"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ArticleViewCountRequest"
+                "$ref": "#/components/schemas/FavoriteRemovePatchModel"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1434,9 +2895,15 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/articles/history": {
@@ -1447,16 +2914,28 @@
         "tags": [
           "文章管理/访问历史"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IdListRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1467,7 +2946,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1501,6 +2981,17 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
           }
         ],
@@ -1543,7 +3034,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1561,16 +3053,28 @@
         "tags": [
           "文章管理/分类"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CategoryRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1581,7 +3085,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1597,16 +3102,28 @@
         "tags": [
           "文章管理/分类"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IdListRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1617,7 +3134,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1642,6 +3160,17 @@
             "example": "1",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
           }
         ],
@@ -1711,7 +3240,8 @@
             },
             "headers": {}
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/articles/category/options": {
@@ -1722,7 +3252,19 @@
         "tags": [
           "文章管理/分类"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1750,112 +3292,8 @@
                   ]
                 }
               }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/articles/favorite/contents": {
-      "get": {
-        "summary": "查询收藏夹文章",
-        "deprecated": false,
-        "description": "获取某个收藏夹中的文章列表。需要提供 favorite_id。",
-        "tags": [
-          "文章管理/收藏夹"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageQuery"
-          },
-          {
-            "$ref": "#/components/parameters/LimitQuery"
-          },
-          {
-            "name": "favorite_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer"
             },
-            "description": "目标收藏夹 ID。"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiMessageResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "list": {
-                              "type": "array",
-                              "items": {
-                                "$ref": "#/components/schemas/FavoriteArticleItem"
-                              }
-                            },
-                            "count": {
-                              "type": "integer"
-                            }
-                          },
-                          "required": [
-                            "list",
-                            "count"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "批删收藏夹文章",
-        "deprecated": false,
-        "description": "批量移除收藏夹中的文章关联关系，不会删除文章本身。",
-        "tags": [
-          "文章管理/收藏夹"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FavoriteRemovePatchModel"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
-                }
-              }
-            }
+            "headers": {}
           }
         },
         "security": [
@@ -1883,17 +3321,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TagRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1904,7 +3353,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -1920,7 +3370,19 @@
         "tags": [
           "文章管理/标签"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -2008,7 +3470,8 @@
             },
             "headers": {}
           }
-        }
+        },
+        "security": []
       },
       "delete": {
         "summary": "删除标签",
@@ -2017,16 +3480,28 @@
         "tags": [
           "文章管理/标签"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IdListRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2037,7 +3512,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2055,7 +3531,19 @@
         "tags": [
           "文章管理/标签"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -2083,7 +3571,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2120,6 +3609,17 @@
             "example": "1",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
           }
         ],
@@ -2162,9 +3662,11 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
-        }
+        },
+        "security": []
       },
       "post": {
         "summary": "置顶设置",
@@ -2173,16 +3675,28 @@
         "tags": [
           "文章管理/置顶"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ArticleTopSetRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2193,7 +3707,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2209,16 +3724,28 @@
         "tags": [
           "文章管理/置顶"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ArticleTopSetRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2229,7 +3756,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2247,16 +3775,28 @@
         "tags": [
           "评论管理/用户"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CommentCreateRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2267,7 +3807,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2292,6 +3833,17 @@
             "example": "26",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
           }
         ],
@@ -2319,72 +3871,11 @@
                   ]
                 }
               }
-            }
-          }
-        }
-      }
-    },
-    "/api/comments/replies": {
-      "get": {
-        "summary": "获取二级评论",
-        "deprecated": false,
-        "description": "获取某条根评论下的回复列表，需要提供 article_id 和 root_id。",
-        "tags": [
-          "评论管理/公开"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageQuery"
-          },
-          {
-            "$ref": "#/components/parameters/LimitQuery"
-          },
-          {
-            "name": "article_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer"
             },
-            "description": "目标文章 ID。"
-          },
-          {
-            "name": "root_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "根评论 ID，用于获取该根评论下的回复。"
+            "headers": {}
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiMessageResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/CommentReplyListData"
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
+        },
+        "security": []
       }
     },
     "/api/comments/man": {
@@ -2397,30 +3888,48 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageQuery"
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
           {
-            "$ref": "#/components/parameters/LimitQuery"
+            "name": "limit",
+            "in": "query",
+            "description": "每页条数",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
           {
             "name": "article_id",
             "in": "query",
+            "description": "目标文章 ID。",
+            "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "目标文章 ID。"
+            }
           },
           {
             "name": "user_id",
             "in": "query",
+            "description": "目标用户 ID，用于筛选或指定用户。",
+            "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "目标用户 ID，用于筛选或指定用户。"
+            }
           },
           {
             "name": "status",
             "in": "query",
+            "description": "状态筛选参数，具体取值请结合该接口业务含义使用。",
+            "required": false,
             "schema": {
               "type": "integer",
               "enum": [
@@ -2428,12 +3937,12 @@
                 2,
                 3
               ]
-            },
-            "description": "状态筛选参数，具体取值请结合该接口业务含义使用。"
+            }
           },
           {
             "name": "type",
             "in": "query",
+            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。",
             "required": true,
             "schema": {
               "type": "integer",
@@ -2442,8 +3951,18 @@
                 2,
                 3
               ]
-            },
-            "description": "类型筛选参数，具体取值请结合该接口业务含义使用。"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -2485,7 +4004,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2493,6 +4013,230 @@
             "bearerAuth": []
           }
         ]
+      }
+    },
+    "/api/comments/{id}": {
+      "delete": {
+        "summary": "删除评论",
+        "deprecated": false,
+        "description": "删除指定评论。支持用户删除自己的评论或管理员执行管理删除。",
+        "tags": [
+          "评论管理/用户"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "": "#/components/schemas/EmptyObject"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/comments/{id}/digg": {
+      "post": {
+        "summary": "点赞评论",
+        "deprecated": false,
+        "description": "对指定评论执行点赞或取消点赞操作。",
+        "tags": [
+          "评论管理/用户"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "data",
+                    "msg"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/comments/replies": {
+      "get": {
+        "summary": "获取二级评论",
+        "deprecated": false,
+        "description": "获取某条根评论下的回复列表，需要提供 article_id 和 root_id。",
+        "tags": [
+          "评论管理/公开"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页条数",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "article_id",
+            "in": "query",
+            "description": "目标文章 ID。",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "root_id",
+            "in": "query",
+            "description": "根评论 ID，用于获取该根评论下的回复。",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CommentReplyListData"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
       }
     },
     "/api/sitemsg/conf": {
@@ -2503,7 +4247,19 @@
         "tags": [
           "站内消息/配置"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -2528,7 +4284,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2544,16 +4301,28 @@
         "tags": [
           "站内消息/配置"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UserMsgConf"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2564,7 +4333,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2612,6 +4382,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -2653,7 +4434,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2669,16 +4451,28 @@
         "tags": [
           "站内消息/消息"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SitemsgReadRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2689,7 +4483,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2705,16 +4500,28 @@
         "tags": [
           "站内消息/消息"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SitemsgRemoveRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2725,7 +4532,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2743,7 +4551,19 @@
         "tags": [
           "站内消息/用户"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -2768,7 +4588,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2786,16 +4607,28 @@
         "tags": [
           "全局消息/管理"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GlobalNotifCreateRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2806,7 +4639,57 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "管理员删除全局消息",
+        "deprecated": false,
+        "description": "需要管理员权限。",
+        "tags": [
+          "全局消息/管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdListRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
+                }
+              }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2852,6 +4735,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -2893,43 +4787,8 @@
                   ]
                 }
               }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      },
-      "delete": {
-        "summary": "管理员删除全局消息",
-        "deprecated": false,
-        "description": "需要管理员权限。",
-        "tags": [
-          "全局消息/管理"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IdListRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
-                }
-              }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2947,16 +4806,28 @@
         "tags": [
           "全局消息/用户"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IdListRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2967,7 +4838,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -2985,16 +4857,28 @@
         "tags": [
           "全局消息/用户"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IdListRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -3005,7 +4889,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3053,6 +4938,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -3094,7 +4990,142 @@
                   ]
                 }
               }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/follow/{id}": {
+      "post": {
+        "summary": "关注用户",
+        "deprecated": false,
+        "description": "关注指定用户。路径中的 id 为被关注用户 ID。",
+        "tags": [
+          "粉丝与关注/关注"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
             }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "data",
+                    "msg"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "取消关注",
+        "deprecated": false,
+        "description": "取消关注指定用户。路径中的 id 为被取消关注用户 ID。",
+        "tags": [
+          "粉丝与关注/关注"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    },
+                    "msg": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "data",
+                    "msg"
+                  ]
+                }
+              }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3142,6 +5173,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -3183,7 +5225,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3210,6 +5253,17 @@
             "example": "1",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
           }
         ],
@@ -3252,7 +5306,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3268,16 +5323,28 @@
         "tags": [
           "私信模块/会话"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChatSessionDeleteUserRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -3288,7 +5355,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3336,6 +5404,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -3377,7 +5456,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3393,16 +5473,28 @@
         "tags": [
           "私信模块/消息"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChatMsgDeleteUserRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -3413,7 +5505,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3431,16 +5524,28 @@
         "tags": [
           "私信模块/消息"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChatMsgReadUserRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -3451,7 +5556,8 @@
                   "$ref": "#/components/schemas/ApiEmptyDataResponse"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3459,6 +5565,103 @@
             "bearerAuth": []
           }
         ]
+      }
+    },
+    "/api/chat/ws-ticket": {
+      "get": {
+        "summary": "获取聊天 WebSocket Ticket",
+        "deprecated": false,
+        "description": "已登录用户获取短期 ws ticket，用于建立聊天 WebSocket。",
+        "tags": [
+          "私信模块/WebSocket"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/chat/ws": {
+      "get": {
+        "summary": "聊天 WebSocket 连接",
+        "deprecated": false,
+        "description": "使用 ticket 建立聊天 WebSocket 连接。ticket 需先通过已登录接口换取。",
+        "tags": [
+          "私信模块/WebSocket"
+        ],
+        "parameters": [
+          {
+            "name": "ticket",
+            "in": "query",
+            "description": "WebSocket 建连票据，需先通过已登录接口换取。",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "responses": {
+          "101": {
+            "description": "Switching Protocols",
+            "headers": {}
+          }
+        },
+        "security": []
       }
     },
     "/api/search/articles": {
@@ -3508,6 +5711,17 @@
             "example": "1",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
             }
           }
         ],
@@ -3631,7 +5845,8 @@
             },
             "headers": {}
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/ai/metainfo": {
@@ -3642,16 +5857,28 @@
         "tags": [
           "AI模块/元信息"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AIBaseRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -3677,7 +5904,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3695,16 +5923,28 @@
         "tags": [
           "AI模块/搜索"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AIBaseRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -3733,7 +5973,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3751,16 +5992,28 @@
         "tags": [
           "AI模块/搜索"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AIBaseRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -3772,7 +6025,8 @@
                   "description": "SSE 文本流，data 行内容为 JSON 片段。"
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3790,7 +6044,19 @@
         "tags": [
           "数据统计/概览"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -3815,7 +6081,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3843,6 +6110,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -3869,7 +6147,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -3887,7 +6166,19 @@
         "tags": [
           "数据统计/文章"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -3912,764 +6203,8 @@
                   ]
                 }
               }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/articles/{id}": {
-      "put": {
-        "summary": "更新文章",
-        "deprecated": false,
-        "description": "更新指定文章。通常用于文章编辑页保存，未提交的字段会按接口实现使用新值覆盖旧值。",
-        "tags": [
-          "文章管理/文章"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ArticleUpdateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      },
-      "get": {
-        "summary": "文章详情",
-        "deprecated": false,
-        "description": "获取指定文章详情。适合文章详情页初始化，也会返回文章统计与作者信息。",
-        "tags": [
-          "文章管理/文章"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiMessageResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/ArticleDetailResponseData"
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "用户删除文章",
-        "deprecated": false,
-        "description": "删除当前用户自己的文章。删除后文章不再对外展示。",
-        "tags": [
-          "文章管理/文章"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "responses": {
-          "404": {
-            "description": "",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "object",
-                  "properties": {}
-                }
-              }
             },
             "headers": {}
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/articles/{id}/digg": {
-      "put": {
-        "summary": "文章点赞",
-        "deprecated": false,
-        "description": "文章点赞。通常用于更新已有资源，请按 JSON 请求体提供需要修改的字段。 调用时需要在请求头中携带 Bearer access token。",
-        "tags": [
-          "文章管理/文章"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {}
-                    },
-                    "msg": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "data",
-                    "msg"
-                  ]
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/banners/{id}": {
-      "put": {
-        "summary": "更新轮播图",
-        "deprecated": false,
-        "description": "需要管理员权限。",
-        "tags": [
-          "轮播管理/管理"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BannerCreateRequest"
-              },
-              "example": {
-                "cover": "/xxx/xx.jpg",
-                "href": "http://REDACTED_DOMAIN",
-                "show": true
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/comments/{id}": {
-      "delete": {
-        "summary": "删除评论",
-        "deprecated": false,
-        "description": "删除指定评论。支持用户删除自己的评论或管理员执行管理删除。",
-        "tags": [
-          "评论管理/用户"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "": "#/components/schemas/ApiMessageResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "": "#/components/schemas/EmptyObject"
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/comments/{id}/digg": {
-      "post": {
-        "summary": "点赞评论",
-        "deprecated": false,
-        "description": "对指定评论执行点赞或取消点赞操作。",
-        "tags": [
-          "评论管理/用户"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {}
-                    },
-                    "msg": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "data",
-                    "msg"
-                  ]
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/follow/{id}": {
-      "post": {
-        "summary": "关注用户",
-        "deprecated": false,
-        "description": "关注指定用户。路径中的 id 为被关注用户 ID。",
-        "tags": [
-          "粉丝与关注/关注"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {}
-                    },
-                    "msg": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "data",
-                    "msg"
-                  ]
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      },
-      "delete": {
-        "summary": "取消关注",
-        "deprecated": false,
-        "description": "取消关注指定用户。路径中的 id 为被取消关注用户 ID。",
-        "tags": [
-          "粉丝与关注/关注"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {}
-                    },
-                    "msg": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "data",
-                    "msg"
-                  ]
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/site/{name}": {
-      "get": {
-        "summary": "获取站点公开配置",
-        "deprecated": false,
-        "description": "获取站点公开配置。当前支持的 name 为 site 和 seo。",
-        "tags": [
-          "站点配置/公开"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/SiteNamePath"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiMessageResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "oneOf": [
-                            {
-                              "$ref": "#/components/schemas/SiteRuntimeConfig"
-                            },
-                            {
-                              "$ref": "#/components/schemas/SiteSEOResponseData"
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "summary": "更新站点运行时配置",
-        "deprecated": false,
-        "description": "管理员更新数据库中的运行时站点配置。当前支持的 name 为 site 和 ai。不会修改 settings.yaml，也不会修改前端 HTML 文件。",
-        "tags": [
-          "站点配置/管理"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/SiteNamePath"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/SiteRuntimeConfig"
-                  },
-                  {
-                    "$ref": "#/components/schemas/AIRuntimeConfig"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiEmptyDataResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/site/admin/{name}": {
-      "get": {
-        "summary": "获取站点后台配置",
-        "deprecated": false,
-        "description": "管理员获取后台站点配置详情。当前支持的 name 为 site 和 ai。",
-        "tags": [
-          "站点配置/管理"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/SiteNamePath"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiMessageResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "oneOf": [
-                            {
-                              "$ref": "#/components/schemas/SiteRuntimeConfig"
-                            },
-                            {
-                              "$ref": "#/components/schemas/AIRuntimeConfig"
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/users/email/login": {
-      "post": {
-        "summary": "邮箱验证码登录",
-        "deprecated": false,
-        "description": "先调用邮箱验证码发送接口，再使用 email_id 与 email_code 完成登录。成功后返回 access token。\n\n调用顺序：\n1. 先调用邮箱验证码发送接口拿到 email_id。\n2. 用户输入邮件中的验证码。\n3. 调用本接口提交 email_id 与 email_code。\n4. 成功后拿到 access token，并按常规登录态使用。",
-        "tags": [
-          "用户管理/认证"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EmailVerifyRequest"
-              },
-              "examples": {
-                "simple": {
-                  "summary": "邮箱验证码登录示例",
-                  "value": {
-                    "email_id": "abc123",
-                    "email_code": "123456"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiMessageResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  ]
-                },
-                "examples": {
-                  "success": {
-                    "summary": "登录成功",
-                    "value": {
-                      "code": 0,
-                      "msg": "成功",
-                      "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx.yyy"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users/refresh": {
-      "post": {
-        "summary": "刷新登录令牌",
-        "deprecated": false,
-        "description": "通过 HttpOnly refresh_token Cookie 换取新的 access token。当前接口主要用于 access token 过期后的续期，不需要在 body 中再传 token。\n\n调用顺序：\n1. 前端检测 access token 失效或即将失效。\n2. 携带浏览器自动附带的 refresh_token Cookie 调用本接口。\n3. 成功后拿到新的 access token。\n4. 用新的 access token 重试原先的受保护请求。",
-        "tags": [
-          "用户管理/认证"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "msg",
-                    "data"
-                  ]
-                },
-                "examples": {
-                  "success": {
-                    "summary": "刷新成功",
-                    "value": {
-                      "code": 0,
-                      "msg": "成功",
-                      "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new.xxx"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "refreshTokenCookie": []
-          }
-        ]
-      }
-    },
-    "/api/users/logout": {
-      "post": {
-        "summary": "退出当前登录",
-        "deprecated": false,
-        "description": "退出当前设备登录态。通常在前端用户主动退出时调用，会清理当前会话对应的登录状态。",
-        "tags": [
-          "用户管理/认证"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
-                    },
-                    "msg": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "msg"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/users/logout/all": {
-      "post": {
-        "summary": "退出全部设备",
-        "deprecated": false,
-        "description": "退出当前账号在所有设备上的登录态。适合修改密码后或用户希望强制全端下线时调用。",
-        "tags": [
-          "用户管理/认证"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
-                    },
-                    "msg": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "msg"
-                  ]
-                }
-              }
-            }
           }
         },
         "security": [
@@ -4687,9 +6222,20 @@
         "tags": [
           "图片管理/上传任务"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4697,17 +6243,18 @@
               },
               "examples": {
                 "create_task": {
-                  "summary": "创建图片上传任务",
                   "value": {
                     "file_name": "avatar.png",
                     "size": 490,
                     "mime_type": "image/png",
                     "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx"
-                  }
+                  },
+                  "summary": "创建图片上传任务"
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -4740,7 +6287,7 @@
                       "msg": "成功",
                       "data": {
                         "skip_upload": true,
-                        "image_id": 295954303670030336,
+                        "image_id": 295954303670030340,
                         "status": "ready",
                         "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
                         "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx"
@@ -4754,7 +6301,7 @@
                       "msg": "成功",
                       "data": {
                         "skip_upload": false,
-                        "upload_id": 295621418450685952,
+                        "upload_id": 295621418450685950,
                         "provider": "qiniu",
                         "bucket": "myblogx",
                         "object_key": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
@@ -4768,7 +6315,8 @@
                   }
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -4786,9 +6334,20 @@
         "tags": [
           "图片管理/上传任务"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4796,15 +6355,16 @@
               },
               "examples": {
                 "manual_complete": {
-                  "summary": "开发环境手动完成上传",
                   "value": {
-                    "upload_id": 295621418450685952,
+                    "upload_id": 295621418450685950,
                     "object_key": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx"
-                  }
+                  },
+                  "summary": "开发环境手动完成上传"
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -4836,8 +6396,8 @@
                       "code": 0,
                       "msg": "成功",
                       "data": {
-                        "upload_id": 295621418450685952,
-                        "image_id": 295954303670030336,
+                        "upload_id": 295621418450685950,
+                        "image_id": 295954303670030340,
                         "status": "ready",
                         "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx"
                       }
@@ -4845,7 +6405,8 @@
                   }
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -4865,7 +6426,25 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/IdPath"
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -4898,7 +6477,7 @@
                       "code": 0,
                       "msg": "成功",
                       "data": {
-                        "upload_id": 295621418450685952,
+                        "upload_id": 295621418450685950,
                         "status": "pending",
                         "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx"
                       }
@@ -4910,8 +6489,8 @@
                       "code": 0,
                       "msg": "成功",
                       "data": {
-                        "upload_id": 295621418450685952,
-                        "image_id": 295954303670030336,
+                        "upload_id": 295621418450685950,
+                        "image_id": 295954303670030340,
                         "status": "ready",
                         "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
                         "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx"
@@ -4920,7 +6499,8 @@
                   }
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -4938,9 +6518,20 @@
         "tags": [
           "图片管理/回调"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4965,17 +6556,18 @@
               },
               "examples": {
                 "callback": {
-                  "summary": "七牛上传完成回调示例",
                   "value": {
                     "key": "myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx",
                     "hash": "Fm8TSAox63x45bd-hrHs87ZQPSxx",
                     "bucket": "myblogx",
                     "fsize": 490
-                  }
+                  },
+                  "summary": "七牛上传完成回调示例"
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -5025,8 +6617,8 @@
                       "code": 0,
                       "msg": "成功",
                       "data": {
-                        "upload_id": 295621418450685952,
-                        "image_id": 295954303670030336,
+                        "upload_id": 295621418450685950,
+                        "image_id": 295954303670030340,
                         "status": "ready",
                         "url": "https://REDACTED_CDN_DOMAIN/myblogx/images/20260328/Fm8TSAox63x45bd-hrHs87ZQPSxx"
                       }
@@ -5034,9 +6626,11 @@
                   }
                 }
               }
-            }
+            },
+            "headers": {}
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/images/qiniu/audit/callback": {
@@ -5047,9 +6641,20 @@
         "tags": [
           "图片管理/回调"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5057,7 +6662,6 @@
               },
               "examples": {
                 "audit_block": {
-                  "summary": "七牛审核回调示例",
                   "value": {
                     "id": "z0.5b8911ea38b9f324a5734c32",
                     "pipeline": "0.default",
@@ -5081,11 +6685,13 @@
                         }
                       }
                     ]
-                  }
+                  },
+                  "summary": "七牛审核回调示例"
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -5106,79 +6712,11 @@
                   }
                 }
               }
-            }
-          }
-        }
-      }
-    },
-    "/api/chat/ws-ticket": {
-      "get": {
-        "summary": "获取聊天 WebSocket Ticket",
-        "deprecated": false,
-        "description": "已登录用户获取短期 ws ticket，用于建立聊天 WebSocket。",
-        "tags": [
-          "私信模块/WebSocket"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "msg",
-                    "data"
-                  ]
-                }
-              }
-            }
+            },
+            "headers": {}
           }
         },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/chat/ws": {
-      "get": {
-        "summary": "聊天 WebSocket 连接",
-        "deprecated": false,
-        "description": "使用 ticket 建立聊天 WebSocket 连接。ticket 需先通过已登录接口换取。",
-        "tags": [
-          "私信模块/WebSocket"
-        ],
-        "parameters": [
-          {
-            "name": "ticket",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "WebSocket 建连票据，需先通过已登录接口换取。"
-          }
-        ],
-        "responses": {
-          "101": {
-            "description": "Switching Protocols"
-          }
-        }
+        "security": []
       }
     },
     "/api/images": {
@@ -5193,20 +6731,31 @@
           {
             "name": "page",
             "in": "query",
+            "description": "分页页码，从 1 开始。",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "分页页码，从 1 开始。"
+            }
           },
           {
             "name": "limit",
             "in": "query",
+            "description": "每页返回条数。",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "每页返回条数。"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -5224,7 +6773,8 @@
                       "type": "string"
                     },
                     "data": {
-                      "type": "object"
+                      "type": "object",
+                      "properties": {}
                     }
                   },
                   "required": [
@@ -5234,7 +6784,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -5250,9 +6801,20 @@
         "tags": [
           "图片管理/资源"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5266,7 +6828,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -5289,7 +6852,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -5297,117 +6861,6 @@
             "bearerAuth": []
           }
         ]
-      }
-    },
-    "/api/articles/{id}/examine": {
-      "post": {
-        "summary": "审核文章",
-        "deprecated": false,
-        "description": "管理员审核文章，通过或驳回。需要管理员权限。",
-        "tags": [
-          "文章管理/文章"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "type": "integer",
-                    "enum": [
-                      3,
-                      4
-                    ]
-                  },
-                  "reason": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "status"
-                ]
-              },
-              "example": {
-                "status": 3,
-                "reason": ""
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer"
-                    },
-                    "msg": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "msg"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/site/seo": {
-      "get": {
-        "summary": "站点信息：SEO",
-        "deprecated": false,
-        "description": "获取站点默认 SEO 信息，适合 Nuxt 等前端在 SSR 或页面切换时拉取。",
-        "tags": [
-          "站点配置/公开"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiMessageResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/SiteSEOResponseData"
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/api/logs/runtime": {
@@ -5420,82 +6873,116 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageQuery"
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
           {
-            "$ref": "#/components/parameters/LimitQuery"
+            "name": "limit",
+            "in": "query",
+            "description": "每页条数",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
           {
             "name": "start_at",
             "in": "query",
+            "description": "开始时间，格式：2006-01-02 15:04:05",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "开始时间，格式：2006-01-02 15:04:05"
+            }
           },
           {
             "name": "end_at",
             "in": "query",
+            "description": "结束时间，格式：2006-01-02 15:04:05",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "结束时间，格式：2006-01-02 15:04:05"
+            }
           },
           {
             "name": "service",
             "in": "query",
+            "description": "服务名。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "服务名。"
+            }
           },
           {
             "name": "level",
             "in": "query",
+            "description": "日志级别。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "日志级别。"
+            }
           },
           {
             "name": "host",
             "in": "query",
+            "description": "主机名。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "主机名。"
+            }
           },
           {
             "name": "method",
             "in": "query",
+            "description": "请求方法。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "请求方法。"
+            }
           },
           {
             "name": "path",
             "in": "query",
+            "description": "请求路径，支持模糊匹配。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "请求路径，支持模糊匹配。"
+            }
           },
           {
             "name": "user_id",
             "in": "query",
+            "description": "用户 ID。",
+            "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "用户 ID。"
+            }
           },
           {
             "name": "key",
             "in": "query",
+            "description": "关键词，会在 message、path、request_id 中模糊搜索。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "关键词，会在 message、path、request_id 中模糊搜索。"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -5522,7 +7009,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -5542,7 +7030,25 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/IdPath"
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -5569,7 +7075,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -5589,74 +7096,107 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageQuery"
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
           {
-            "$ref": "#/components/parameters/LimitQuery"
+            "name": "limit",
+            "in": "query",
+            "description": "每页条数",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
           {
             "name": "start_at",
             "in": "query",
+            "description": "开始时间，格式：2006-01-02 15:04:05",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "开始时间，格式：2006-01-02 15:04:05"
+            }
           },
           {
             "name": "end_at",
             "in": "query",
+            "description": "结束时间，格式：2006-01-02 15:04:05",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "结束时间，格式：2006-01-02 15:04:05"
+            }
           },
           {
             "name": "user_id",
             "in": "query",
+            "description": "用户 ID。",
+            "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "用户 ID。"
+            }
           },
           {
             "name": "ip",
             "in": "query",
+            "description": "登录 IP。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "登录 IP。"
+            }
           },
           {
             "name": "username",
             "in": "query",
+            "description": "用户名，支持模糊匹配。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "用户名，支持模糊匹配。"
+            }
           },
           {
             "name": "login_type",
             "in": "query",
+            "description": "登录方式。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "登录方式。"
+            }
           },
           {
             "name": "event_name",
             "in": "query",
+            "description": "事件名，例如 login_success。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "事件名，例如 login_success。"
+            }
           },
           {
             "name": "success",
             "in": "query",
+            "description": "是否成功。",
+            "required": false,
             "schema": {
               "type": "boolean"
-            },
-            "description": "是否成功。"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -5683,7 +7223,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -5703,7 +7244,25 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/IdPath"
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -5730,7 +7289,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -5750,74 +7310,107 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageQuery"
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
           {
-            "$ref": "#/components/parameters/LimitQuery"
+            "name": "limit",
+            "in": "query",
+            "description": "每页条数",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
           {
             "name": "start_at",
             "in": "query",
+            "description": "开始时间，格式：2006-01-02 15:04:05",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "开始时间，格式：2006-01-02 15:04:05"
+            }
           },
           {
             "name": "end_at",
             "in": "query",
+            "description": "结束时间，格式：2006-01-02 15:04:05",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "结束时间，格式：2006-01-02 15:04:05"
+            }
           },
           {
             "name": "user_id",
             "in": "query",
+            "description": "用户 ID。",
+            "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "用户 ID。"
+            }
           },
           {
             "name": "ip",
             "in": "query",
+            "description": "操作 IP。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "操作 IP。"
+            }
           },
           {
             "name": "action_name",
             "in": "query",
+            "description": "操作名称。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "操作名称。"
+            }
           },
           {
             "name": "target_type",
             "in": "query",
+            "description": "目标类型。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "目标类型。"
+            }
           },
           {
             "name": "target_id",
             "in": "query",
+            "description": "目标 ID，支持模糊匹配。",
+            "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "目标 ID，支持模糊匹配。"
+            }
           },
           {
             "name": "success",
             "in": "query",
+            "description": "是否成功。",
+            "required": false,
             "schema": {
               "type": "boolean"
-            },
-            "description": "是否成功。"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -5844,7 +7437,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -5864,7 +7458,25 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/IdPath"
+            "name": "id",
+            "in": "path",
+            "description": "主键 ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
           }
         ],
         "responses": {
@@ -5891,7 +7503,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -6295,23 +7908,23 @@
         "properties": {
           "username": {
             "type": "string",
-            "nullable": true,
-            "description": "用户名。"
+            "description": "用户名。",
+            "nullable": true
           },
           "nickname": {
             "type": "string",
-            "nullable": true,
-            "description": "昵称。"
+            "description": "昵称。",
+            "nullable": true
           },
           "avatar": {
             "type": "string",
-            "nullable": true,
-            "description": "头像图片地址。"
+            "description": "头像图片地址。",
+            "nullable": true
           },
           "abstract": {
             "type": "string",
-            "nullable": true,
-            "description": "摘要或简介文本。"
+            "description": "摘要或简介文本。",
+            "nullable": true
           },
           "like_tags": {
             "type": "array",
@@ -6322,23 +7935,23 @@
           },
           "favorites_visibility": {
             "type": "boolean",
-            "nullable": true,
-            "description": "收藏夹可见性配置。"
+            "description": "收藏夹可见性配置。",
+            "nullable": true
           },
           "followers_visibility": {
             "type": "boolean",
-            "nullable": true,
-            "description": "关注列表可见性配置。"
+            "description": "关注列表可见性配置。",
+            "nullable": true
           },
           "fans_visibility": {
             "type": "boolean",
-            "nullable": true,
-            "description": "粉丝列表可见性配置。"
+            "description": "粉丝列表可见性配置。",
+            "nullable": true
           },
           "home_style_id": {
             "type": "integer",
-            "nullable": true,
-            "description": "个人主页样式 ID。"
+            "description": "个人主页样式 ID。",
+            "nullable": true
           }
         }
       },
@@ -6351,43 +7964,43 @@
           },
           "username": {
             "type": "string",
-            "nullable": true,
-            "description": "用户名。"
+            "description": "用户名。",
+            "nullable": true
           },
           "nickname": {
             "type": "string",
-            "nullable": true,
-            "description": "昵称。"
+            "description": "昵称。",
+            "nullable": true
           },
           "avatar": {
             "type": "string",
-            "nullable": true,
-            "description": "头像图片地址。"
+            "description": "头像图片地址。",
+            "nullable": true
           },
           "abstract": {
             "type": "string",
-            "nullable": true,
-            "description": "摘要或简介文本。"
+            "description": "摘要或简介文本。",
+            "nullable": true
           },
           "role": {
             "type": "integer",
-            "nullable": true,
             "enum": [
               1,
               2,
               3
             ],
-            "description": "用户角色值。"
+            "description": "用户角色值。",
+            "nullable": true
           },
           "status": {
             "type": "integer",
-            "nullable": true,
             "enum": [
               1,
               2,
               3
             ],
-            "description": "管理员设置的用户状态值。"
+            "description": "管理员设置的用户状态值。",
+            "nullable": true
           }
         },
         "required": [
@@ -6491,19 +8104,19 @@
           },
           "home_style_id": {
             "type": "integer",
-            "nullable": true,
-            "description": "个人主页样式 ID。"
+            "description": "个人主页样式 ID。",
+            "nullable": true
           },
           "like_tags": {
             "type": "string",
-            "nullable": true,
-            "description": "用户偏好标签列表，用于个性化展示。"
+            "description": "用户偏好标签列表，用于个性化展示。",
+            "nullable": true
           },
           "updated_username_date": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
-            "description": "最近一次修改用户名的时间。"
+            "description": "最近一次修改用户名的时间。",
+            "nullable": true
           }
         },
         "required": [
@@ -6537,8 +8150,8 @@
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
-            "description": "软删除时间；为空表示未删除。"
+            "description": "软删除时间；为空表示未删除。",
+            "nullable": true
           },
           "user_id": {
             "type": "integer",
@@ -6666,8 +8279,8 @@
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
-            "description": "软删除时间；为空表示未删除。"
+            "description": "软删除时间；为空表示未删除。",
+            "nullable": true
           },
           "show": {
             "type": "boolean",
@@ -6711,8 +8324,8 @@
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
-            "description": "软删除时间；为空表示未删除。"
+            "description": "软删除时间；为空表示未删除。",
+            "nullable": true
           },
           "log_type": {
             "type": "integer",
@@ -6835,8 +8448,8 @@
           },
           "category_id": {
             "type": "integer",
-            "nullable": true,
-            "description": "分类 ID。"
+            "description": "分类 ID。",
+            "nullable": true
           },
           "tag_ids": {
             "type": "array",
@@ -6873,23 +8486,23 @@
         "properties": {
           "title": {
             "type": "string",
-            "nullable": true,
-            "description": "标题文本。"
+            "description": "标题文本。",
+            "nullable": true
           },
           "abstract": {
             "type": "string",
-            "nullable": true,
-            "description": "摘要或简介文本。"
+            "description": "摘要或简介文本。",
+            "nullable": true
           },
           "content": {
             "type": "string",
-            "nullable": true,
-            "description": "正文内容，通常为 Markdown 或富文本内容。"
+            "description": "正文内容，通常为 Markdown 或富文本内容。",
+            "nullable": true
           },
           "category_id": {
             "type": "integer",
-            "nullable": true,
-            "description": "分类 ID。"
+            "description": "分类 ID。",
+            "nullable": true
           },
           "tag_ids": {
             "type": "array",
@@ -6900,13 +8513,13 @@
           },
           "cover": {
             "type": "string",
-            "nullable": true,
-            "description": "封面图片地址。"
+            "description": "封面图片地址。",
+            "nullable": true
           },
           "comments_toggle": {
             "type": "boolean",
-            "nullable": true,
-            "description": "是否开启评论。"
+            "description": "是否开启评论。",
+            "nullable": true
           }
         }
       },
@@ -7314,8 +8927,8 @@
           },
           "is_enabled": {
             "type": "boolean",
-            "nullable": true,
-            "description": "字段 `is_enabled` 的业务含义请结合该接口上下文使用。"
+            "description": "字段 `is_enabled` 的业务含义请结合该接口上下文使用。",
+            "nullable": true
           }
         },
         "required": [
@@ -7851,8 +9464,8 @@
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
-            "description": "软删除时间；为空表示未删除。"
+            "description": "软删除时间；为空表示未删除。",
+            "nullable": true
           },
           "type": {
             "type": "integer",
@@ -7864,18 +9477,18 @@
           },
           "action_user_id": {
             "type": "integer",
-            "nullable": true,
-            "description": "关联的 action_user ID。"
+            "description": "关联的 action_user ID。",
+            "nullable": true
           },
           "action_user_nickname": {
             "type": "string",
-            "nullable": true,
-            "description": "字段 `action_user_nickname` 的业务含义请结合该接口上下文使用。"
+            "description": "字段 `action_user_nickname` 的业务含义请结合该接口上下文使用。",
+            "nullable": true
           },
           "action_user_avatar": {
             "type": "string",
-            "nullable": true,
-            "description": "字段 `action_user_avatar` 的业务含义请结合该接口上下文使用。"
+            "description": "字段 `action_user_avatar` 的业务含义请结合该接口上下文使用。",
+            "nullable": true
           },
           "content": {
             "type": "string",
@@ -7908,8 +9521,8 @@
           "read_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
-            "description": "read_at 时间。"
+            "description": "read_at 时间。",
+            "nullable": true
           }
         },
         "required": [
@@ -7933,8 +9546,8 @@
           "expire_time": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
-            "description": "字段 `expire_time` 的业务含义请结合该接口上下文使用。"
+            "description": "字段 `expire_time` 的业务含义请结合该接口上下文使用。",
+            "nullable": true
           },
           "user_visible_rule": {
             "type": "integer",
@@ -8142,8 +9755,8 @@
           "last_msg_time": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
-            "description": "字段 `last_msg_time` 的业务含义请结合该接口上下文使用。"
+            "description": "字段 `last_msg_time` 的业务含义请结合该接口上下文使用。",
+            "nullable": true
           },
           "unread_count": {
             "type": "integer",
@@ -8160,8 +9773,8 @@
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
-            "description": "软删除时间；为空表示未删除。"
+            "description": "软删除时间；为空表示未删除。",
+            "nullable": true
           }
         },
         "required": [
@@ -8222,8 +9835,8 @@
           "deleted_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
-            "description": "软删除时间；为空表示未删除。"
+            "description": "软删除时间；为空表示未删除。",
+            "nullable": true
           }
         },
         "required": [
@@ -8384,8 +9997,8 @@
                 "$ref": "#/components/schemas/AIMetainfoOption"
               }
             ],
-            "nullable": true,
-            "description": "字段 `category` 的业务含义请结合该接口上下文使用。"
+            "description": "字段 `category` 的业务含义请结合该接口上下文使用。",
+            "type": "null"
           },
           "tags": {
             "type": "array",
@@ -9414,8 +11027,9 @@
       "description": "本地开发"
     },
     {
-      "url": "https://api.example.com",
-      "description": "生产示例"
+      "url": "REDACTED_SERVER_IP",
+      "description": "测试环境"
     }
-  ]
+  ],
+  "security": []
 }

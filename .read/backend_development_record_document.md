@@ -3439,7 +3439,7 @@ cp /etc/letsencrypt/live/你的域名/privkey.pem /opt/myblogx/myblogx_server/de
 cd /opt/myblogx/myblogx_server/deploy && docker compose restart blog_web
 ```
 
-# 七、非功能性需求（忽略此部分，暂不更改，后续视开发进度进行补充）
+# 七、非功能性需求（忽略此部分，未实际添加到项目中去，暂不更改，后续视开发进度进行补充）
 
 ## 并发安全
 

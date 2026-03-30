@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/models/enum/relationship_enum"
 	"myblogx/service/redis_service/redis_comment"
 	"myblogx/utils/jwts"
 	"testing"
@@ -33,6 +34,13 @@ func TestCommentManListView(t *testing.T) {
 	admin := &models.UserModel{Username: "admin", Nickname: "admin", Avatar: "/admin.png", Password: "x", Role: enum.RoleAdmin}
 	if err := global.DB.Create(admin).Error; err != nil {
 		t.Fatalf("创建 admin 失败: %v", err)
+	}
+	followRows := []models.UserFollowModel{
+		{FollowedUserID: owner.ID, FansUserID: user2.ID},
+		{FollowedUserID: user3.ID, FansUserID: owner.ID},
+	}
+	if err := global.DB.Create(&followRows).Error; err != nil {
+		t.Fatalf("创建关注关系失败: %v", err)
 	}
 
 	articleMine1 := models.ArticleModel{Title: "mine-1", Content: "c", AuthorID: owner.ID, CommentsToggle: true}
@@ -114,6 +122,12 @@ func TestCommentManListView(t *testing.T) {
 		}
 		if int(contentMap["mine_p1"]["digg_count"].(float64)) != 3 {
 			t.Fatalf("mine_p1 digg_count 未叠加缓存: %+v", contentMap["mine_p1"])
+		}
+		if int(contentMap["mine_p1"]["relation"].(float64)) != int(relationship_enum.RelationFans) {
+			t.Fatalf("mine_p1 relation 错误: %+v", contentMap["mine_p1"])
+		}
+		if int(contentMap["mine_p2"]["relation"].(float64)) != int(relationship_enum.RelationFollowed) {
+			t.Fatalf("mine_p2 relation 错误: %+v", contentMap["mine_p2"])
 		}
 	})
 

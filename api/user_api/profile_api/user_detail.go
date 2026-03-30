@@ -19,6 +19,8 @@ type UserDetailResponse struct {
 	Nickname       string                  `gorm:"size:32" json:"nickname"`
 	Avatar         string                  `gorm:"size:256" json:"avatar"`
 	Abstract       string                  `gorm:"size:256" json:"abstract"`
+	Email          *string                 `json:"email"`
+	HasPassword    bool                    `json:"has_password"`
 	RegisterSource enum.RegisterSourceType `json:"register_source"`
 	CodeAge        int                     `json:"code_age"`
 	models.UserConfModel
@@ -41,6 +43,8 @@ func (ProfileApi) UserDetailView(c *gin.Context) {
 		Nickname:       user.Nickname,
 		Avatar:         user.Avatar,
 		Abstract:       user.Abstract,
+		Email:          user.Email,
+		HasPassword:    user.Password != "",
 		RegisterSource: user.RegisterSource,
 		CodeAge:        user.CodeAge(),
 	}
