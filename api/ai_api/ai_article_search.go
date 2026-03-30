@@ -5,7 +5,7 @@ import (
 	"myblogx/common/res"
 	"myblogx/middleware"
 	"myblogx/models/ctype"
-	"myblogx/service/ai_service"
+	"myblogx/service/ai_service/ai_search"
 	"myblogx/service/search_service"
 	"strings"
 
@@ -15,7 +15,7 @@ import (
 func (AIApi) AIArticleSearchListView(c *gin.Context) {
 	cr := middleware.GetBindJson[AIBaseRequest](c)
 
-	rewrite, err := ai_service.RewriteArticleSearch(cr.Content)
+	rewrite, err := ai_search.RewriteArticleSearch(cr.Content)
 	if err != nil {
 		res.FailWithMsg(err.Error(), c)
 		return
@@ -47,7 +47,7 @@ func (AIApi) AIArticleSearchLLMView(c *gin.Context) {
 	prepareAIArticleSearchSSE(c)
 
 	// 意图识别与搜索重写
-	rewrite, err := ai_service.RewriteArticleSearch(cr.Content)
+	rewrite, err := ai_search.RewriteArticleSearch(cr.Content)
 	if err != nil {
 		res.SSEFail(err.Error(), c)
 		return
@@ -74,7 +74,7 @@ func (AIApi) AIArticleSearchLLMView(c *gin.Context) {
 		return
 	}
 
-	contentChan, errChan, err := ai_service.AnalyzeArticleSearchStream(cr.Content, list)
+	contentChan, errChan, err := ai_search.AnalyzeArticleSearchStream(cr.Content, list)
 	if err != nil {
 		res.SSEFail(err.Error(), c)
 		return
@@ -136,7 +136,7 @@ func appendUniqueSearchResults(
 	return list
 }
 
-func searchAIArticleList(rewrite *ai_service.ArticleSearchRewrite) ([]search_service.SearchListResponse, error) {
+func searchAIArticleList(rewrite *ai_search.ArticleSearchRewrite) ([]search_service.SearchListResponse, error) {
 	key := buildAIArticleSearchKey(rewrite.Query)
 	if key == "" {
 		return nil, nil

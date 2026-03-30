@@ -1,4 +1,4 @@
-package ai_service
+package ai_search
 
 import (
 	"encoding/json"
@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"myblogx/global"
 	"myblogx/models"
-	"myblogx/service/search_service"
+	"myblogx/service/ai_service"
 	"strings"
 )
 
-var (
-	articleSearchPrompt = `
+var articleSearchPrompt = `
 你是一个博客文章搜索助手。你的任务是判断用户当前输入是不是“搜索文章”的请求，并想象如何转化词汇能搜索到用户真正需要的文章，把搜索条件提炼成结构化 JSON。
 
 规则：
@@ -42,30 +41,6 @@ var (
 
 标签候选：%s
 `
-	articleSearchAnswerPrompt = `
-你是一个站内文章搜索助手。请根据用户问题和搜索结果，生成一段简洁自然的中文回复。
-
-要求：
-1. 只输出回复正文，不要输出 Markdown 代码块。
-2. 如果有结果，先用一句话概括，再列出最多 6 篇最相关文章。
-3. 文章使用这种格式：
-   1. <a href="/article/9">python环境搭建</a>
-4. 如果没有结果，明确告诉用户暂时没找到相关文章。
-5. 不要编造文章，不要输出不在结果里的链接。
-
-用户问题：%s
-
-搜索结果(JSON)：%s
-`
-)
-
-type ArticleSearchRewrite struct {
-	Intent  string   `json:"intent"`
-	Content string   `json:"content"`
-	Query   []string `json:"query"`
-	TagList []string `json:"tag_list"`
-	Sort    int8     `json:"sort"`
-}
 
 func RewriteArticleSearch(content string) (*ArticleSearchRewrite, error) {
 	if strings.TrimSpace(content) == "" {
@@ -86,10 +61,10 @@ func RewriteArticleSearch(content string) (*ArticleSearchRewrite, error) {
 		return nil, fmt.Errorf("查询标签候选失败: %w", err)
 	}
 
-	msgList := []Message{
+	msgList := []ai_service.Message{
 		{
 			Role:    "system",
-			Content: fmt.Sprintf(articleSearchPrompt, mustJSONString(tagList)),
+			Content: fmt.Sprintf(articleSearchPrompt, ai_service.MustJSONString(tagList)),
 		},
 		{
 			Role:    "user",
@@ -97,12 +72,32 @@ func RewriteArticleSearch(content string) (*ArticleSearchRewrite, error) {
 		},
 	}
 
-	reply, err := Chat(msgList)
+	reply, err := ai_service.Chat(msgList)
 	if err != nil {
 		return nil, fmt.Errorf("文章搜索意图分析失败: %w", err)
 	}
 
 	return normalizeArticleSearchRewrite(reply, content, tagList)
+}
+
+func AnalyzeArticleSearchIntent(content string) (*ArticleSearchRewrite, error) {
+	msgList := []ai_service.Message{
+		{
+			Role:    "system",
+			Content: articleSearchPrompt,
+		},
+		{
+			Role:    "user",
+			Content: strings.TrimSpace(content),
+		},
+	}
+
+	reply, err := ai_service.Chat(msgList)
+	if err != nil {
+		return nil, fmt.Errorf("文章搜索意图分析失败: %w", err)
+	}
+
+	return normalizeArticleSearchRewrite(reply, content, nil)
 }
 
 func normalizeArticleSearchRewrite(raw, fallbackContent string, validTags []string) (*ArticleSearchRewrite, error) {
@@ -211,85 +206,4 @@ func normalizeArticleSearchReplyContent(content string) string {
 		return "我目前主要帮你搜索站内文章，你也可以直接告诉我想找什么主题的文章。"
 	}
 	return content
-}
-
-func AnalyzeArticleSearch(question string, list []search_service.SearchListResponse) (string, error) {
-	msgList, err := buildArticleSearchAnalyzeMessages(question, list)
-	if err != nil {
-		return "", err
-	}
-
-	reply, err := Chat(msgList)
-	if err != nil {
-		return "", fmt.Errorf("文章搜索结果分析失败: %w", err)
-	}
-
-	reply = strings.TrimSpace(reply)
-	if reply == "" {
-		return "", errors.New("文章搜索结果分析为空")
-	}
-	return reply, nil
-}
-
-func AnalyzeArticleSearchStream(question string, list []search_service.SearchListResponse) (chan string, chan error, error) {
-	msgList, err := buildArticleSearchAnalyzeMessages(question, list)
-	if err != nil {
-		return nil, nil, err
-	}
-	contentChan, errChan := ChatStream(msgList)
-	return contentChan, errChan, nil
-}
-
-func buildArticleSearchAnalyzeMessages(question string, list []search_service.SearchListResponse) ([]Message, error) {
-	if strings.TrimSpace(question) == "" {
-		return nil, errors.New("用户问题不能为空")
-	}
-
-	searchList := make([]AISearchList, 0, len(list))
-	for _, item := range list {
-		searchList = append(searchList, AISearchList{
-			ID:           item.ID,
-			CreatedAt:    item.CreatedAt,
-			Title:        item.Title,
-			Abstract:     item.Abstract,
-			Content:      item.Content,
-			Part:         item.Part,
-			ViewCount:    item.ViewCount,
-			DiggCount:    item.DiggCount,
-			CommentCount: item.CommentCount,
-			FavorCount:   item.FavorCount,
-			Tags:         item.Tags,
-		})
-	}
-
-	return []Message{
-		{
-			Role:    "system",
-			Content: fmt.Sprintf(articleSearchAnswerPrompt, strings.TrimSpace(question), mustJSONString(searchList)),
-		},
-		{
-			Role:    "user",
-			Content: strings.TrimSpace(question),
-		},
-	}, nil
-}
-
-func AnalyzeArticleSearchIntent(content string) (*ArticleSearchRewrite, error) {
-	msgList := []Message{
-		{
-			Role:    "system",
-			Content: articleSearchPrompt,
-		},
-		{
-			Role:    "user",
-			Content: strings.TrimSpace(content),
-		},
-	}
-
-	reply, err := Chat(msgList)
-	if err != nil {
-		return nil, fmt.Errorf("文章搜索意图分析失败: %w", err)
-	}
-
-	return normalizeArticleSearchRewrite(reply, content, nil)
 }

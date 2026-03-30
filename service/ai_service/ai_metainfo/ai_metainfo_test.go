@@ -1,4 +1,4 @@
-package ai_service
+package ai_metainfo
 
 import "testing"
 
