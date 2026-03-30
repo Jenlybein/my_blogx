@@ -151,3 +151,23 @@ HomeStyleID
 
 推荐机制怎么做呢？以下是基础设想
 文章推荐：当天浏览量最多的
+
+
+水平分表：https://www.wolai.com/fengfeng/pXg4Q6X9giMznrZiQg63jG
+
+
+缓存优化中间件：把一些接口的响应记录到redis里，10秒之内走缓存
+https://video.fengfengzhidao.com/play/17/3599
+考虑：
+ - 要加主动不走缓存的选项
+ - 缓存如何主动过期
+ - 如何防止恶意请求，导致大量同一缓存内容出现不同key进入缓存。
+复用：
+ - 复用audit_body_middleware，改名成（capture_middleware），挂载时只能选择是否拦截 request的body和Header（选项变成 None，Head，Body，Both）。
+ - 到了接口内真正需获取 capReqBody/Header bool 来判断日志是否记录请求体/头
+ - 检测 gin.Context 里有没有 capRespBody/Header bool 来选择是否拦截响应体/头
+ - 修改时减少历史遗留的不必要的代码
+ - 没必要解耦的代码不强行解耦
+以下接口可以加入（需判断还有哪些可以加入）：
+ - BannerList
+ - 标签列表

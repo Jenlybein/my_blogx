@@ -2680,6 +2680,16 @@
             }
           },
           {
+            "name": "article_id",
+            "in": "query",
+            "description": "当 type=1 时可选传入文章 ID，用于返回该文章是否已存在于当前收藏夹。",
+            "required": false,
+            "example": "1",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "",
@@ -2733,6 +2743,10 @@
                               },
                               "article_count": {
                                 "type": "integer"
+                              },
+                              "has_article": {
+                                "type": "boolean",
+                                "description": "当传入 article_id 时，表示该文章是否已在当前收藏夹中。"
                               }
                             }
                           }
@@ -8038,6 +8052,26 @@
             "type": "integer",
             "description": "follow 统计数量。"
           },
+          "favorites_visibility": {
+            "type": "boolean",
+            "description": "收藏夹是否对外可见。"
+          },
+          "followers_visibility": {
+            "type": "boolean",
+            "description": "关注列表是否对外可见。"
+          },
+          "fans_visibility": {
+            "type": "boolean",
+            "description": "粉丝列表是否对外可见。"
+          },
+          "home_style_id": {
+            "type": "integer",
+            "description": "首页样式 ID。"
+          },
+          "relation": {
+            "type": "integer",
+            "description": "当前登录用户与该用户的关系值。"
+          },
           "place": {
             "type": "string",
             "description": "地区或所在地信息。"
@@ -8051,6 +8085,11 @@
           "view_count",
           "fans_count",
           "follow_count",
+          "favorites_visibility",
+          "followers_visibility",
+          "fans_visibility",
+          "home_style_id",
+          "relation",
           "place"
         ]
       },
@@ -8602,6 +8641,14 @@
           "category_name": {
             "type": "string",
             "description": "分类名称。"
+          },
+          "is_digg": {
+            "type": "boolean",
+            "description": "当前登录用户是否已点赞该文章。"
+          },
+          "is_favor": {
+            "type": "boolean",
+            "description": "当前登录用户是否已收藏该文章。"
           }
         },
         "required": [
@@ -8622,7 +8669,9 @@
           "author_avatar",
           "author_name",
           "author_username",
-          "category_name"
+          "category_name",
+          "is_digg",
+          "is_favor"
         ]
       },
       "ArticleListItem": {
@@ -9157,6 +9206,14 @@
             "type": "integer",
             "description": "reply 统计数量。"
           },
+          "is_digg": {
+            "type": "boolean",
+            "description": "当前登录用户是否已点赞该评论。"
+          },
+          "relation": {
+            "type": "integer",
+            "description": "当前登录用户与评论作者的关系值。"
+          },
           "status": {
             "type": "integer",
             "description": "当前资源状态值。"
@@ -9179,6 +9236,8 @@
           "root_id",
           "digg_count",
           "reply_count",
+          "is_digg",
+          "relation",
           "status",
           "user_nickname",
           "user_avatar"
@@ -9232,6 +9291,14 @@
             "type": "integer",
             "description": "reply 统计数量。"
           },
+          "is_digg": {
+            "type": "boolean",
+            "description": "当前登录用户是否已点赞该评论。"
+          },
+          "relation": {
+            "type": "integer",
+            "description": "当前登录用户与评论作者的关系值。"
+          },
           "status": {
             "type": "integer",
             "description": "当前资源状态值。"
@@ -9256,6 +9323,8 @@
           "reply_id",
           "digg_count",
           "reply_count",
+          "is_digg",
+          "relation",
           "status",
           "user_nickname",
           "user_avatar",
@@ -9641,6 +9710,10 @@
             "type": "string",
             "format": "date-time",
             "description": "字段 `follow_time` 的业务含义请结合该接口上下文使用。"
+          },
+          "relation": {
+            "type": "integer",
+            "description": "当前登录用户与列表项用户的关系值。"
           }
         },
         "required": [
@@ -9648,7 +9721,8 @@
           "followed_nickname",
           "followed_avatar",
           "followed_abstract",
-          "follow_time"
+          "follow_time",
+          "relation"
         ]
       },
       "FansListItem": {
@@ -9674,6 +9748,10 @@
             "type": "string",
             "format": "date-time",
             "description": "字段 `follow_time` 的业务含义请结合该接口上下文使用。"
+          },
+          "relation": {
+            "type": "integer",
+            "description": "当前登录用户与列表项用户的关系值。"
           }
         },
         "required": [
@@ -9681,7 +9759,8 @@
           "fans_nickname",
           "fans_avatar",
           "fans_abstract",
-          "follow_time"
+          "follow_time",
+          "relation"
         ]
       },
       "ChatSessionDeleteUserRequest": {
@@ -9748,6 +9827,10 @@
             "type": "string",
             "description": "字段 `receiver_avatar` 的业务含义请结合该接口上下文使用。"
           },
+          "relation": {
+            "type": "integer",
+            "description": "当前会话所属用户与对端用户的关系值。"
+          },
           "last_msg_content": {
             "type": "string",
             "description": "字段 `last_msg_content` 的业务含义请结合该接口上下文使用。"
@@ -9782,6 +9865,7 @@
           "receiver_id",
           "receiver_nickname",
           "receiver_avatar",
+          "relation",
           "last_msg_content",
           "unread_count",
           "is_top",

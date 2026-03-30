@@ -13,6 +13,7 @@ import (
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
 	"myblogx/models/enum/chat_msg_enum"
+	"myblogx/models/enum/relationship_enum"
 	"myblogx/service/chat_service"
 	"myblogx/test/testutil"
 	"myblogx/utils/jwts"
@@ -188,12 +189,18 @@ func TestChatSessionListView(t *testing.T) {
 	if resp.Data.List[0].ReceiverNickname != users.friendB.Nickname {
 		t.Fatalf("应带出对端昵称: %+v", resp.Data.List[0])
 	}
+	if int(resp.Data.List[0].Relation) != int(relationship_enum.RelationFans) {
+		t.Fatalf("friendB 关系字段异常: %+v", resp.Data.List[0])
+	}
 
 	if resp.Data.List[1].ReceiverID != users.friendA.ID {
 		t.Fatalf("非置顶会话顺序错误: %+v", resp.Data.List[1])
 	}
 	if resp.Data.List[1].UnreadCount != 3 {
 		t.Fatalf("未读数错误: %+v", resp.Data.List[1])
+	}
+	if int(resp.Data.List[1].Relation) != int(relationship_enum.RelationFollowed) {
+		t.Fatalf("friendA 关系字段异常: %+v", resp.Data.List[1])
 	}
 	expectTime := time.Date(2026, 3, 12, 7, 0, 0, 0, time.Local)
 	if resp.Data.List[1].LastMsgTime == nil || !resp.Data.List[1].LastMsgTime.Equal(expectTime) {
@@ -725,6 +732,12 @@ func TestChatSessionListViewAdmin(t *testing.T) {
 	if resp.Data.Count != 2 || len(resp.Data.List) != 2 {
 		t.Fatalf("管理员会话数量错误: %+v", resp.Data)
 	}
+	if int(resp.Data.List[0].Relation) != int(relationship_enum.RelationFollowed) {
+		t.Fatalf("管理员查看时第一条关系字段异常: %+v", resp.Data.List[0])
+	}
+	if int(resp.Data.List[1].Relation) != int(relationship_enum.RelationFans) {
+		t.Fatalf("管理员查看时第二条关系字段异常: %+v", resp.Data.List[1])
+	}
 	if resp.Data.List[1].DeletedAt == nil || resp.Data.List[1].DeletedAt.IsZero() {
 		t.Fatalf("管理员应看到软删时间: %+v", resp.Data.List[1])
 	}
@@ -855,14 +868,21 @@ type chatUsers struct {
 // 通用测试数据准备。
 func setupChatListEnv(t *testing.T) chatUsers {
 	t.Helper()
-	testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.ChatSessionModel{}, &models.ChatMsgModel{}, &models.ChatMsgUserStateModel{})
+	testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserFollowModel{}, &models.ChatSessionModel{}, &models.ChatMsgModel{}, &models.ChatMsgUserStateModel{})
 
-	return chatUsers{
+	users := chatUsers{
 		owner:   createChatUser(t, "chat_owner"),
 		friendA: createChatUser(t, "chat_friend_a"),
 		friendB: createChatUser(t, "chat_friend_b"),
 		other:   createChatUser(t, "chat_other"),
 	}
+	if err := global.DB.Create(&models.UserFollowModel{FollowedUserID: users.friendA.ID, FansUserID: users.owner.ID}).Error; err != nil {
+		t.Fatalf("创建 owner->friendA 关注关系失败: %v", err)
+	}
+	if err := global.DB.Create(&models.UserFollowModel{FollowedUserID: users.owner.ID, FansUserID: users.friendB.ID}).Error; err != nil {
+		t.Fatalf("创建 friendB->owner 关注关系失败: %v", err)
+	}
+	return users
 }
 
 func createChatUser(t *testing.T, username string) models.UserModel {

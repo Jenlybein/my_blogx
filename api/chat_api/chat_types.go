@@ -37,6 +37,7 @@ type ChatSessionListResponse struct {
 	ReceiverID       ctype.ID   `json:"receiver_id"`
 	ReceiverNickname string     `json:"receiver_nickname"`
 	ReceiverAvatar   string     `json:"receiver_avatar"`
+	Relation         int8       `json:"relation"`
 	LastMsgContent   string     `json:"last_msg_content"`
 	LastMsgTime      *time.Time `json:"last_msg_time"`
 	UnreadCount      int        `json:"unread_count"`

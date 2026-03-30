@@ -8,6 +8,7 @@ import (
 	"myblogx/models"
 	"myblogx/models/ctype"
 	"myblogx/models/enum/chat_msg_enum"
+	"myblogx/service/follow_service"
 	"myblogx/utils/jwts"
 	"time"
 
@@ -48,6 +49,13 @@ func (a *ChatApi) ChatSessionListView(c *gin.Context) {
 		return
 	}
 
+	// 计算好友关系
+	receiverIDs := make([]ctype.ID, 0, len(list))
+	for _, item := range list {
+		receiverIDs = append(receiverIDs, item.ReceiverID)
+	}
+	relationMap := follow_service.CalUserRelationshipBatch(cr.UserID, receiverIDs)
+
 	respList := make([]ChatSessionListResponse, 0, len(list))
 	for _, item := range list {
 		data := ChatSessionListResponse{
@@ -55,6 +63,7 @@ func (a *ChatApi) ChatSessionListView(c *gin.Context) {
 			ReceiverID:       item.ReceiverID,
 			ReceiverNickname: item.ReceiverModel.Nickname,
 			ReceiverAvatar:   item.ReceiverModel.Avatar,
+			Relation:         int8(relationMap[item.ReceiverID]),
 			LastMsgContent:   item.LastMsgContent,
 			LastMsgTime:      item.LastMsgTime,
 			UnreadCount:      item.UnreadCount,
