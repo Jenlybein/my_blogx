@@ -36,6 +36,32 @@ QQ登录 - https://video.fengfengzhidao.com/play/17/3391
 需模块化的内容：es_river、image_ref_river、cron_service、
 
 
+User表可以细化分表
+UserConfModel、UserStatModel 不变
+UserAuthModel：
+- Password 
+- Email 
+- OpenID 
+- TokenVersion 
+- LastPasswordChangedAt
+UserModel：（还可以考虑怎么进一步分化）
+- Username 
+- Status
+- Role
+- RegisterSource
+UserProfileModel：
+- IP 
+- Addr
+- Nickname 
+- Avatar 
+- Abstract
+- gender
+- 签名
+
+
+接口限制：每日数量限制，禁止重复操作过快
+
+
 AI 写作助手
 可以放在发文和改文流程里，做标题优化、摘要生成、标签推荐、分类建议、SEO 描述生成、错别字修正、语气润色、长文提纲整理。这个最容易见效，也最符合博客后台场景。
 
@@ -80,3 +106,33 @@ docker compose 里存在密码，怎么办?
 
 
 站点配置修改的接口是否已经完善？
+
+新增 UserStatModel ： 
+- ViewCount 
+- FansCount 
+- FollowCount
+
+FansCount / FollowCount
+做同步事务更新冗余字段。
+
+ViewCount 大概方向：
+- 统计逻辑：用户主页每1个独立访客访问+1，同一人当日多次访问仅计1次，游客访问不统计
+- 去重方案：Redis HSETNX 记录{访客ID:被访者ID}(具体key细节设置你来补充)，整组key每日0点过期
+- 数据库：新增UserViewDailyModel（Model、UserID、ViewerUserID、ViewDate），建立唯一索引
+- DB 更新方式：SQL事务完成两个操作(原子插入日访问记录+更新总ViewCount)，无需提前查询
+- 执行流程：Redis写入式判重 → 无重复则数据库INSERT+UPDATE → DB 失败时回滚 Redis
+“HSETNX 抢占式判重 + DB 事务两条 SQL + DB 唯一索引兜底 + 事务失败后最佳努力 HDEL 回滚 Redis”
+
+接口升级：api\user_api\profile_api\user_base_info.go 返回字段增加
+ViewCount
+FansCount
+FollowCount
+FavoritesVisibility
+FollowVisibility
+FansVisibility
+HomeStyleID
+
+
+校准系统
+新增 cron 任务：定时校准冗余数据。
+方案：平时校准不需要每天重算整个历史，只需获取今日有新插入的数据，然后做增量更新即可。

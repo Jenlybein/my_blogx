@@ -52,6 +52,8 @@ func TestFollowAndUnfollowUserView(t *testing.T) {
 			t.Fatalf("关注应成功, body=%s", w1.Body.String())
 		}
 		assertFollowCount(t, users.owner.ID, users.followedA.ID, 1)
+		assertUserStatCounts(t, users.owner.ID, 0, 0, 1)
+		assertUserStatCounts(t, users.followedA.ID, 0, 1, 0)
 
 		c2, w2 := newFollowCtx(t, http.MethodPost, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
 		api.FollowUserView(c2)
@@ -71,6 +73,8 @@ func TestFollowAndUnfollowUserView(t *testing.T) {
 			t.Fatalf("取消关注应成功, body=%s", w4.Body.String())
 		}
 		assertFollowCount(t, users.owner.ID, users.followedA.ID, 0)
+		assertUserStatCounts(t, users.owner.ID, 0, 0, 0)
+		assertUserStatCounts(t, users.followedA.ID, 0, 0, 0)
 
 		c4b, w4b := newFollowCtx(t, http.MethodPost, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
 		api.FollowUserView(c4b)
@@ -78,12 +82,16 @@ func TestFollowAndUnfollowUserView(t *testing.T) {
 			t.Fatalf("软删后重新关注应成功, body=%s", w4b.Body.String())
 		}
 		assertFollowCount(t, users.owner.ID, users.followedA.ID, 1)
+		assertUserStatCounts(t, users.owner.ID, 0, 0, 1)
+		assertUserStatCounts(t, users.followedA.ID, 0, 1, 0)
 
 		c5, w5 := newFollowCtx(t, http.MethodDelete, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
 		api.UnfollowUserView(c5)
 		if readFollowCode(t, w5) != 0 {
 			t.Fatalf("重新关注后的再次取消关注应成功, body=%s", w5.Body.String())
 		}
+		assertUserStatCounts(t, users.owner.ID, 0, 0, 0)
+		assertUserStatCounts(t, users.followedA.ID, 0, 0, 0)
 
 		c6, w6 := newFollowCtx(t, http.MethodDelete, users.owner, models.IDRequest{ID: users.followedA.ID}, nil)
 		api.UnfollowUserView(c6)
@@ -294,6 +302,18 @@ func assertFollowCount(t *testing.T, fansUserID, followedUserID ctype.ID, expect
 	}
 	if count != expected {
 		t.Fatalf("关注关系数量错误: got=%d want=%d", count, expected)
+	}
+}
+
+func assertUserStatCounts(t *testing.T, userID ctype.ID, viewCount, fansCount, followCount int) {
+	t.Helper()
+	var stat models.UserStatModel
+	if err := global.DB.Take(&stat, "user_id = ?", userID).Error; err != nil {
+		t.Fatalf("查询用户统计失败 user_id=%d err=%v", userID, err)
+	}
+	if stat.ViewCount != viewCount || stat.FansCount != fansCount || stat.FollowCount != followCount {
+		t.Fatalf("用户统计异常 user_id=%d got=(view:%d fans:%d follow:%d) want=(view:%d fans:%d follow:%d)",
+			userID, stat.ViewCount, stat.FansCount, stat.FollowCount, viewCount, fansCount, followCount)
 	}
 }
 

@@ -11,7 +11,9 @@ func FlagDB(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&models.UserModel{},
 		&models.UserConfModel{},
+		&models.UserStatModel{},
 		&models.UserSessionModel{},
+		&models.UserViewDailyModel{},
 		&models.ArticleModel{},
 		&models.TagModel{},
 		&models.ArticleTagModel{},

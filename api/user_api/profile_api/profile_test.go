@@ -32,7 +32,8 @@ func readCode(t *testing.T, w *httptest.ResponseRecorder) int {
 }
 
 func TestProfileHandlers(t *testing.T) {
-	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.TagModel{})
+	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserViewDailyModel{}, &models.TagModel{})
+	_ = testutil.SetupMiniRedis(t)
 	email := "u1@example.com"
 	user := models.UserModel{
 		Username: "u1",
@@ -43,6 +44,15 @@ func TestProfileHandlers(t *testing.T) {
 	}
 	if err := db.Create(&user).Error; err != nil {
 		t.Fatalf("创建用户失败: %v", err)
+	}
+	viewer := models.UserModel{
+		Username: "viewer",
+		Password: "y",
+		Nickname: "viewer",
+		Role:     enum.RoleUser,
+	}
+	if err := db.Create(&viewer).Error; err != nil {
+		t.Fatalf("创建访客用户失败: %v", err)
 	}
 
 	tag := models.TagModel{Title: "Go", IsEnabled: true}
@@ -88,9 +98,69 @@ func TestProfileHandlers(t *testing.T) {
 	{
 		c, w := newCtx()
 		c.Set("requestQuery", models.IDRequest{ID: user.ID})
+		c.Set("claims", &jwts.MyClaims{Claims: jwts.Claims{UserID: viewer.ID, Role: viewer.Role}})
 		api.UserBaseInfoView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("用户基础信息失败, code=%d body=%s", code, w.Body.String())
+		}
+
+		var body struct {
+			Code int `json:"code"`
+			Data struct {
+				ViewCount           int      `json:"view_count"`
+				FansCount           int      `json:"fans_count"`
+				FollowCount         int      `json:"follow_count"`
+				FavoritesVisibility bool     `json:"favorites_visibility"`
+				FollowVisibility    bool     `json:"followers_visibility"`
+				FansVisibility      bool     `json:"fans_visibility"`
+				HomeStyleID         ctype.ID `json:"home_style_id"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("解析用户基础信息响应失败: %v", err)
+		}
+		if body.Data.ViewCount != 1 || body.Data.FansCount != 0 || body.Data.FollowCount != 0 {
+			t.Fatalf("用户基础统计返回异常: %+v", body.Data)
+		}
+		if !body.Data.FavoritesVisibility || !body.Data.FollowVisibility || !body.Data.FansVisibility {
+			t.Fatalf("用户可见性默认值异常: %+v", body.Data)
+		}
+		if body.Data.HomeStyleID != 1 {
+			t.Fatalf("用户首页样式默认值异常: %d", body.Data.HomeStyleID)
+		}
+
+		var stat models.UserStatModel
+		if err := db.Take(&stat, "user_id = ?", user.ID).Error; err != nil {
+			t.Fatalf("查询用户统计失败: %v", err)
+		}
+		if stat.ViewCount != 1 || stat.FansCount != 0 || stat.FollowCount != 0 {
+			t.Fatalf("用户统计落库异常: %+v", stat)
+		}
+
+		var views []models.UserViewDailyModel
+		if err := db.Where("user_id = ? AND viewer_user_id = ?", user.ID, viewer.ID).Find(&views).Error; err != nil {
+			t.Fatalf("查询用户主页访问日记录失败: %v", err)
+		}
+		if len(views) != 1 {
+			t.Fatalf("用户主页访问日记录数量异常: %d", len(views))
+		}
+	}
+
+	{
+		c, w := newCtx()
+		c.Set("requestQuery", models.IDRequest{ID: user.ID})
+		c.Set("claims", &jwts.MyClaims{Claims: jwts.Claims{UserID: viewer.ID, Role: viewer.Role}})
+		api.UserBaseInfoView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("重复访问用户基础信息失败, code=%d body=%s", code, w.Body.String())
+		}
+
+		var stat models.UserStatModel
+		if err := db.Take(&stat, "user_id = ?", user.ID).Error; err != nil {
+			t.Fatalf("重复访问后查询用户统计失败: %v", err)
+		}
+		if stat.ViewCount != 1 {
+			t.Fatalf("同一访客当天重复访问不应重复记数: %d", stat.ViewCount)
 		}
 	}
 

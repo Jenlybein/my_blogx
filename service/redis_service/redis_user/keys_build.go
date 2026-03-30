@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"myblogx/global"
+	"myblogx/models/ctype"
+	"time"
 )
 
 // keyExists 检查Redis Key是否存在
@@ -40,4 +42,9 @@ func loginLockUserKey(account string) string {
 // loginLockIPKey 生成IP登录锁定的Redis Key
 func loginLockIPKey(ip string) string {
 	return fmt.Sprintf("auth:login:lock:ip:%s", ip)
+}
+
+// statUserViewDailyKey 生成用户每日浏览量的Redis Key
+func statUserViewDailyKey(userID ctype.ID, now time.Time) string {
+	return fmt.Sprintf("user:view:daily:%s:%s", now.Format("2006-01-02"), userID.String())
 }

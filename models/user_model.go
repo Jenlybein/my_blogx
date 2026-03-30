@@ -29,6 +29,7 @@ type UserModel struct {
 	IP                    string                  `gorm:"size:64" json:"ip"`    // 注册时的 IP
 	Addr                  string                  `gorm:"size:256" json:"addr"` // 注册时的地址
 	UserConfModel         *UserConfModel          `gorm:"foreignKey:UserID;" json:"user_conf_model"`
+	UserStatModel         *UserStatModel          `gorm:"foreignKey:UserID;" json:"user_stat_model"`
 }
 
 func (u *UserModel) BeforeCreate(tx *gorm.DB) (err error) {
@@ -41,8 +42,8 @@ func (u *UserModel) BeforeCreate(tx *gorm.DB) (err error) {
 	return u.Model.BeforeCreate(tx)
 }
 
-// 创建用户配置表
 func (u *UserModel) AfterCreate(tx *gorm.DB) (err error) {
+	// 创建用户配置表
 	u.UserConfModel = &UserConfModel{
 		UserID:                   u.ID,
 		FavoritesVisibility:      true,
@@ -56,6 +57,17 @@ func (u *UserModel) AfterCreate(tx *gorm.DB) (err error) {
 		StrangerChatEnabled:      true,
 	}
 	if err = tx.Create(u.UserConfModel).Error; err != nil {
+		return err
+	}
+
+	// 创建用户统计表
+	u.UserStatModel = &UserStatModel{
+		UserID:      u.ID,
+		ViewCount:   0,
+		FansCount:   0,
+		FollowCount: 0,
+	}
+	if err = tx.Create(u.UserStatModel).Error; err != nil {
 		return err
 	}
 	return nil

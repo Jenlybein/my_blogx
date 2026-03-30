@@ -115,6 +115,7 @@ func appendDependentModels(list []any) []any {
 	hasArticleTag := false
 	hasUser := false
 	hasUserConf := false
+	hasUserStat := false
 	hasUserSession := false
 
 	for _, item := range list {
@@ -129,6 +130,8 @@ func appendDependentModels(list []any) []any {
 			hasUser = true
 		case reflect.TypeOf(&blogmodels.UserConfModel{}):
 			hasUserConf = true
+		case reflect.TypeOf(&blogmodels.UserStatModel{}):
+			hasUserStat = true
 		case reflect.TypeOf(&blogmodels.UserSessionModel{}):
 			hasUserSession = true
 		}
@@ -137,6 +140,9 @@ func appendDependentModels(list []any) []any {
 	if hasUser {
 		if !hasUserConf {
 			list = append(list, &blogmodels.UserConfModel{})
+		}
+		if !hasUserStat {
+			list = append(list, &blogmodels.UserStatModel{})
 		}
 		if !hasUserSession {
 			list = append(list, &blogmodels.UserSessionModel{})
