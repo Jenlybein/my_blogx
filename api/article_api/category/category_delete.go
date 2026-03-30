@@ -45,6 +45,7 @@ func (CategoryApi) CategoryDeleteView(c *gin.Context) {
 		res.FailWithMsg("未找到需删除的分类", c)
 		return
 	}
+	res.OkWithMsg(fmt.Sprintf("删除分类成功，共删除 %d 条", len(list)), c)
 	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
 		ActionName:  "category_delete",
 		TargetType:  "category",
@@ -54,7 +55,7 @@ func (CategoryApi) CategoryDeleteView(c *gin.Context) {
 		ResponseBody: map[string]any{
 			"deleted_count": len(list),
 		},
+		UseRawRequestBody: true,
+		UseRawRequestHead: true,
 	})
-
-	res.OkWithMsg(fmt.Sprintf("删除分类成功，共删除 %d 条", len(list)), c)
 }

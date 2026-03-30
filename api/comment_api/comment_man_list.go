@@ -26,16 +26,16 @@ type CommentManListRequest struct {
 
 type CommentManListResponse struct {
 	ID           ctype.ID `json:"id"`
-	CreatedAt    string `json:"created_at"`
-	Content      string `json:"content"`
-	DiggCount    int    `json:"digg_count"`
-	ReplyCount   int    `json:"reply_count"`
+	CreatedAt    string   `json:"created_at"`
+	Content      string   `json:"content"`
+	DiggCount    int      `json:"digg_count"`
+	ReplyCount   int      `json:"reply_count"`
 	UserID       ctype.ID `json:"user_id"`
-	UserNickname string `json:"user_nickname"`
-	UserAvatar   string `json:"user_avatar"`
+	UserNickname string   `json:"user_nickname"`
+	UserAvatar   string   `json:"user_avatar"`
 	ArticleID    ctype.ID `json:"article_id"`
-	ArticleTitle string `json:"article_title"`
-	ArticleCover string `json:"article_cover"`
+	ArticleTitle string   `json:"article_title"`
+	ArticleCover string   `json:"article_cover"`
 }
 
 func (CommentApi) CommentManListView(c *gin.Context) {

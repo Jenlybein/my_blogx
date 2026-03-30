@@ -24,5 +24,5 @@ func ImageRouter(r *gin.RouterGroup) {
 	Group.POST("qiniu/audit/callback", app.QiniuAuditCallbackView)
 
 	adminGroup.GET("", mw.BindQuery[common.PageInfo], app.ImageListView)
-	adminGroup.DELETE("", mw.BindJson[models.IDListRequest], app.ImageRemoveView)
+	adminGroup.DELETE("", mw.CaptureLog(mw.ReqBody|mw.ReqHeader), mw.BindJson[models.IDListRequest], app.ImageRemoveView)
 }

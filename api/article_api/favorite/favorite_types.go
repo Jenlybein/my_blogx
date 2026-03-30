@@ -10,9 +10,9 @@ import (
 
 type FavoriteRequest struct {
 	ID       ctype.ID `json:"id"`
-	Title    string `json:"title" binding:"required,min=2,max=32"`
-	Cover    string `json:"cover"`
-	Abstract string `json:"abstract" binding:"required,max=256"`
+	Title    string   `json:"title" binding:"required,min=2,max=32"`
+	Cover    string   `json:"cover"`
+	Abstract string   `json:"abstract" binding:"required,max=256"`
 }
 
 type FavoriteListRequest struct {

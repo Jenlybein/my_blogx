@@ -51,6 +51,7 @@ func (ProfileApi) AdminUserInfoUpdateView(c *gin.Context) {
 			return
 		}
 	}
+	res.OkWithMsg("用户信息更新成功", c)
 	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
 		ActionName: "admin_user_update",
 		TargetType: "user",
@@ -58,15 +59,15 @@ func (ProfileApi) AdminUserInfoUpdateView(c *gin.Context) {
 		Success:    true,
 		Message:    "管理员更新用户信息成功",
 		RequestBody: map[string]any{
-			"user_id":   cr.UserID,
-			"username":  cr.Username,
-			"nickname":  cr.Nickname,
-			"avatar":    cr.Avatar,
-			"abstract":  cr.Abstract,
-			"role":      cr.Role,
-			"status":    cr.Status,
+			"user_id":  cr.UserID,
+			"username": cr.Username,
+			"nickname": cr.Nickname,
+			"avatar":   cr.Avatar,
+			"abstract": cr.Abstract,
+			"role":     cr.Role,
+			"status":   cr.Status,
 		},
+		UseRawRequestBody: true,
+		UseRawRequestHead: true,
 	})
-
-	res.OkWithMsg("用户信息更新成功", c)
 }

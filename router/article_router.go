@@ -27,11 +27,11 @@ func ArticleRouter(r *gin.RouterGroup) {
 	authGroup.POST("", mw.BindJson[article_api.ArticleCreateRequest], app.ArticleCreateView)
 	authGroup.PUT(":id", mw.BindUri[models.IDRequest], mw.BindJson[article_api.ArticleUpdateRequest], app.ArticleUpdateView)
 	authGroup.DELETE(":id", mw.BindUri[models.IDRequest], app.ArticleRemoveUserView)
-	adminGroup.DELETE("", mw.BindJson[models.IDListRequest], app.ArticleRemoveView)
+	adminGroup.DELETE("", mw.CaptureLog(mw.ReqBody|mw.ReqHeader), mw.BindJson[models.IDListRequest], app.ArticleRemoveView)
 
 	group.POST("view", mw.BindJson[article_api.ArticleViewCountRequest], app.ArticleVisitView)
 	authGroup.PUT(":id/digg", mw.BindUri[models.IDRequest], app.ArticleDiggView)
-	adminGroup.POST(":id/examine", mw.BindUri[models.IDRequest], mw.BindJson[article_api.ArticleExamineRequest], app.ArticleExamineView)
+	adminGroup.POST(":id/examine", mw.CaptureLog(mw.ReqBody|mw.ReqHeader), mw.BindUri[models.IDRequest], mw.BindJson[article_api.ArticleExamineRequest], app.ArticleExamineView)
 
 	// 收藏
 	group.GET("favorite", mw.BindQuery[favorite.FavoriteListRequest], app.FavoriteListView)
@@ -52,13 +52,13 @@ func ArticleRouter(r *gin.RouterGroup) {
 
 	// 分类
 	group.GET("category", mw.BindQuery[category.CategoryListRequest], app.CategoryListView)
-	authGroup.POST("category", mw.BindJson[category.CategoryRequest], app.CategoryCreateUpdateView)
-	authGroup.DELETE("category", mw.BindJson[models.IDListRequest], app.CategoryDeleteView)
+	authGroup.POST("category", mw.CaptureLog(mw.ReqBody), mw.BindJson[category.CategoryRequest], app.CategoryCreateUpdateView)
+	authGroup.DELETE("category", mw.CaptureLog(mw.ReqBody|mw.ReqHeader), mw.BindJson[models.IDListRequest], app.CategoryDeleteView)
 	authGroup.GET("category/options", app.CategoryOptionsView)
 
 	// 标签
 	group.GET("tags", mw.BindQuery[tags.TagListRequest], app.TagListView)
 	authGroup.GET("tags/options", app.ArticleTagOptionsView)
-	adminGroup.PUT("tags", mw.BindJson[tags.TagRequest], app.TagCreateUpdateView)
-	adminGroup.DELETE("tags", mw.BindJson[models.IDListRequest], app.TagDeleteView)
+	adminGroup.PUT("tags", mw.CaptureLog(mw.ReqBody), mw.BindJson[tags.TagRequest], app.TagCreateUpdateView)
+	adminGroup.DELETE("tags", mw.CaptureLog(mw.ReqBody|mw.ReqHeader), mw.BindJson[models.IDListRequest], app.TagDeleteView)
 }

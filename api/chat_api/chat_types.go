@@ -9,7 +9,7 @@ import (
 
 type ChatMsgListRequest struct {
 	common.PageInfo
-	SessionID string `form:"session_id" binding:"required"`
+	SessionID string   `form:"session_id" binding:"required"`
 	UserID    ctype.ID `form:"user_id"`
 	Type      int8     `form:"type" binding:"required,oneof=1 2"`
 }
@@ -46,15 +46,15 @@ type ChatSessionListResponse struct {
 }
 
 type ChatRequest struct {
-	ReceiverID ctype.ID             `json:"receiver_id" binding:"required"`
+	ReceiverID ctype.ID              `json:"receiver_id" binding:"required"`
 	MsgType    chat_msg_enum.MsgType `json:"msg_type" binding:"required,oneof=1 2 7"` // 1 文本 2 图片 7 Markdown
 	Content    string                `json:"content" binding:"required"`
 }
 
 type ChatMsgResponse struct {
-	ID         ctype.ID               `json:"id"`
-	SenderID   ctype.ID               `json:"sender_id"`
-	ReceiverID ctype.ID               `json:"receiver_id"`
+	ID         ctype.ID                `json:"id"`
+	SenderID   ctype.ID                `json:"sender_id"`
+	ReceiverID ctype.ID                `json:"receiver_id"`
 	SessionID  string                  `json:"session_id"`
 	Content    string                  `json:"content"`
 	SendTime   time.Time               `json:"send_time"`

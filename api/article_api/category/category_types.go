@@ -8,7 +8,7 @@ import (
 
 type CategoryRequest struct {
 	ID    ctype.ID `json:"id"`
-	Title string `json:"title" binding:"required,min=2,max=20"`
+	Title string   `json:"title" binding:"required,min=2,max=20"`
 }
 
 type CategoryListRequest struct {

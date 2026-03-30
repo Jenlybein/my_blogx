@@ -25,6 +25,7 @@ func (ArticleApi) ArticleRemoveView(c *gin.Context) {
 		res.FailWithMsg("删除文章失败", c)
 		return
 	}
+	res.OkWithMsg(fmt.Sprintf("文章删除成功, 成功删除%d条", len(list)), c)
 	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
 		ActionName:  "article_admin_remove",
 		TargetType:  "article",
@@ -34,8 +35,7 @@ func (ArticleApi) ArticleRemoveView(c *gin.Context) {
 		ResponseBody: map[string]any{
 			"deleted_count": len(list),
 		},
+		UseRawRequestBody: true,
+		UseRawRequestHead: true,
 	})
-
-	res.OkWithMsg(fmt.Sprintf("文章删除成功, 成功删除%d条", len(list)), c)
-
 }

@@ -49,14 +49,15 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 			res.FailWithMsg(fmt.Sprintf("创建标签失败: %v", err), c)
 			return
 		}
-		log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
-			ActionName:  "tag_create",
-			TargetType:  "tag",
-			Success:     true,
-			Message:     "创建标签成功",
-			RequestBody: cr,
-		})
 		res.OkWithMsg("创建标签成功", c)
+		log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+			ActionName:        "tag_create",
+			TargetType:        "tag",
+			Success:           true,
+			Message:           "创建标签成功",
+			RequestBody:       cr,
+			UseRawRequestBody: true,
+		})
 		return
 	}
 
@@ -105,15 +106,16 @@ func (TagsApi) TagCreateUpdateView(c *gin.Context) {
 			global.Logger.Errorf("标签改名后刷新 ES 标签失败: 标签ID=%d 错误=%v", tag.ID, err)
 		}
 	}
-	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
-		ActionName:  "tag_update",
-		TargetType:  "tag",
-		TargetID:    strconv.FormatUint(uint64(tag.ID), 10),
-		Success:     true,
-		Message:     "更新标签成功",
-		RequestBody: cr,
-	})
 	res.OkWithMsg("更新标签成功", c)
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:        "tag_update",
+		TargetType:        "tag",
+		TargetID:          strconv.FormatUint(uint64(tag.ID), 10),
+		Success:           true,
+		Message:           "更新标签成功",
+		RequestBody:       cr,
+		UseRawRequestBody: true,
+	})
 }
 
 func ensureTagUnique(currentID ctype.ID, title string) error {

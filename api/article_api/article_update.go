@@ -125,6 +125,7 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 			global.Logger.Errorf("更新文章正文后刷新 ES 文档失败: 文章ID=%d 错误=%v", article.ID, err)
 		}
 	}
+	res.OkWithMsg("更新文章成功", c)
 	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
 		ActionName: "article_update",
 		TargetType: "article",
@@ -145,7 +146,7 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 				}
 				return len(*cr.Content)
 			}(),
+			"content_changed": cr.Content != nil,
 		},
 	})
-	res.OkWithMsg("更新文章成功", c)
 }

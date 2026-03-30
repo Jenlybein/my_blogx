@@ -20,6 +20,7 @@ var confMap = map[string]any{
 // 这里只允许修改数据库中的运行时配置，不再修改 settings.yaml 和前端 HTML 文件。
 func (s SiteApi) SiteUpdateView(c *gin.Context) {
 	cr := middleware.GetBindUri[SiteInfoRequest](c)
+	var auditInput log_service.GinAuditInput
 
 	targetStruct, ok := confMap[cr.Name]
 	if !ok {
@@ -37,14 +38,16 @@ func (s SiteApi) SiteUpdateView(c *gin.Context) {
 			res.FailWithError(err, c)
 			return
 		}
-		log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
-			ActionName:  "site_runtime_update",
-			TargetType:  "runtime_site_config",
-			TargetID:    "site",
-			Success:     true,
-			Message:     "更新站点运行时配置成功",
-			RequestBody: *s,
-		})
+		auditInput = log_service.GinAuditInput{
+			ActionName:        "site_runtime_update",
+			TargetType:        "runtime_site_config",
+			TargetID:          "site",
+			Success:           true,
+			Message:           "更新站点运行时配置成功",
+			RequestBody:       *s,
+			UseRawRequestBody: true,
+			UseRawRequestHead: true,
+		}
 	case *conf.AI:
 		current := site_service.GetRuntimeAI()
 		if s.SecretKey == sensitive_place_holder {
@@ -54,7 +57,7 @@ func (s SiteApi) SiteUpdateView(c *gin.Context) {
 			res.FailWithError(err, c)
 			return
 		}
-		log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		auditInput = log_service.GinAuditInput{
 			ActionName: "site_runtime_update",
 			TargetType: "runtime_site_config",
 			TargetID:   "ai",
@@ -69,11 +72,14 @@ func (s SiteApi) SiteUpdateView(c *gin.Context) {
 				"abstract":   s.Abstract,
 				"secret_key": "***",
 			},
-		})
+			UseRawRequestBody: true,
+			UseRawRequestHead: true,
+		}
 	default:
 		res.FailWithMsg("站点信息不存在", c)
 		return
 	}
 
 	res.OkWithMsg("站点配置更新成功", c)
+	log_service.EmitActionAuditFromGin(c, auditInput)
 }

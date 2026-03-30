@@ -66,20 +66,8 @@ AI 博客助手
 
 站点配置修改的接口是否已经完善？
 
+
 了解 ELK ：https://www.cnblogs.com/crazymakercircle/p/18561362
-采集层：Beats 全量保留（Filebeat/Metricbeat 等）
-↓
-缓冲层：Kafka/RabbitMQ 保留（削峰填谷，解耦上下游）
-↓
-清洗转换层：Logstash 可选/轻量化替代（Vector/Gohangout）
-↓
-存储检索层：Elasticsearch → ClickHouse 集群（核心替换）
-↓
-语法转换层：CKibana/Quesma 代理（实现 Kibana 与 ClickHouse 的无缝对接）
-↓
-可视化交互层：Kibana 全量保留（Discover、Dashboard、告警等能力完全复用）
-
-
 最新架构使用：
 应用日志/容器日志
        ↓
@@ -91,129 +79,10 @@ AI 博客助手
        ↓
 【存储核心】ClickHouse 集群（真正存日志、做检索、做统计）
        ↓
-【可视化平台】Grafana / SigNoz / ClickVisual（类 Kibana 体验）
+【可视化平台】Grafana / ClickVisual（类 Kibana 体验）
        ↓
 【告警】Grafana Alert 或平台自带告警 https://cloud.tencent.com/developer/article/1807679
 
-
-最终最简架构：
-应用日志
-    ↓
-Fluent Bit（每台机器一个）
-    ↓
-ClickHouse（单机，以后做集群）
-    ↓
-Grafana（搜索+图表+告警）
-
-
-那结合你的方案，制定计划，完整修改当前日志系统：
-
-1. 日志文件分类存放:
-    runtime_logs
-    用于运行日志、请求日志、错误日志、警告日志、后台任务日志
-    login_event_logs
-    用于登录成功、失败、登出、刷新 token、风控事件
-    action_audit_logs
-    用于管理员操作、敏感业务操作、配置变更、删除/封禁等审计事件
-
-2. 不继续“一张大宽表存所有日志”，在 ClickHouse 里也分为三类
-
-3. 获取日志的逻辑也完整分析优化
-
-4. 不要默认把所有请求体和响应体都打进去，只有必要的接口要记录，分析哪些接口需要记录body并写记录代码逻辑，最终汇报告诉我。
-
-5. 编写 docker compose ，加入 Fluent Bit 和 ClickHouse
-
-6. 修改 settings.yaml 等一切跟日志系统有关的内容
-
-7. 做一层日志查询服务，列表与单独查询
-
-8. 不兼容旧的逻辑
-
-9. 应用侧做完整适配修改
-
-
-
-
-不是“某个接口记录了完整的 request/response header 和 body”，而是：
-
-当前没有任何接口会记录完整的请求头、响应头。
-代码里我没看到把 header 写进审计日志的地方。
-
-现在实际记录了什么
-1. 普通请求日志
-middleware/log_middleware.go
-
-这里只记了这些元信息：
-request_id
-method
-path
-status_code
-latency_ms
-ip
-user_id
-不记 request body，不记 response body，也不记 header。
-
-2. 操作审计日志
-service/log_service/action_audit.go
-service/log_service/gin_helpers.go
-
-这里支持写：
-
-request_body
-response_body
-但这是接口代码手动传什么就记什么，不是自动抓原始 HTTP 全量内容。
-
-也就是说：
-不是完整 raw body
-不是自动记录 header
-不是所有接口都有 response body
-哪些接口记了 request_body
-这些接口调用了 EmitActionAuditFromGin(... RequestBody: ...)：
-
-轮播图新增/删除/更新
-api/banner_api/enter.go
-文章新增/审核/删除/更新
-api/article_api/article_create.go
-api/article_api/article_examine.go
-api/article_api/article_remove.go
-api/article_api/article_update.go
-全局通知新增/删除
-api/global_msg_api/global_notif_create.go
-api/global_msg_api/global_notif_remove.go
-图片删除
-api/image_api/image_remove.go
-站点运行时配置更新
-api/site_api/site_info_update.go
-分类新增/更新/删除
-api/article_api/category/category_create_update.go
-api/article_api/category/category_delete.go
-标签新增/更新/删除
-api/article_api/tags/tag_create_update.go
-api/article_api/tags/tag_delete.go
-管理员更新用户资料
-api/user_api/profile_api/admin_user_info_update.go
-但这些 request_body 多数是：
-
-绑定后的 struct
-手工组的 map
-有些字段还做了裁剪/脱敏
-比如文章更新只记 content_length，不会把全文正文直接打进去；AI 配置把 secret_key 记成 ***。
-哪些接口记了 response_body
-只有一部分删除类接口顺手记了结果摘要，不是完整响应体：
-
-api/banner_api/enter.go
-api/article_api/article_remove.go
-api/global_msg_api/global_notif_remove.go
-api/image_api/image_remove.go
-api/article_api/tags/tag_delete.go
-api/article_api/category/category_delete.go
-这些一般只是类似：
-
-deleted_count
-id_list
-操作结果摘要
-不是完整 response body，也不含 response headers。
 
 
 目前优化方案：
@@ -224,3 +93,6 @@ id_list
 5. 不能无限制把 body 写进去，大于16kb则取各字段的值截断，保留完整字段名。
 6. 一个中间件 + 独立开关，参考：mw.CaptureLogBody(选择其中一个)，可选：{Req, Resp, Both}
 
+
+docker compose 里存在密码，怎么办?
+后续全面转向环境变量配置， https://www.doubao.com/chat/38419183522472450

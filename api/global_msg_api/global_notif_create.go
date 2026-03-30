@@ -61,13 +61,14 @@ func (GlobalNotifApi) GlobalNotifCreateView(c *gin.Context) {
 		res.FailWithMsg(fmt.Sprintf("全局通知创建失败 %v", err), c)
 		return
 	}
-	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
-		ActionName:  "global_notif_create",
-		TargetType:  "global_notif",
-		Success:     true,
-		Message:     "创建全局通知成功",
-		RequestBody: cr,
-	})
-
 	res.OkWithMsg("创建成功", c)
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:        "global_notif_create",
+		TargetType:        "global_notif",
+		Success:           true,
+		Message:           "创建全局通知成功",
+		RequestBody:       cr,
+		UseRawRequestBody: true,
+		UseRawRequestHead: true,
+	})
 }

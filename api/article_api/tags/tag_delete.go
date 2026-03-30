@@ -44,6 +44,7 @@ func (TagsApi) TagDeleteView(c *gin.Context) {
 		res.FailWithMsg("删除标签失败", c)
 		return
 	}
+	res.OkWithMsg(fmt.Sprintf("删除标签成功，共删除 %d 条", len(list)), c)
 	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
 		ActionName:  "tag_delete",
 		TargetType:  "tag",
@@ -53,6 +54,7 @@ func (TagsApi) TagDeleteView(c *gin.Context) {
 		ResponseBody: map[string]any{
 			"deleted_count": len(list),
 		},
+		UseRawRequestBody: true,
+		UseRawRequestHead: true,
 	})
-	res.OkWithMsg(fmt.Sprintf("删除标签成功，共删除 %d 条", len(list)), c)
 }

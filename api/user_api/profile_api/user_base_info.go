@@ -12,13 +12,13 @@ import (
 
 type UserBaseInfoResponse struct {
 	ID          ctype.ID `gorm:"primaryKey" json:"id"`
-	CodeAge     int    `json:"code_age"`
-	Avatar      string `gorm:"size:256" json:"avatar"`
-	Nickname    string `gorm:"size:32" json:"nickname"`
-	ViewCount   int    `json:"view_count"`
-	FansCount   int    `json:"fans_count"`
-	FollowCount int    `json:"follow_count"`
-	Place       string `json:"place"`
+	CodeAge     int      `json:"code_age"`
+	Avatar      string   `gorm:"size:256" json:"avatar"`
+	Nickname    string   `gorm:"size:32" json:"nickname"`
+	ViewCount   int      `json:"view_count"`
+	FansCount   int      `json:"fans_count"`
+	FollowCount int      `json:"follow_count"`
+	Place       string   `json:"place"`
 }
 
 func (ProfileApi) UserBaseInfoView(c *gin.Context) {

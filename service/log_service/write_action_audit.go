@@ -10,36 +10,44 @@ import (
 // ActionAuditEvent 表示落盘到操作审计日志中的最终事件结构。
 // 最终写入日志文件的结构化数据，包含请求、操作、目标、结果等完整审计信息
 type ActionAuditEvent struct {
-	baseEvent           // 嵌入基础日志事件（公共字段：时间、服务、环境、请求ID等）
-	Method       string `json:"method,omitempty"`        // HTTP请求方法
-	Path         string `json:"path,omitempty"`          // 请求路由路径
-	StatusCode   int    `json:"status_code,omitempty"`   // HTTP响应状态码
-	ActionName   string `json:"action_name"`             // 操作名称
-	TargetType   string `json:"target_type,omitempty"`   // 操作目标类型
-	TargetID     string `json:"target_id,omitempty"`     // 操作目标ID
-	Success      uint8  `json:"success"`                 // 操作是否成功
-	RequestBody  string `json:"request_body,omitempty"`  // 请求体JSON字符串
-	ResponseBody string `json:"response_body,omitempty"` // 响应体JSON字符串
+	baseEvent                // 嵌入基础日志事件（公共字段：时间、服务、环境、请求ID等）
+	Method            string `json:"method,omitempty"`              // HTTP请求方法
+	Path              string `json:"path,omitempty"`                // 请求路由路径
+	StatusCode        int    `json:"status_code,omitempty"`         // HTTP响应状态码
+	ActionName        string `json:"action_name"`                   // 操作名称
+	TargetType        string `json:"target_type,omitempty"`         // 操作目标类型
+	TargetID          string `json:"target_id,omitempty"`           // 操作目标ID
+	Success           uint8  `json:"success"`                       // 操作是否成功
+	RequestBody       string `json:"request_body,omitempty"`        // 请求体JSON字符串
+	ResponseBody      string `json:"response_body,omitempty"`       // 响应体JSON字符串
+	RequestBodyRaw    string `json:"request_body_raw,omitempty"`    // 脱敏截断后的原始请求体
+	ResponseBodyRaw   string `json:"response_body_raw,omitempty"`   // 脱敏截断后的原始响应体
+	RequestHeaderRaw  string `json:"request_header_raw,omitempty"`  // 脱敏截断后的原始请求头
+	ResponseHeaderRaw string `json:"response_header_raw,omitempty"` // 脱敏截断后的原始响应头
 }
 
 // ActionAuditInput 描述业务侧写入操作审计日志时可传入的上下文。
 // 业务层传入的审计日志参数，用于组装最终审计事件
 type ActionAuditInput struct {
-	Level        string         // 日志级别 info/warn/error
-	Message      string         // 日志描述信息
-	RequestID    string         // 全链路追踪ID
-	UserID       ctype.ID       // 操作用户ID
-	IP           string         // 操作IP地址
-	Method       string         // HTTP请求方法
-	Path         string         // HTTP请求路径
-	StatusCode   int            // HTTP响应状态码
-	ActionName   string         // 操作名称
-	TargetType   string         // 操作目标类型
-	TargetID     string         // 操作目标ID
-	Success      bool           // 操作是否成功
-	RequestBody  any            // 请求体（任意结构）
-	ResponseBody any            // 响应体（任意结构）
-	Extra        map[string]any // 扩展自定义字段
+	Level             string         // 日志级别 info/warn/error
+	Message           string         // 日志描述信息
+	RequestID         string         // 全链路追踪ID
+	UserID            ctype.ID       // 操作用户ID
+	IP                string         // 操作IP地址
+	Method            string         // HTTP请求方法
+	Path              string         // HTTP请求路径
+	StatusCode        int            // HTTP响应状态码
+	ActionName        string         // 操作名称
+	TargetType        string         // 操作目标类型
+	TargetID          string         // 操作目标ID
+	Success           bool           // 操作是否成功
+	RequestBody       any            // 请求体（任意结构）
+	ResponseBody      any            // 响应体（任意结构）
+	RequestBodyRaw    string         // 原始请求体快照
+	ResponseBodyRaw   string         // 原始响应体快照
+	RequestHeaderRaw  string         // 原始请求头快照
+	ResponseHeaderRaw string         // 原始响应头快照
+	Extra             map[string]any // 扩展自定义字段
 }
 
 // EmitActionAudit 写入一条操作审计日志，并自动补齐基础字段与默认级别。
@@ -77,16 +85,20 @@ func EmitActionAudit(input ActionAuditInput) {
 
 	// 组装最终的审计日志事件
 	event := ActionAuditEvent{
-		baseEvent:    base,
-		Method:       input.Method,
-		Path:         input.Path,
-		StatusCode:   input.StatusCode,
-		ActionName:   input.ActionName,
-		TargetType:   input.TargetType,
-		TargetID:     input.TargetID,
-		Success:      boolToUInt8(input.Success),                 // bool转uint8 便于日志存储
-		RequestBody:  mustMarshalCompactJSON(input.RequestBody),  // 压缩序列化请求体
-		ResponseBody: mustMarshalCompactJSON(input.ResponseBody), // 压缩序列化响应体
+		baseEvent:         base,
+		Method:            input.Method,
+		Path:              input.Path,
+		StatusCode:        input.StatusCode,
+		ActionName:        input.ActionName,
+		TargetType:        input.TargetType,
+		TargetID:          input.TargetID,
+		Success:           boolToUInt8(input.Success),                      // bool转uint8 便于日志存储
+		RequestBody:       mustMarshalCompactJSON(input.RequestBody),       // 压缩序列化请求体
+		ResponseBody:      mustMarshalCompactJSON(input.ResponseBody),      // 压缩序列化响应体
+		RequestBodyRaw:    mustMarshalCompactJSON(input.RequestBodyRaw),    // 脱敏截断后的原始请求体
+		ResponseBodyRaw:   mustMarshalCompactJSON(input.ResponseBodyRaw),   // 脱敏截断后的原始响应体
+		RequestHeaderRaw:  mustMarshalCompactJSON(input.RequestHeaderRaw),  // 脱敏截断后的原始请求头
+		ResponseHeaderRaw: mustMarshalCompactJSON(input.ResponseHeaderRaw), // 脱敏截断后的原始响应头
 	}
 
 	// 写入审计日志文件，写入失败则打印错误日志
@@ -100,23 +112,8 @@ func EmitActionAudit(input ActionAuditInput) {
 // 参数：value - 任意需要序列化的对象
 // 返回：单行JSON字符串 / 空串
 func mustMarshalCompactJSON(value any) string {
-	// 空值直接返回空串
 	if value == nil {
 		return ""
 	}
-
-	// 类型断言：字符串/字节数组直接返回，避免重复序列化
-	switch v := value.(type) {
-	case string:
-		return v
-	case []byte:
-		return string(v)
-	}
-
-	// 其他类型执行JSON序列化
-	byteData, err := json.Marshal(value)
-	if err != nil {
-		return ""
-	}
-	return string(byteData)
+	return MarshalAuditValue(value)
 }

@@ -104,6 +104,10 @@ CREATE TABLE IF NOT EXISTS blogx_logs.action_audit_logs (
     success UInt8, -- 操作是否成功（1=成功，0=失败）
     request_body String, -- 请求体内容
     response_body String, -- 响应体内容
+    request_body_raw String, -- 脱敏截断后的原始请求体
+    response_body_raw String, -- 脱敏截断后的原始响应体
+    request_header_raw String, -- 脱敏截断后的原始请求头
+    response_header_raw String, -- 脱敏截断后的原始响应头
     extra_json String -- 扩展字段（JSON格式）
 ) ENGINE = MergeTree
 PARTITION BY
@@ -116,3 +120,16 @@ ORDER BY ( -- 排序索引
         event_id
     ) TTL toDateTime (ts) + INTERVAL 365 DAY -- 数据保留1年
     SETTINGS index_granularity = 8192;
+
+-- 为已存在的操作审计日志表补齐原始请求/响应体字段，避免老环境升级后入库失败。
+ALTER TABLE blogx_logs.action_audit_logs
+    ADD COLUMN IF NOT EXISTS request_body_raw String AFTER response_body;
+
+ALTER TABLE blogx_logs.action_audit_logs
+    ADD COLUMN IF NOT EXISTS response_body_raw String AFTER request_body_raw;
+
+ALTER TABLE blogx_logs.action_audit_logs
+    ADD COLUMN IF NOT EXISTS request_header_raw String AFTER response_body_raw;
+
+ALTER TABLE blogx_logs.action_audit_logs
+    ADD COLUMN IF NOT EXISTS response_header_raw String AFTER request_header_raw;

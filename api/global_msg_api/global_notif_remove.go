@@ -38,6 +38,7 @@ func (GlobalNotifApi) GlobalNotifAdminRemoveView(c *gin.Context) {
 		res.FailWithMsg("未找到需要删除的公告", c)
 		return
 	}
+	res.OkWithMsg(fmt.Sprintf("请求删除公告%d个，成功%d条", len(cr.IDList), len(list)), c)
 	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
 		ActionName:  "global_notif_admin_remove",
 		TargetType:  "global_notif",
@@ -47,9 +48,9 @@ func (GlobalNotifApi) GlobalNotifAdminRemoveView(c *gin.Context) {
 		ResponseBody: map[string]any{
 			"deleted_count": len(list),
 		},
+		UseRawRequestBody: true,
+		UseRawRequestHead: true,
 	})
-
-	res.OkWithMsg(fmt.Sprintf("请求删除公告%d个，成功%d条", len(cr.IDList), len(list)), c)
 }
 
 func (GlobalNotifApi) GlobalNotifUserRemoveView(c *gin.Context) {

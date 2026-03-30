@@ -33,16 +33,17 @@ func (BannerApi) BannerCreateView(c *gin.Context) {
 		res.FailWithError(err, c)
 		return
 	}
-	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
-		ActionName:  "banner_create",
-		TargetType:  "banner",
-		TargetID:    strconv.FormatUint(uint64(model.ID), 10),
-		Success:     true,
-		Message:     "创建轮播图成功",
-		RequestBody: cr,
-	})
-
 	res.OkWithMsg("创建轮播图成功", c)
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:        "banner_create",
+		TargetType:        "banner",
+		TargetID:          strconv.FormatUint(uint64(model.ID), 10),
+		Success:           true,
+		Message:           "创建轮播图成功",
+		RequestBody:       cr,
+		UseRawRequestBody: true,
+		UseRawRequestHead: true,
+	})
 }
 
 type BannerListRequest struct {
@@ -80,6 +81,7 @@ func (BannerApi) BannerRemoveView(c *gin.Context) {
 			return
 		}
 	}
+	res.OkWithMsg(fmt.Sprintf("请求删除轮播图%d个, 成功%d条", len(cr.IDList), len(list)), c)
 	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
 		ActionName:  "banner_remove",
 		TargetType:  "banner",
@@ -89,9 +91,9 @@ func (BannerApi) BannerRemoveView(c *gin.Context) {
 		ResponseBody: map[string]any{
 			"deleted_count": len(list),
 		},
+		UseRawRequestBody: true,
+		UseRawRequestHead: true,
 	})
-
-	res.OkWithMsg(fmt.Sprintf("请求删除轮播图%d个, 成功%d条", len(cr.IDList), len(list)), c)
 }
 
 func (BannerApi) BannerUpdateView(c *gin.Context) {
@@ -113,14 +115,15 @@ func (BannerApi) BannerUpdateView(c *gin.Context) {
 		res.FailWithError(err, c)
 		return
 	}
-	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
-		ActionName:  "banner_update",
-		TargetType:  "banner",
-		TargetID:    strconv.FormatUint(uint64(model.ID), 10),
-		Success:     true,
-		Message:     "更新轮播图成功",
-		RequestBody: cr,
-	})
-
 	res.OkWithMsg("更新轮播图成功", c)
+	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
+		ActionName:        "banner_update",
+		TargetType:        "banner",
+		TargetID:          strconv.FormatUint(uint64(model.ID), 10),
+		Success:           true,
+		Message:           "更新轮播图成功",
+		RequestBody:       cr,
+		UseRawRequestBody: true,
+		UseRawRequestHead: true,
+	})
 }

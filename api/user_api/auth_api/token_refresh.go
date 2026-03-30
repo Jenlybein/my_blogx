@@ -15,7 +15,7 @@ func (AuthApi) RefreshTokenView(c *gin.Context) {
 
 	// 用旧的刷新令牌换取新的AccessToken和新的刷新令牌
 	accessToken, newRefreshToken, _, _, err := user_service.RefreshTokens(refreshToken, user_service.BuildSessionMetaFromGin(c))
-	
+
 	if err != nil {
 		log_service.EmitLoginEventFromGin(c, "token_refresh", enum.LoginType(0), false, "", 0, err.Error(), nil)
 		user_service.ClearRefreshTokenCookie(c)

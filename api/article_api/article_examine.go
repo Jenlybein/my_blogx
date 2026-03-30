@@ -49,6 +49,7 @@ func (ArticleApi) ArticleExamineView(c *gin.Context) {
 			LinkHerf:     fmt.Sprintf("/article/%d", article.ID),
 		})
 	}
+	res.OkWithMsg("文章审核成功", c)
 	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
 		ActionName: "article_examine",
 		TargetType: "article",
@@ -58,7 +59,7 @@ func (ArticleApi) ArticleExamineView(c *gin.Context) {
 		RequestBody: map[string]any{
 			"status": cr.Status,
 		},
+		UseRawRequestBody: true,
+		UseRawRequestHead: true,
 	})
-
-	res.OkWithMsg("文章审核成功", c)
 }

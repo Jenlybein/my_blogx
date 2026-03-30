@@ -80,6 +80,9 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 			global.Logger.Errorf("创建文章后刷新 ES 标签失败: 文章ID=%d 错误=%v", article.ID, err)
 		}
 	}
+
+	res.OkWithMsg("创建文章成功", c)
+
 	log_service.EmitActionAuditFromGin(c, log_service.GinAuditInput{
 		ActionName: "article_create",
 		TargetType: "article",
@@ -95,7 +98,7 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 			"comments_toggle": cr.CommentsToggle,
 			"tag_ids":         cr.TagIDs,
 			"content_length":  len(cr.Content),
+			"content_changed": len(cr.Content) > 0,
 		},
 	})
-	res.OkWithMsg("创建文章成功", c)
 }

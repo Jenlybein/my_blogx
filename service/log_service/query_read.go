@@ -63,28 +63,32 @@ type LoginEventRecord struct {
 
 // ActionAuditRecord 对应操作审计日志列表与详情接口返回的单条记录。
 type ActionAuditRecord struct {
-	EventID      uint64 `json:"event_id"`
-	TS           string `json:"ts"`
-	Service      string `json:"service"`
-	Env          string `json:"env"`
-	Host         string `json:"host"`
-	InstanceID   string `json:"instance_id"`
-	Level        string `json:"level"`
-	Message      string `json:"message"`
-	RequestID    string `json:"request_id"`
-	TraceID      string `json:"trace_id"`
-	UserID       uint64 `json:"user_id"`
-	IP           string `json:"ip"`
-	Method       string `json:"method"`
-	Path         string `json:"path"`
-	StatusCode   uint16 `json:"status_code"`
-	ActionName   string `json:"action_name"`
-	TargetType   string `json:"target_type"`
-	TargetID     string `json:"target_id"`
-	Success      uint8  `json:"success"`
-	RequestBody  string `json:"request_body"`
-	ResponseBody string `json:"response_body"`
-	ExtraJSON    string `json:"extra_json"`
+	EventID           uint64 `json:"event_id"`
+	TS                string `json:"ts"`
+	Service           string `json:"service"`
+	Env               string `json:"env"`
+	Host              string `json:"host"`
+	InstanceID        string `json:"instance_id"`
+	Level             string `json:"level"`
+	Message           string `json:"message"`
+	RequestID         string `json:"request_id"`
+	TraceID           string `json:"trace_id"`
+	UserID            uint64 `json:"user_id"`
+	IP                string `json:"ip"`
+	Method            string `json:"method"`
+	Path              string `json:"path"`
+	StatusCode        uint16 `json:"status_code"`
+	ActionName        string `json:"action_name"`
+	TargetType        string `json:"target_type"`
+	TargetID          string `json:"target_id"`
+	Success           uint8  `json:"success"`
+	RequestBody       string `json:"request_body"`
+	ResponseBody      string `json:"response_body"`
+	RequestBodyRaw    string `json:"request_body_raw,omitempty"`
+	ResponseBodyRaw   string `json:"response_body_raw,omitempty"`
+	RequestHeaderRaw  string `json:"request_header_raw,omitempty"`
+	ResponseHeaderRaw string `json:"response_header_raw,omitempty"`
+	ExtraJSON         string `json:"extra_json"`
 }
 
 // LogTimeRange 表示日志查询使用的开始和结束时间范围。
@@ -301,14 +305,14 @@ func GetActionAudit(eventID uint64) (*ActionAuditRecord, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	row := queryRowExists(ctx, fmt.Sprintf(`
-SELECT event_id, formatDateTime(ts, '%%Y-%%m-%%d %%H:%%i:%%s.%%3N'), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, method, path, status_code, action_name, target_type, target_id, success, request_body, response_body, extra_json
+SELECT event_id, formatDateTime(ts, '%%Y-%%m-%%d %%H:%%i:%%s.%%3N'), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, method, path, status_code, action_name, target_type, target_id, success, request_body, response_body, request_body_raw, response_body_raw, request_header_raw, response_header_raw, extra_json
 FROM %s WHERE event_id = ? LIMIT 1`, ActionAuditLogTableName), eventID)
 	var item ActionAuditRecord
 	if err := row.Scan(
 		&item.EventID, &item.TS, &item.Service, &item.Env, &item.Host, &item.InstanceID,
 		&item.Level, &item.Message, &item.RequestID, &item.TraceID, &item.UserID, &item.IP,
 		&item.Method, &item.Path, &item.StatusCode, &item.ActionName, &item.TargetType,
-		&item.TargetID, &item.Success, &item.RequestBody, &item.ResponseBody, &item.ExtraJSON,
+		&item.TargetID, &item.Success, &item.RequestBody, &item.ResponseBody, &item.RequestBodyRaw, &item.ResponseBodyRaw, &item.RequestHeaderRaw, &item.ResponseHeaderRaw, &item.ExtraJSON,
 	); err != nil {
 		return nil, err
 	}

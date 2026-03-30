@@ -19,12 +19,12 @@ type SitemsgListRequest struct {
 
 type SitemsgReadRequest struct {
 	ID ctype.ID `json:"id"`
-	T  int8 `json:"t" binding:"omitempty,oneof=1 2 3"` // 批量已读的类型
+	T  int8     `json:"t" binding:"omitempty,oneof=1 2 3"` // 批量已读的类型
 }
 
 type SitemsgRemoveRequest struct {
 	ID ctype.ID `json:"id"`
-	T  int8 `json:"t" binding:"omitempty,oneof=1 2 3"` // 批量已读的类型
+	T  int8     `json:"t" binding:"omitempty,oneof=1 2 3"` // 批量已读的类型
 }
 
 type SitemsgUserResponse struct {

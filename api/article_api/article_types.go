@@ -82,13 +82,13 @@ type ArticleListResponse struct {
 }
 
 type ArticleUpdateRequest struct {
-	Title          *string `json:"title"`
-	Abstract       *string `json:"abstract"`
-	Content        *string `json:"content"`
+	Title          *string     `json:"title"`
+	Abstract       *string     `json:"abstract"`
+	Content        *string     `json:"content"`
 	CategoryID     *ctype.ID   `json:"category_id"`
 	TagIDs         *[]ctype.ID `json:"tag_ids"`
-	Cover          *string `json:"cover"`
-	CommentsToggle *bool   `json:"comments_toggle"`
+	Cover          *string     `json:"cover"`
+	CommentsToggle *bool       `json:"comments_toggle"`
 }
 
 type ArticleViewCountRequest struct {
