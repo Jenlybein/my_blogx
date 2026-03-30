@@ -36,6 +36,17 @@ QQ登录 - https://video.fengfengzhidao.com/play/17/3391
 需模块化的内容：es_river、image_ref_river、cron_service、
 
 
+List优化一次HasMore的形式（各种List列表看看怎么搞）
+查询过多的接口，不再走统一 ListQuery，走专用sql模式。
+比如说 CommentList ：
+  评论列表现在的主要性能问题，不是单条评论逐条查数据库，而是为了组装作者信息、回复目标昵称、是否点赞、好友关系这些字段，登录用户一次请求会拆成很多次 SQL，回复列表还因为两级 preload 更重，所以它的整体开销偏大。
+  如果要“能省则省”，最好的办法是把这两个接口改成专用查询，不再走通用 ListQuery + Preload + 批量补查。主查询里直接用 join 把评论作者昵称头像、父评论作者昵称、当前用户是否点赞、当前用户和评论作者关系一次查出来，这样就能去掉 preload、去掉额外的点赞查询和关系查询。
+  同时再把当前用户识别改成轻量方式，只取 viewerUserID，不要每次都做完整的用户和 session 校验。最后配合补上更贴近查询条件的复合索引，评论列表就能收敛成少量固定 SQL 加少量 Redis HMGET，这会是当前项目里最值得做的一轮优化。
+
+
+考虑升级成 PostgreSQL，首先得了解什么是PgSql
+
+
 User表可以细化分表
 UserConfModel、UserStatModel 不变
 UserAuthModel：
@@ -136,3 +147,7 @@ HomeStyleID
 校准系统
 新增 cron 任务：定时校准冗余数据。
 方案：平时校准不需要每天重算整个历史，只需获取今日有新插入的数据，然后做增量更新即可。
+
+
+推荐机制怎么做呢？以下是基础设想
+文章推荐：当天浏览量最多的

@@ -9,6 +9,7 @@ import (
 	"myblogx/models"
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
+	"myblogx/models/enum/relationship_enum"
 	"myblogx/service/redis_service/redis_comment"
 	"time"
 
@@ -29,6 +30,8 @@ type CommentRootListResponse struct {
 	RootID       ctype.ID           `json:"root_id"`
 	DiggCount    int                `json:"digg_count"`
 	ReplyCount   int                `json:"reply_count"`
+	IsDigg       bool               `json:"is_digg"`
+	Relation     int8               `json:"relation"`
 	Status       enum.CommentStatus `json:"status"`
 	UserNickname string             `json:"user_nickname"`
 	UserAvatar   string             `json:"user_avatar"`
@@ -72,6 +75,7 @@ func (CommentApi) CommentRootListView(c *gin.Context) {
 		return
 	}
 
+	// 查询缓存内存的点赞、回复数增量
 	commentIDs := make([]ctype.ID, 0, len(list))
 	for _, item := range list {
 		commentIDs = append(commentIDs, item.ID)
@@ -83,10 +87,24 @@ func (CommentApi) CommentRootListView(c *gin.Context) {
 		diggCountMap = redis_comment.GetBatchCacheDigg(commentIDs)
 	}
 
+	// 批量查询点赞，好友关系
+	viewerUserID := commentViewerIDFromGin(c)
+	userIDs := make([]ctype.ID, 0, len(list))
+	for _, item := range list {
+		userIDs = append(userIDs, item.UserID)
+	}
+	isDiggMap := buildCommentDiggMap(viewerUserID, commentIDs)
+	relationMap := buildCommentRelationMap(viewerUserID, userIDs)
+
+	// 组装响应
 	responseList := make([]CommentRootListResponse, 0, len(list))
 	for _, item := range list {
 		item.ReplyCount += replyCountMap[item.ID]
 		item.DiggCount += diggCountMap[item.ID]
+		relation := relationship_enum.RelationStranger
+		if got, ok := relationMap[item.UserID]; ok {
+			relation = got
+		}
 		responseList = append(responseList, CommentRootListResponse{
 			ID:           item.ID,
 			CreatedAt:    item.CreatedAt,
@@ -96,6 +114,8 @@ func (CommentApi) CommentRootListView(c *gin.Context) {
 			RootID:       item.RootID,
 			DiggCount:    item.DiggCount,
 			ReplyCount:   item.ReplyCount,
+			IsDigg:       isDiggMap[item.ID],
+			Relation:     int8(relation),
 			Status:       item.Status,
 			UserNickname: item.UserModel.Nickname,
 			UserAvatar:   item.UserModel.Avatar,

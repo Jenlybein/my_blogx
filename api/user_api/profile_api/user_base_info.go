@@ -6,6 +6,7 @@ import (
 	"myblogx/middleware"
 	"myblogx/models"
 	"myblogx/models/ctype"
+	"myblogx/service/follow_service"
 	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 
@@ -24,6 +25,7 @@ type UserBaseInfoResponse struct {
 	FollowVisibility    bool     `json:"followers_visibility"`
 	FansVisibility      bool     `json:"fans_visibility"`
 	HomeStyleID         ctype.ID `json:"home_style_id"`
+	Relation            int8     `json:"relation"`
 	Place               string   `json:"place"`
 }
 
@@ -56,6 +58,10 @@ func (ProfileApi) UserBaseInfoView(c *gin.Context) {
 	if user.UserConfModel != nil {
 		conf = *user.UserConfModel
 	}
+	relation := int8(0)
+	if claims := jwts.GetClaimsByGin(c); claims != nil {
+		relation = int8(follow_service.CalUserRelationship(claims.UserID, user.ID))
+	}
 
 	data := UserBaseInfoResponse{
 		ID:                  user.ID,
@@ -69,6 +75,7 @@ func (ProfileApi) UserBaseInfoView(c *gin.Context) {
 		FollowVisibility:    conf.FollowVisibility,
 		FansVisibility:      conf.FansVisibility,
 		HomeStyleID:         conf.HomeStyleID,
+		Relation:            relation,
 		Place:               user.Addr,
 	}
 

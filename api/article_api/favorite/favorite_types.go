@@ -17,8 +17,9 @@ type FavoriteRequest struct {
 
 type FavoriteListRequest struct {
 	common.PageInfo
-	UserID ctype.ID `form:"user_id"`
-	Type   int8     `form:"type" binding:"required,oneof=1 2 3"` // 1:查自己 2:查别人 3:管理员后台查
+	UserID    ctype.ID `form:"user_id"`
+	ArticleID ctype.ID `form:"article_id"`
+	Type      int8     `form:"type" binding:"required,oneof=1 2 3"` // 1:查自己 2:查别人 3:管理员后台查
 }
 
 type FavoriteListResponse struct {
@@ -26,6 +27,7 @@ type FavoriteListResponse struct {
 	ArticleCount int    `json:"article_count"`
 	Nickname     string `json:"nickname,omitempty"`
 	Avatar       string `json:"avatar,omitempty"`
+	HasArticle   bool   `json:"has_article"`
 }
 
 type FavoriteArticlesRequest struct {

@@ -32,7 +32,7 @@ func readCode(t *testing.T, w *httptest.ResponseRecorder) int {
 }
 
 func TestProfileHandlers(t *testing.T) {
-	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserViewDailyModel{}, &models.TagModel{})
+	db := testutil.SetupSQLite(t, &models.UserModel{}, &models.UserConfModel{}, &models.UserViewDailyModel{}, &models.UserFollowModel{}, &models.TagModel{})
 	_ = testutil.SetupMiniRedis(t)
 	email := "u1@example.com"
 	user := models.UserModel{
@@ -53,6 +53,12 @@ func TestProfileHandlers(t *testing.T) {
 	}
 	if err := db.Create(&viewer).Error; err != nil {
 		t.Fatalf("创建访客用户失败: %v", err)
+	}
+	if err := db.Create(&models.UserFollowModel{
+		FollowedUserID: user.ID,
+		FansUserID:     viewer.ID,
+	}).Error; err != nil {
+		t.Fatalf("创建用户关系失败: %v", err)
 	}
 
 	tag := models.TagModel{Title: "Go", IsEnabled: true}
@@ -114,6 +120,7 @@ func TestProfileHandlers(t *testing.T) {
 				FollowVisibility    bool     `json:"followers_visibility"`
 				FansVisibility      bool     `json:"fans_visibility"`
 				HomeStyleID         ctype.ID `json:"home_style_id"`
+				Relation            int8     `json:"relation"`
 			} `json:"data"`
 		}
 		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
@@ -127,6 +134,9 @@ func TestProfileHandlers(t *testing.T) {
 		}
 		if body.Data.HomeStyleID != 1 {
 			t.Fatalf("用户首页样式默认值异常: %d", body.Data.HomeStyleID)
+		}
+		if int(body.Data.Relation) != 2 {
+			t.Fatalf("用户关系字段异常: %d", body.Data.Relation)
 		}
 
 		var stat models.UserStatModel

@@ -178,6 +178,27 @@ func TestFavoriteCRUD(t *testing.T) {
 
 	{
 		c, w := newCtx()
+		c.Set("requestQuery", FavoriteListRequest{
+			PageInfo:  common.PageInfo{Page: 1, Limit: 10},
+			Type:      1,
+			ArticleID: article.ID,
+		})
+		req := httptest.NewRequest(http.MethodGet, "/articles/favorite", nil)
+		req.Header.Set("token", token)
+		c.Request = req
+		api.FavoriteListView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("带文章状态的收藏夹列表应成功, body=%s", w.Body.String())
+		}
+		data := readData(t, w)
+		list := data["list"].([]any)
+		if len(list) == 0 || !list[0].(map[string]any)["has_article"].(bool) {
+			t.Fatalf("收藏夹应返回 has_article=true, body=%s", w.Body.String())
+		}
+	}
+
+	{
+		c, w := newCtx()
 		c.Set("requestJson", models.IDListRequest{IDList: []ctype.ID{fav.ID}})
 		req := httptest.NewRequest(http.MethodDelete, "/articles/favorite", nil)
 		req.Header.Set("token", token)

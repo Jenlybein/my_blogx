@@ -18,6 +18,7 @@ type FollowListResponse struct {
 	FollowedAvatar   string    `json:"followed_avatar"`
 	FollowedAbstract string    `json:"followed_abstract"`
 	FollowTime       time.Time `json:"follow_time"`
+	Relation         int8      `json:"relation"`
 }
 
 type FansListRequest struct {
@@ -32,4 +33,5 @@ type FansListResponse struct {
 	FansAvatar   string    `json:"fans_avatar"`
 	FansAbstract string    `json:"fans_abstract"`
 	FollowTime   time.Time `json:"follow_time"`
+	Relation     int8      `json:"relation"`
 }

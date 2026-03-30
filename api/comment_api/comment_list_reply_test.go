@@ -6,7 +6,10 @@ import (
 	"myblogx/global"
 	"myblogx/models"
 	"myblogx/models/enum"
+	"myblogx/models/enum/relationship_enum"
 	"myblogx/service/redis_service/redis_comment"
+	"myblogx/test/testutil"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -24,6 +27,16 @@ func TestCommentReplyListView(t *testing.T) {
 	user2 := &models.UserModel{Username: "reply_u", Nickname: "u2", Avatar: "/u2.png", Password: "x", Role: enum.RoleUser}
 	if err := global.DB.Create(user2).Error; err != nil {
 		t.Fatalf("创建第二个用户失败: %v", err)
+	}
+	viewer := &models.UserModel{Username: "reply_viewer", Nickname: "viewer", Avatar: "/v.png", Password: "x", Role: enum.RoleUser}
+	if err := global.DB.Create(viewer).Error; err != nil {
+		t.Fatalf("创建访客用户失败: %v", err)
+	}
+	if err := global.DB.Create(&models.UserFollowModel{FollowedUserID: viewer.ID, FansUserID: user.ID}).Error; err != nil {
+		t.Fatalf("创建 user->viewer 关注关系失败: %v", err)
+	}
+	if err := global.DB.Create(&models.UserFollowModel{FollowedUserID: user2.ID, FansUserID: viewer.ID}).Error; err != nil {
+		t.Fatalf("创建 viewer->user2 关注关系失败: %v", err)
 	}
 
 	article := models.ArticleModel{
@@ -67,9 +80,16 @@ func TestCommentReplyListView(t *testing.T) {
 	if err := redis_comment.SetCacheDigg(reply1.ID, 3); err != nil {
 		t.Fatalf("写入二级评论点赞缓存失败: %v", err)
 	}
+	if err := global.DB.Create(&models.CommentDiggModel{CommentID: reply1.ID, UserID: viewer.ID}).Error; err != nil {
+		t.Fatalf("创建评论点赞关系失败: %v", err)
+	}
 
 	t.Run("分页获取已发布二级评论成功", func(t *testing.T) {
 		c, w := newCommentCtx()
+		token := testutil.IssueAccessToken(t, viewer)
+		req := httptest.NewRequest("GET", "/comments/replies", nil)
+		req.Header.Set("token", token)
+		c.Request = req
 		c.Set("requestQuery", CommentReplyListRequest{
 			PageInfo:  common.PageInfo{Limit: 10, Page: 1},
 			ArticleID: article.ID,
@@ -117,8 +137,32 @@ func TestCommentReplyListView(t *testing.T) {
 		if int(reply1Item["digg_count"].(float64)) != 3 {
 			t.Fatalf("二级评论 digg_count 未叠加缓存: %+v", reply1Item)
 		}
+		if !reply1Item["is_digg"].(bool) {
+			t.Fatalf("二级评论 is_digg 应为 true: %+v", reply1Item)
+		}
+		if int(reply1Item["relation"].(float64)) != int(relationship_enum.RelationFollowed) {
+			t.Fatalf("二级评论 relation 异常: %+v", reply1Item)
+		}
 		if reply1Item["user_id"].(string) != user2.ID.String() {
 			t.Fatalf("user_id 应按字符串返回: %+v", reply1Item)
+		}
+
+		var reply2Item map[string]any
+		for _, raw := range list {
+			item := raw.(map[string]any)
+			if item["content"] == "reply2" {
+				reply2Item = item
+				break
+			}
+		}
+		if reply2Item == nil {
+			t.Fatalf("未返回 reply2: %+v", list)
+		}
+		if reply2Item["is_digg"].(bool) {
+			t.Fatalf("reply2 is_digg 应为 false: %+v", reply2Item)
+		}
+		if int(reply2Item["relation"].(float64)) != int(relationship_enum.RelationFans) {
+			t.Fatalf("reply2 relation 异常: %+v", reply2Item)
 		}
 	})
 

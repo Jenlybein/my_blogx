@@ -8,6 +8,7 @@ import (
 	"myblogx/models"
 	"myblogx/models/ctype"
 	"myblogx/models/enum"
+	"myblogx/models/enum/relationship_enum"
 	"myblogx/service/redis_service/redis_comment"
 	"time"
 
@@ -27,6 +28,8 @@ type CommentReplyListResponse struct {
 	ReplyId           ctype.ID           `json:"reply_id"`
 	DiggCount         int                `json:"digg_count"`
 	ReplyCount        int                `json:"reply_count"`
+	IsDigg            bool               `json:"is_digg"`
+	Relation          int8               `json:"relation"`
 	Status            enum.CommentStatus `json:"status"`
 	UserNickname      string             `json:"user_nickname"`
 	UserAvatar        string             `json:"user_avatar"`
@@ -36,6 +39,7 @@ type CommentReplyListResponse struct {
 func (CommentApi) CommentReplyListView(c *gin.Context) {
 	cr := middleware.GetBindQuery[CommentReplyListRequest](c)
 
+	// 查询一级评论
 	var root models.CommentModel
 	if err := global.DB.Select("id", "article_id", "reply_id", "root_id", "reply_count").
 		Take(&root, "id = ? and article_id = ? and status = ?", cr.RootID, cr.ArticleID, enum.CommentStatusPublished).Error; err != nil {
@@ -78,6 +82,7 @@ func (CommentApi) CommentReplyListView(c *gin.Context) {
 		return
 	}
 
+	// 批量查询回复数和点赞数
 	commentIDs := make([]ctype.ID, 0, len(list))
 	for _, item := range list {
 		commentIDs = append(commentIDs, item.ID)
@@ -85,10 +90,24 @@ func (CommentApi) CommentReplyListView(c *gin.Context) {
 	replyCountMap := redis_comment.GetBatchCacheReply(commentIDs)
 	diggCountMap := redis_comment.GetBatchCacheDigg(commentIDs)
 
+	// 批量查询点赞，好友关系
+	viewerUserID := commentViewerIDFromGin(c)
+	userIDs := make([]ctype.ID, 0, len(list))
+	for _, item := range list {
+		userIDs = append(userIDs, item.UserID)
+	}
+	isDiggMap := buildCommentDiggMap(viewerUserID, commentIDs)
+	relationMap := buildCommentRelationMap(viewerUserID, userIDs)
+
+	// 组装响应
 	responseList := make([]CommentReplyListResponse, 0, len(list))
 	for _, item := range list {
 		item.ReplyCount += replyCountMap[item.ID]
 		item.DiggCount += diggCountMap[item.ID]
+		relation := relationship_enum.RelationStranger
+		if got, ok := relationMap[item.UserID]; ok {
+			relation = got
+		}
 		resp := CommentReplyListResponse{
 			CreatedAt:    item.CreatedAt,
 			Content:      item.Content,
@@ -96,6 +115,8 @@ func (CommentApi) CommentReplyListView(c *gin.Context) {
 			ReplyId:      item.ReplyId,
 			DiggCount:    item.DiggCount,
 			ReplyCount:   item.ReplyCount,
+			IsDigg:       isDiggMap[item.ID],
+			Relation:     int8(relation),
 			Status:       item.Status,
 			UserNickname: item.UserModel.Nickname,
 			UserAvatar:   item.UserModel.Avatar,

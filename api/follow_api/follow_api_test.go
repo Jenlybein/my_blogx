@@ -127,6 +127,9 @@ func TestFollowListView(t *testing.T) {
 		if body.Data.List[0].FollowedUserID != users.followedA.ID {
 			t.Fatalf("关注列表首项异常: %+v", body.Data.List[0])
 		}
+		if int(body.Data.List[0].Relation) != int(relationship_enum.RelationFollowed) {
+			t.Fatalf("关注列表关系字段异常: %+v", body.Data.List[0])
+		}
 		if body.Data.List[0].FollowTime.IsZero() {
 			t.Fatalf("关注时间不应为空")
 		}
@@ -190,6 +193,9 @@ func TestFansListView(t *testing.T) {
 		}
 		if body.Data.List[0].FansUserID != users.fansA.ID {
 			t.Fatalf("粉丝列表首项异常: %+v", body.Data.List[0])
+		}
+		if int(body.Data.List[0].Relation) != int(relationship_enum.RelationFans) {
+			t.Fatalf("粉丝列表关系字段异常: %+v", body.Data.List[0])
 		}
 		if body.Data.List[0].FollowTime.IsZero() {
 			t.Fatalf("关注时间不应为空")

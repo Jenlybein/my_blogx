@@ -6,6 +6,7 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
 	"myblogx/service/user_service"
 	"myblogx/utils/jwts"
 
@@ -68,6 +69,26 @@ func (FavoriteApi) FavoriteListView(c *gin.Context) {
 		return
 	}
 
+	// 判断是否已收藏
+	hasArticleMap := make(map[ctype.ID]bool, len(_list))
+	if cr.Type == 1 && cr.ArticleID != 0 && len(_list) > 0 {
+		favoriteIDs := make([]ctype.ID, 0, len(_list))
+		for _, item := range _list {
+			favoriteIDs = append(favoriteIDs, item.ID)
+		}
+
+		var relationList []models.UserArticleFavorModel
+		if err = global.DB.Select("favor_id").
+			Where("user_id = ? AND article_id = ? AND favor_id IN ?", claim.UserID, cr.ArticleID, favoriteIDs).
+			Find(&relationList).Error; err != nil {
+			res.FailWithError(err, c)
+			return
+		}
+		for _, relation := range relationList {
+			hasArticleMap[relation.FavorID] = true
+		}
+	}
+
 	var list = make([]FavoriteListResponse, 0)
 	for _, item := range _list {
 		list = append(list, FavoriteListResponse{
@@ -75,6 +96,7 @@ func (FavoriteApi) FavoriteListView(c *gin.Context) {
 			ArticleCount:  len(item.ArticleList),
 			Nickname:      item.UserModel.Nickname,
 			Avatar:        item.UserModel.Avatar,
+			HasArticle:    hasArticleMap[item.ID],
 		})
 	}
 

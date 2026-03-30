@@ -501,15 +501,6 @@ func TestArticleDiggFavoriteVisitDetailRemoveUser(t *testing.T) {
 			t.Fatalf("点赞失败, code=%d body=%s", code, w.Body.String())
 		}
 	}
-	{
-		c, w := newCtx()
-		c.Set("claims", claims)
-		c.Set("requestUri", models.IDRequest{ID: article.ID})
-		api.ArticleDiggView(c)
-		if code := readCode(t, w); code != 0 {
-			t.Fatalf("取消点赞失败, code=%d body=%s", code, w.Body.String())
-		}
-	}
 
 	{
 		c, w := newCtx()
@@ -518,6 +509,24 @@ func TestArticleDiggFavoriteVisitDetailRemoveUser(t *testing.T) {
 		api.ArticleFavoriteSaveView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("收藏失败, code=%d body=%s", code, w.Body.String())
+		}
+	}
+
+	token := testutil.IssueAccessToken(t, user)
+	{
+		c, w := newCtx()
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("token", token)
+		c.Request = req
+		c.Set("requestUri", models.IDRequest{ID: article.ID})
+		api.ArticleDetailView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("文章详情失败, code=%d body=%s", code, w.Body.String())
+		}
+		body := readBody(t, w)
+		data := body["data"].(map[string]any)
+		if !data["is_digg"].(bool) || !data["is_favor"].(bool) {
+			t.Fatalf("文章详情点赞/收藏状态异常, body=%s", w.Body.String())
 		}
 	}
 	{
@@ -539,8 +548,16 @@ func TestArticleDiggFavoriteVisitDetailRemoveUser(t *testing.T) {
 			t.Fatalf("访问计数失败, code=%d body=%s", code, w.Body.String())
 		}
 	}
+	{
+		c, w := newCtx()
+		c.Set("claims", claims)
+		c.Set("requestUri", models.IDRequest{ID: article.ID})
+		api.ArticleDiggView(c)
+		if code := readCode(t, w); code != 0 {
+			t.Fatalf("取消点赞失败, code=%d body=%s", code, w.Body.String())
+		}
+	}
 
-	token := testutil.IssueAccessToken(t, user)
 	{
 		c, w := newCtx()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -550,6 +567,11 @@ func TestArticleDiggFavoriteVisitDetailRemoveUser(t *testing.T) {
 		api.ArticleDetailView(c)
 		if code := readCode(t, w); code != 0 {
 			t.Fatalf("文章详情失败, code=%d body=%s", code, w.Body.String())
+		}
+		body := readBody(t, w)
+		data := body["data"].(map[string]any)
+		if data["is_digg"].(bool) || data["is_favor"].(bool) {
+			t.Fatalf("取消后文章详情点赞/收藏状态异常, body=%s", w.Body.String())
 		}
 	}
 

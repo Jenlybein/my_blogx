@@ -6,6 +6,8 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
+	"myblogx/service/follow_service"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +20,7 @@ func (f *FollowApi) FansListView(c *gin.Context) {
 
 	claims := jwts.GetClaimsByGin(c)
 
+	// 查询目标用户隐私设置，判断是否公开粉丝列表
 	if cr.UserID != claims.UserID {
 		if cr.UserID != 0 {
 			var user models.UserConfModel
@@ -47,6 +50,11 @@ func (f *FollowApi) FansListView(c *gin.Context) {
 	}
 
 	var list = make([]FansListResponse, 0, len(_list))
+	userIDs := make([]ctype.ID, 0, len(_list))
+	for _, item := range _list {
+		userIDs = append(userIDs, item.FansUserID)
+	}
+	relationMap := follow_service.CalUserRelationshipBatch(claims.UserID, userIDs)
 	for _, item := range _list {
 		list = append(list, FansListResponse{
 			FansUserID:   item.FansUserID,
@@ -54,6 +62,7 @@ func (f *FollowApi) FansListView(c *gin.Context) {
 			FansAvatar:   item.FansUserModel.Avatar,
 			FansAbstract: item.FansUserModel.Abstract,
 			FollowTime:   item.CreatedAt,
+			Relation:     int8(relationMap[item.FansUserID]),
 		})
 	}
 	res.OkWithList(list, count, c)

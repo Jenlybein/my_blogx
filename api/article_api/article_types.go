@@ -37,6 +37,8 @@ type ArticleDetailResponse struct {
 	AuthorNickname string             `json:"author_name"`
 	AuthorUsername string             `json:"author_username"`
 	CategoryName   string             `json:"category_name"`
+	IsDigg         bool               `json:"is_digg"`
+	IsFavor        bool               `json:"is_favor"`
 }
 
 type ArticleExamineRequest struct {

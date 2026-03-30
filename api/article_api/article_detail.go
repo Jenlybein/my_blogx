@@ -58,11 +58,31 @@ func (ArticleApi) ArticleDetailView(c *gin.Context) {
 		return
 	}
 
+	// 获取 redis 里的点赞、收藏、评论数增量
 	counters := redis_article.GetBatchCounters([]ctype.ID{article.ID})
 	article.DiggCount += counters.DiggMap[article.ID]
 	article.ViewCount += counters.ViewMap[article.ID]
 	article.FavorCount += counters.FavorMap[article.ID]
 	article.CommentCount += counters.CommentMap[article.ID]
+
+	// 是否点赞, 是否收藏
+	isDigg := false
+	isFavor := false
+	if claims != nil {
+		var diggCount int64
+		if err := global.DB.Model(&models.ArticleDiggModel{}).
+			Where("article_id = ? AND user_id = ?", article.ID, claims.UserID).
+			Count(&diggCount).Error; err == nil {
+			isDigg = diggCount > 0
+		}
+
+		var favorCount int64
+		if err := global.DB.Model(&models.UserArticleFavorModel{}).
+			Where("article_id = ? AND user_id = ?", article.ID, claims.UserID).
+			Count(&favorCount).Error; err == nil {
+			isFavor = favorCount > 0
+		}
+	}
 
 	response := ArticleDetailResponse{
 		ID:             article.ID,
@@ -81,6 +101,8 @@ func (ArticleApi) ArticleDetailView(c *gin.Context) {
 		AuthorAvatar:   article.UserModel.Avatar,
 		AuthorNickname: article.UserModel.Nickname,
 		AuthorUsername: article.UserModel.Username,
+		IsDigg:         isDigg,
+		IsFavor:        isFavor,
 	}
 	if article.CategoryModel != nil {
 		response.CategoryName = article.CategoryModel.Title

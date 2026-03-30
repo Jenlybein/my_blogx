@@ -6,6 +6,8 @@ import (
 	"myblogx/global"
 	"myblogx/middleware"
 	"myblogx/models"
+	"myblogx/models/ctype"
+	"myblogx/service/follow_service"
 	"myblogx/utils/jwts"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +20,7 @@ func (f *FollowApi) FollowListView(c *gin.Context) {
 
 	claims := jwts.GetClaimsByGin(c)
 
+	// 查询目标用户隐私设置，判断是否公开关注列表
 	if cr.UserID != claims.UserID {
 		if cr.UserID != 0 {
 			var user models.UserConfModel
@@ -41,11 +44,20 @@ func (f *FollowApi) FollowListView(c *gin.Context) {
 		PageInfo:      cr.PageInfo,
 		ExactPreloads: map[string][]string{"FollowedUserModel": {"id", "avatar", "nickname", "abstract", "created_at"}},
 	})
+
 	if err != nil {
 		res.FailWithError(err, c)
 		return
 	}
 
+	// 计算用户关系
+	userIDs := make([]ctype.ID, 0, len(_list))
+	for _, item := range _list {
+		userIDs = append(userIDs, item.FollowedUserID)
+	}
+	relationMap := follow_service.CalUserRelationshipBatch(claims.UserID, userIDs)
+
+	// 格式化
 	var list = make([]FollowListResponse, 0)
 	for _, item := range _list {
 		list = append(list, FollowListResponse{
@@ -54,6 +66,7 @@ func (f *FollowApi) FollowListView(c *gin.Context) {
 			FollowedAvatar:   item.FollowedUserModel.Avatar,
 			FollowedAbstract: item.FollowedUserModel.Abstract,
 			FollowTime:       item.CreatedAt,
+			Relation:         int8(relationMap[item.FollowedUserID]),
 		})
 	}
 	res.OkWithList(list, count, c)
