@@ -151,7 +151,7 @@ func ListRuntimeLogs(query RuntimeLogQuery) ([]RuntimeLogRecord, int64, error) {
 	}
 
 	sqlText := fmt.Sprintf(`
-SELECT event_id, formatDateTime(ts, '%%Y-%%m-%%d %%H:%%i:%%s.%%3N'), service, env, host, instance_id, level, message, request_id, trace_id, file, func, user_id, ip, method, path, status_code, latency_ms, event_name, error_type, error_stack, extra_json
+SELECT event_id, toString(ts), service, env, host, instance_id, level, message, request_id, trace_id, file, func, user_id, ip, method, path, status_code, latency_ms, event_name, error_type, error_stack, extra_json
 FROM %s %s
 ORDER BY ts DESC, event_id DESC
 LIMIT ? OFFSET ?`, RuntimeLogTableName, whereSQL)
@@ -185,7 +185,7 @@ func GetRuntimeLog(eventID uint64) (*RuntimeLogRecord, error) {
 	defer cancel()
 
 	row := queryRowExists(ctx, fmt.Sprintf(`
-SELECT event_id, formatDateTime(ts, '%%Y-%%m-%%d %%H:%%i:%%s.%%3N'), service, env, host, instance_id, level, message, request_id, trace_id, file, func, user_id, ip, method, path, status_code, latency_ms, event_name, error_type, error_stack, extra_json
+SELECT event_id, toString(ts), service, env, host, instance_id, level, message, request_id, trace_id, file, func, user_id, ip, method, path, status_code, latency_ms, event_name, error_type, error_stack, extra_json
 FROM %s WHERE event_id = ? LIMIT 1`, RuntimeLogTableName), eventID)
 	var item RuntimeLogRecord
 	if err := row.Scan(
@@ -213,7 +213,7 @@ func ListLoginEvents(query LoginEventQuery) ([]LoginEventRecord, int64, error) {
 		return nil, 0, err
 	}
 	sqlText := fmt.Sprintf(`
-SELECT event_id, formatDateTime(ts, '%%Y-%%m-%%d %%H:%%i:%%s.%%3N'), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, event_name, username, login_type, success, reason, addr, ua, extra_json
+SELECT event_id, toString(ts), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, event_name, username, login_type, success, reason, addr, ua, extra_json
 FROM %s %s
 ORDER BY ts DESC, event_id DESC
 LIMIT ? OFFSET ?`, LoginEventLogTableName, whereSQL)
@@ -245,7 +245,7 @@ func GetLoginEvent(eventID uint64) (*LoginEventRecord, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	row := queryRowExists(ctx, fmt.Sprintf(`
-SELECT event_id, formatDateTime(ts, '%%Y-%%m-%%d %%H:%%i:%%s.%%3N'), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, event_name, username, login_type, success, reason, addr, ua, extra_json
+SELECT event_id, toString(ts), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, event_name, username, login_type, success, reason, addr, ua, extra_json
 FROM %s WHERE event_id = ? LIMIT 1`, LoginEventLogTableName), eventID)
 	var item LoginEventRecord
 	if err := row.Scan(
@@ -273,7 +273,7 @@ func ListActionAudits(query ActionAuditQuery) ([]ActionAuditRecord, int64, error
 		return nil, 0, err
 	}
 	sqlText := fmt.Sprintf(`
-SELECT event_id, formatDateTime(ts, '%%Y-%%m-%%d %%H:%%i:%%s.%%3N'), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, method, path, status_code, action_name, target_type, target_id, success, request_body, response_body, extra_json
+SELECT event_id, toString(ts), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, method, path, status_code, action_name, target_type, target_id, success, request_body, response_body, extra_json
 FROM %s %s
 ORDER BY ts DESC, event_id DESC
 LIMIT ? OFFSET ?`, ActionAuditLogTableName, whereSQL)
@@ -305,7 +305,7 @@ func GetActionAudit(eventID uint64) (*ActionAuditRecord, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	row := queryRowExists(ctx, fmt.Sprintf(`
-SELECT event_id, formatDateTime(ts, '%%Y-%%m-%%d %%H:%%i:%%s.%%3N'), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, method, path, status_code, action_name, target_type, target_id, success, request_body, response_body, request_body_raw, response_body_raw, request_header_raw, response_header_raw, extra_json
+SELECT event_id, toString(ts), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, method, path, status_code, action_name, target_type, target_id, success, request_body, response_body, request_body_raw, response_body_raw, request_header_raw, response_header_raw, extra_json
 FROM %s WHERE event_id = ? LIMIT 1`, ActionAuditLogTableName), eventID)
 	var item ActionAuditRecord
 	if err := row.Scan(
@@ -359,7 +359,7 @@ func LoadLatestLoginMap(userIDs []ctype.ID) (map[ctype.ID]LoginEventRecord, erro
 		args = append(args, value)
 	}
 	rows, err := global.ClickHouse.QueryContext(ctx, fmt.Sprintf(`
-SELECT event_id, formatDateTime(ts, '%%Y-%%m-%%d %%H:%%i:%%s.%%3N'), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, event_name, username, login_type, success, reason, addr, ua, extra_json
+SELECT event_id, toString(ts), service, env, host, instance_id, level, message, request_id, trace_id, user_id, ip, event_name, username, login_type, success, reason, addr, ua, extra_json
 FROM %s
 WHERE user_id IN (%s) AND event_name = 'login_success' AND success = 1
 ORDER BY user_id, ts DESC, event_id DESC
