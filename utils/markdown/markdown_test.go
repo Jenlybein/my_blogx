@@ -35,6 +35,15 @@ func TestMarkdownHelpers(t *testing.T) {
 	if got := markdown.ExtractText("abcdef", 3); got != "abc" {
 		t.Fatalf("ExtractText 截断错误: %s", got)
 	}
+	if got := markdown.ExtractText("你好世界", 3); got != "你好世" {
+		t.Fatalf("ExtractText 应按 rune 截断中文: %s", got)
+	}
+	if got := markdown.ExtractText("你好", 10); got != "你好" {
+		t.Fatalf("ExtractText 不应在 rune 长度不足时越界: %s", got)
+	}
+	if got := markdown.ExtractText("hello", 0); got != "" {
+		t.Fatalf("ExtractText 在长度<=0时应返回空串: %q", got)
+	}
 }
 
 func TestMdToSafe(t *testing.T) {

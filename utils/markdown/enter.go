@@ -81,8 +81,11 @@ func MdToSafe(md string) string {
 
 // 提取纯文本前 n 个字符
 func ExtractText(text string, length int) string {
-	if len(text) > length {
-		runes := []rune(text)
+	if length <= 0 {
+		return ""
+	}
+	runes := []rune(text)
+	if len(runes) > length {
 		return string(runes[:length])
 	}
 	return text

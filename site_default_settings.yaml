@@ -43,7 +43,7 @@ ai:
   chat_model: "gpt-3.5-turbo"
   reason_model: ""
   timeout_sec:
-  max_input_chars:
+  max_input_chars: 100000
   temperature:
   daily_quota:
   abstract: "你好！我是我的博客的AI助手，可以帮助你找到喜欢的文章！"

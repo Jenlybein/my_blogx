@@ -130,6 +130,9 @@
       "name": "AI模块/搜索"
     },
     {
+      "name": "AI模块/评分"
+    },
+    {
       "name": "数据统计"
     },
     {
@@ -6050,6 +6053,72 @@
         ]
       }
     },
+    "/api/ai/scoring/article": {
+      "post": {
+        "summary": "文章全文质量评分",
+        "deprecated": false,
+        "description": "对整篇文章进行 AI 质量评分，并返回维度分、主要问题、优先修改项和结构化写作建议。",
+        "tags": [
+          "AI模块/评分"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIArticleScoringRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiMessageResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AIArticleScoringResponseData"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/data/sum": {
       "get": {
         "summary": "求和数据",
@@ -10047,6 +10116,22 @@
           "content"
         ]
       },
+      "AIArticleScoringRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "文章标题；为空时后端会尝试从正文中提取。"
+          },
+          "content": {
+            "type": "string",
+            "description": "文章正文内容，通常为 Markdown 或富文本内容。"
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
       "AIMetainfoOption": {
         "type": "object",
         "properties": {
@@ -10096,6 +10181,155 @@
           "title",
           "abstract",
           "tags"
+        ]
+      },
+      "AIArticleScoringPosition": {
+        "type": "object",
+        "properties": {
+          "paragraph": {
+            "type": "integer",
+            "description": "问题命中的段落序号；定位不稳定时可能为 0。"
+          },
+          "quote": {
+            "type": "string",
+            "description": "问题命中的原文短引用，通常截取 10 到 25 个字。"
+          }
+        },
+        "required": [
+          "paragraph",
+          "quote"
+        ]
+      },
+      "AIArticleScoringIssue": {
+        "type": "object",
+        "properties": {
+          "positions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AIArticleScoringPosition"
+            },
+            "description": "问题命中的原文位置列表。"
+          },
+          "reason": {
+            "type": "string",
+            "description": "问题说明。"
+          },
+          "suggestion": {
+            "type": "string",
+            "description": "修改建议。"
+          }
+        },
+        "required": [
+          "positions",
+          "reason",
+          "suggestion"
+        ]
+      },
+      "AIArticleScoringDimension": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "评分维度键。",
+            "enum": [
+              "clarity",
+              "structure",
+              "completeness",
+              "readability",
+              "persuasiveness",
+              "language"
+            ]
+          },
+          "score": {
+            "type": "integer",
+            "description": "该维度分数。"
+          },
+          "reason": {
+            "type": "string",
+            "description": "该维度评分理由。"
+          }
+        },
+        "required": [
+          "name",
+          "score",
+          "reason"
+        ]
+      },
+      "AIArticleScoringResponseData": {
+        "type": "object",
+        "properties": {
+          "ai_total_score": {
+            "type": "integer",
+            "description": "AI 直接给出的参考总分。"
+          },
+          "total_score": {
+            "type": "integer",
+            "description": "系统根据文体权重重算后的最终总分。"
+          },
+          "score_level": {
+            "type": "string",
+            "description": "分数等级。",
+            "enum": [
+              "较差文章",
+              "不合格文章",
+              "常规文章",
+              "优质文章",
+              "精品文章"
+            ]
+          },
+          "article_type": {
+            "type": "string",
+            "description": "AI 识别并由系统采用的文章类型。",
+            "enum": [
+              "散文",
+              "小说",
+              "诗歌",
+              "剧本",
+              "童话",
+              "传说",
+              "记叙文",
+              "日记",
+              "新闻",
+              "说明文",
+              "教程",
+              "科普",
+              "报告",
+              "邮件",
+              "通知",
+              "发言稿",
+              "议论文",
+              "评论",
+              "文案",
+              "网文"
+            ]
+          },
+          "dimensions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AIArticleScoringDimension"
+            },
+            "description": "6 个固定维度的评分结果。"
+          },
+          "main_issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AIArticleScoringIssue"
+            },
+            "description": "主要问题列表。低分文章会要求输出更多问题：小于 30 分时 5~9 条，小于 60 分时 4~7 条，小于 70 分时 2~5 条，高于等于 70 分时通常 0~3 条。"
+          },
+          "overall_comment": {
+            "type": "string",
+            "description": "合并后的综合建议字符串，同时包含文章整体评价、写作建议和优先修改措施。"
+          }
+        },
+        "required": [
+          "ai_total_score",
+          "total_score",
+          "score_level",
+          "article_type",
+          "dimensions",
+          "main_issues",
+          "overall_comment"
         ]
       },
       "SearchListItem": {
