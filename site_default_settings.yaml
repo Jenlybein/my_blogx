@@ -38,9 +38,9 @@ site:
     skip_examining: true
 ai:
   enable: true
-  secret: "******_secret2
-  base_url: "******_base_url1
-  chat_model: "gpt-3.5-turbo"
+  secret: "REDACTED_AI_SECRET"
+  base_url: "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+  chat_model: "doubao-1-5-pro-32k-250115"
   reason_model: ""
   timeout_sec:
   max_input_chars: 100000

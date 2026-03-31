@@ -44,7 +44,7 @@ func (AIApi) AIArticleSearchListView(c *gin.Context) {
 
 func (AIApi) AIArticleSearchLLMView(c *gin.Context) {
 	cr := middleware.GetBindJson[AIBaseRequest](c)
-	prepareAIArticleSearchSSE(c)
+	prepareAISSE(c)
 
 	// 意图识别与搜索重写
 	rewrite, err := ai_search.RewriteArticleSearch(cr.Content)
@@ -171,11 +171,4 @@ func searchAIArticleList(rewrite *ai_search.ArticleSearchRewrite) ([]search_serv
 	list = appendUniqueSearchResults(list, seen, queryList)
 
 	return list, nil
-}
-
-func prepareAIArticleSearchSSE(c *gin.Context) {
-	c.Writer.Header().Set("Content-Type", "text/event-stream")
-	c.Writer.Header().Set("Cache-Control", "no-cache")
-	c.Writer.Header().Set("Connection", "keep-alive")
-	c.Writer.Header().Set("X-Accel-Buffering", "no")
 }

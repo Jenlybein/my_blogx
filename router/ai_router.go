@@ -17,6 +17,8 @@ func AIRouter(r *gin.RouterGroup) {
 
 	authGroup.POST("metainfo", mw.BindJson[ai_api.AIBaseRequest], app.AIArticleMetaInfoView)
 	authGroup.POST("scoring/article", mw.BindJson[ai_api.AIArticleScoringRequest], app.AIArticleScoringView)
+	authGroup.POST("overwrite", mw.BindJson[ai_api.AIOverwriteRequest], app.AIOverwriteView)
+	authGroup.POST("diagnose", mw.BindJson[ai_api.AIDiagnoseRequest], app.AIDiagnoseView)
 	authGroup.POST("search/list", mw.BindJson[ai_api.AIBaseRequest], app.AIArticleSearchListView)
 	authGroup.POST("search/llm", mw.BindJson[ai_api.AIBaseRequest], app.AIArticleSearchLLMView)
 }

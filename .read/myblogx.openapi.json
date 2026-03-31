@@ -133,6 +133,12 @@
       "name": "AI模块/评分"
     },
     {
+      "name": "AI模块/改写"
+    },
+    {
+      "name": "AI模块/诊断"
+    },
+    {
       "name": "数据统计"
     },
     {
@@ -6119,6 +6125,110 @@
         ]
       }
     },
+    "/api/ai/overwrite": {
+      "post": {
+        "summary": "选中内容改写",
+        "deprecated": false,
+        "description": "对编辑器中选中的文本执行内容润色、语法改正或风格转换。接口使用 SSE 流式返回，每个 data 事件中的 data.content 都是新增文本片段。",
+        "tags": [
+          "AI模块/改写"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIOverwriteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "SSE 文本流，data 行内容为 JSON，data.content 为新增文本片段。"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/ai/diagnose": {
+      "post": {
+        "summary": "选中内容诊断",
+        "deprecated": false,
+        "description": "分析编辑器中选中的文本存在的问题，并返回结构化诊断结果。接口通过 SSE 返回最终结构化 JSON。",
+        "tags": [
+          "AI模块/诊断"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "Bearer {{bearerToken}}",
+            "schema": {
+              "type": "string",
+              "default": "Bearer {{bearerToken}}"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIDiagnoseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "SSE 结构化结果，通常只返回一个 data 事件，其中 data 为诊断 JSON。"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/data/sum": {
       "get": {
         "summary": "求和数据",
@@ -10114,6 +10224,136 @@
         },
         "required": [
           "content"
+        ]
+      },
+      "AIOverwriteRequest": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "description": "改写模式。",
+            "enum": [
+              "polish",
+              "grammar_fix",
+              "style_transform"
+            ]
+          },
+          "selection_text": {
+            "type": "string",
+            "description": "选中的正文内容，长度建议 25 到 3500 字。"
+          },
+          "prefix_text": {
+            "type": "string",
+            "description": "选中内容前文，上下文辅助信息，后端最多保留末尾 800 字。"
+          },
+          "suffix_text": {
+            "type": "string",
+            "description": "选中内容后文，上下文辅助信息，后端最多保留开头 800 字。"
+          },
+          "article_title": {
+            "type": "string",
+            "description": "文章标题，最长 50 字。"
+          },
+          "target_style": {
+            "type": "string",
+            "description": "目标风格，仅在 style_transform 模式下启用。"
+          }
+        },
+        "required": [
+          "mode",
+          "selection_text",
+          "article_title"
+        ]
+      },
+      "AIDiagnoseRequest": {
+        "type": "object",
+        "properties": {
+          "selection_text": {
+            "type": "string",
+            "description": "选中的正文内容，长度建议 25 到 3500 字。"
+          },
+          "prefix_text": {
+            "type": "string",
+            "description": "选中内容前文，上下文辅助信息，后端最多保留末尾 800 字。"
+          },
+          "suffix_text": {
+            "type": "string",
+            "description": "选中内容后文，上下文辅助信息，后端最多保留开头 800 字。"
+          },
+          "article_title": {
+            "type": "string",
+            "description": "文章标题，最长 50 字。"
+          }
+        },
+        "required": [
+          "selection_text",
+          "article_title"
+        ]
+      },
+      "AIDiagnoseIssue": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "问题类型。",
+            "enum": [
+              "可读性",
+              "逻辑",
+              "完整度",
+              "结构",
+              "重复",
+              "语言",
+              "语气"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "description": "严重度。",
+            "enum": [
+              "低",
+              "中",
+              "高"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "问题说明。"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "原文证据。"
+          },
+          "suggestion": {
+            "type": "string",
+            "description": "可执行建议。"
+          }
+        },
+        "required": [
+          "type",
+          "severity",
+          "reason",
+          "evidence",
+          "suggestion"
+        ]
+      },
+      "AIDiagnoseResponseData": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string",
+            "description": "诊断摘要。"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AIDiagnoseIssue"
+            },
+            "description": "结构化问题列表，最多 5 条。"
+          }
+        },
+        "required": [
+          "summary",
+          "issues"
         ]
       },
       "AIArticleScoringRequest": {

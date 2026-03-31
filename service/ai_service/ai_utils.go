@@ -51,3 +51,32 @@ func UnmarshalJSONBlock(text string, target any) error {
 	}
 	return nil
 }
+
+// RuneLen 返回字符串的 rune 长度，适合中文内容长度控制。
+func RuneLen(text string) int {
+	return len([]rune(text))
+}
+
+// FirstRunes 截取前 max 个 rune；max 非正数时返回空字符串。
+func FirstRunes(text string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+	runes := []rune(text)
+	if len(runes) <= max {
+		return text
+	}
+	return string(runes[:max])
+}
+
+// LastRunes 截取后 max 个 rune；max 非正数时返回空字符串。
+func LastRunes(text string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+	runes := []rune(text)
+	if len(runes) <= max {
+		return text
+	}
+	return string(runes[len(runes)-max:])
+}
