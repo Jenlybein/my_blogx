@@ -11,8 +11,8 @@ import (
 	"myblogx/conf"
 	"myblogx/global"
 	"myblogx/models"
+	"myblogx/utils/envyaml"
 
-	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
 )
 
@@ -48,7 +48,7 @@ func loadRuntimeDefaultConfigFromFile() (*RuntimeConfig, error) {
 	}
 
 	var raw conf.RuntimeSiteDefault
-	if err = yaml.Unmarshal(byteData, &raw); err != nil {
+	if err = envyaml.Unmarshal(byteData, &raw); err != nil {
 		return nil, fmt.Errorf("解析运行时站点默认配置失败: %w", err)
 	}
 	return &RuntimeConfig{

@@ -8,6 +8,7 @@ import (
 
 	"myblogx/conf"
 	"myblogx/global"
+	"myblogx/utils/envyaml"
 
 	"gopkg.in/yaml.v3"
 )
@@ -20,7 +21,7 @@ func ReadCfg(settings *string) (c *conf.Config) {
 
 	c = new(conf.Config)
 
-	err = yaml.Unmarshal(byteData, &c)
+	err = envyaml.Unmarshal(byteData, c)
 
 	if err != nil {
 		panic(fmt.Errorf("yaml 配置文件解析失败: %s", err))

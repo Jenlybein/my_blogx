@@ -13,3 +13,5 @@ init/deploy/sql_master/data
 init/deploy/sql_slave/data
 
 *.exe
+
+.envrc

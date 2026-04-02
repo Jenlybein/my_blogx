@@ -1,16 +1,16 @@
-services:
+﻿services:
   mysql-master:
     image: "mysql:5.7"
     container_name: mysql-master
     restart: unless-stopped
     privileged: true
     environment:
-      MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD
-      TZ: "Asia/Shanghai"
-      MYSQL_DATABASE: "blogx"
+      MYSQL_ROOT_PASSWORD: "${BLOGX_DB_PASSWORD}"
+      TZ: "${TZ}"
+      MYSQL_DATABASE: "${BLOGX_DB_NAME}"
     command:
     ports:
-      - 3306:3306
+      - "${BLOGX_DB_MASTER_PORT}:3306"
     volumes:
       - ./sql_master/my.cnf:/etc/mysql/my.cnf
       - ./sql_master/mysql-files:/var/lib/mysql-files
@@ -26,7 +26,7 @@ services:
           "-h",
           "localhost",
           "-uroot",
-          "-pREDACTED_SHARED_PASSWORD",
+          "-p$${MYSQL_ROOT_PASSWORD}",
         ]
       interval: 2s
       timeout: 2s
@@ -41,10 +41,10 @@ services:
     restart: unless-stopped
     privileged: true
     environment:
-      MYSQL_ROOT_PASSWORD: REDACTED_SHARED_PASSWORD
+      MYSQL_ROOT_PASSWORD: "${BLOGX_DB_PASSWORD}"
     command:
     ports:
-      - 3307:3306
+      - "${BLOGX_DB_REPLICA_PORT}:3306"
     volumes:
       - ./sql_slave/my.cnf:/etc/mysql/my.cnf
       - ./sql_slave/mysql-files:/var/lib/mysql-files
@@ -64,7 +64,7 @@ services:
           "-h",
           "localhost",
           "-uroot",
-          "-pREDACTED_SHARED_PASSWORD",
+          "-p$${MYSQL_ROOT_PASSWORD}",
         ]
       interval: 5s
       timeout: 5s
@@ -90,9 +90,9 @@ services:
       http.cors.enabled: true
       http.cors.allow-origin: "*"
       http.cors.allow-headers: "X-Requested-With,Content-Type,Authorization"
-      ELASTIC_PASSWORD: "REDACTED_SHARED_PASSWORD"
+      ELASTIC_PASSWORD: "${BLOGX_ES_PASSWORD}"
     ports:
-      - 9200:9200
+      - "${BLOGX_ES_PORT}:9200"
     volumes:
       - ./es/data:/usr/share/elasticsearch/data
     healthcheck:
@@ -116,12 +116,12 @@ services:
     privileged: true
     command: redis-server /etc/redis/redis.conf
     ports:
-      - 6379:6379
+      - "${BLOGX_REDIS_PORT}:6379"
     volumes:
       - ./redis/data:/data
       - ./redis/conf/redis.conf:/etc/redis/redis.conf
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "REDACTED_SHARED_PASSWORD", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${BLOGX_REDIS_PASSWORD}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -268,9 +268,9 @@ services:
     container_name: clickhouse
     restart: unless-stopped
     environment:
-      CLICKHOUSE_DB: blogx_logs # 初始化创建的默认数据库（与日志库一致）
-      CLICKHOUSE_PASSWORD: REDACTED_SHARED_PASSWORD # 默认登录密码（与 Fluent Bit 配置一致）
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1 # 开启默认权限管理，允许远程连接和账号管理
+      CLICKHOUSE_DB: "${BLOGX_CLICKHOUSE_DB}" # 初始化创建的默认数据库（与日志库一致）
+      CLICKHOUSE_PASSWORD: "${BLOGX_CLICKHOUSE_PASSWORD}" # 默认登录密码（与 Fluent Bit 配置一致）
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "${CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT}" # 开启默认权限管理，允许远程连接和账号管理
     ports:
       # HTTP 接口端口（Fluent Bit 写入用）
       - 8123:8123
@@ -284,7 +284,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          'clickhouse-client --user default --password REDACTED_SHARED_PASSWORD --query "SELECT 1" || exit 1',
+          'clickhouse-client --user default --password "$${CLICKHOUSE_PASSWORD}" --query "SELECT 1" || exit 1',
         ]
       interval: 10s
       timeout: 10s
@@ -300,9 +300,112 @@ services:
       context: ../..
       dockerfile: Dockerfile
     environment:
-      TZ: "Asia/Shanghai"
-      ES_WAIT_URL: "http://es:9200/_cluster/health?wait_for_status=yellow&timeout=5s"
-      ES_WAIT_AUTH_HEADER: "Authorization: Basic ZWxhc3RpYzpteWJsb2d4QWJjMTIzNDU="
+      TZ: "${TZ}"
+      BLOGX_SERVER_ID: "${BLOGX_SERVER_ID}"
+      BLOGX_APP_HOST: "${BLOGX_APP_HOST}"
+      BLOGX_APP_PORT: "${BLOGX_APP_PORT}"
+      BLOGX_APP_ENV: "${BLOGX_APP_ENV}"
+      BLOGX_GIN_MODE: "${BLOGX_GIN_MODE}"
+      BLOGX_LOG_APP: "${BLOGX_LOG_APP}"
+      BLOGX_LOG_LEVEL: "${BLOGX_LOG_LEVEL}"
+      BLOGX_LOG_REQUEST_LOG_ENABLED: "${BLOGX_LOG_REQUEST_LOG_ENABLED}"
+      BLOGX_LOG_QUERY_DEFAULT_LIMIT: "${BLOGX_LOG_QUERY_DEFAULT_LIMIT}"
+      BLOGX_LOG_QUERY_MAX_LIMIT: "${BLOGX_LOG_QUERY_MAX_LIMIT}"
+      BLOGX_JWT_SECRET: "${BLOGX_JWT_SECRET}"
+      BLOGX_JWT_ISSUER: "${BLOGX_JWT_ISSUER}"
+      BLOGX_JWT_EXPIRE_HOURS: "${BLOGX_JWT_EXPIRE_HOURS}"
+      BLOGX_JWT_REFRESH_EXPIRE_HOURS: "${BLOGX_JWT_REFRESH_EXPIRE_HOURS}"
+      BLOGX_DB_NAME: "${BLOGX_DB_NAME}"
+      BLOGX_DB_USER: "${BLOGX_DB_USER}"
+      BLOGX_DB_PASSWORD: "${BLOGX_DB_PASSWORD}"
+      BLOGX_DB_MASTER_HOST: "mysql-master"
+      BLOGX_DB_MASTER_PORT: "3306"
+      BLOGX_DB_REPLICA_HOST: "mysql-slave"
+      BLOGX_DB_REPLICA_PORT: "3306"
+      BLOGX_GORM_DEBUG: "${BLOGX_GORM_DEBUG}"
+      BLOGX_GORM_MAX_IDLE_CONNS: "${BLOGX_GORM_MAX_IDLE_CONNS}"
+      BLOGX_GORM_MAX_OPEN_CONNS: "${BLOGX_GORM_MAX_OPEN_CONNS}"
+      BLOGX_GORM_CONN_MAX_LIFETIME_HOURS: "${BLOGX_GORM_CONN_MAX_LIFETIME_HOURS}"
+      BLOGX_REDIS_HOST: "redis"
+      BLOGX_REDIS_PORT: "6379"
+      BLOGX_REDIS_USERNAME: "${BLOGX_REDIS_USERNAME}"
+      BLOGX_REDIS_PASSWORD: "${BLOGX_REDIS_PASSWORD}"
+      BLOGX_REDIS_DB: "${BLOGX_REDIS_DB}"
+      BLOGX_KAFKA_BROKERS: "${BLOGX_KAFKA_BROKERS}"
+      BLOGX_KAFKA_TOPIC: "${BLOGX_KAFKA_TOPIC}"
+      BLOGX_KAFKA_GROUP_ID: "${BLOGX_KAFKA_GROUP_ID}"
+      BLOGX_KAFKA_USERNAME: "${BLOGX_KAFKA_USERNAME}"
+      BLOGX_KAFKA_PASSWORD: "${BLOGX_KAFKA_PASSWORD}"
+      BLOGX_ES_URL: "http://es:9200"
+      BLOGX_ES_ADDR: "es:9200"
+      BLOGX_ES_INDEX: "${BLOGX_ES_INDEX}"
+      BLOGX_ES_USERNAME: "${BLOGX_ES_USERNAME}"
+      BLOGX_ES_PASSWORD: "${BLOGX_ES_PASSWORD}"
+      BLOGX_ES_USE_HTTPS: "${BLOGX_ES_USE_HTTPS}"
+      BLOGX_CLICKHOUSE_ADDR: "clickhouse:9000"
+      BLOGX_CLICKHOUSE_DB: "${BLOGX_CLICKHOUSE_DB}"
+      BLOGX_CLICKHOUSE_USERNAME: "${BLOGX_CLICKHOUSE_USERNAME}"
+      BLOGX_CLICKHOUSE_PASSWORD: "${BLOGX_CLICKHOUSE_PASSWORD}"
+      BLOGX_CLICKHOUSE_DIAL_TIMEOUT_SEC: "${BLOGX_CLICKHOUSE_DIAL_TIMEOUT_SEC}"
+      BLOGX_CLICKHOUSE_MAX_OPEN_CONNS: "${BLOGX_CLICKHOUSE_MAX_OPEN_CONNS}"
+      BLOGX_CLICKHOUSE_MAX_IDLE_CONNS: "${BLOGX_CLICKHOUSE_MAX_IDLE_CONNS}"
+      BLOGX_RIVER_ENABLED: "${BLOGX_RIVER_ENABLED}"
+      BLOGX_RIVER_SERVER_ID: "${BLOGX_RIVER_SERVER_ID}"
+      BLOGX_RIVER_MYSQL_ADDR: "mysql-master:3306"
+      BLOGX_RIVER_MYSQL_USER: "${BLOGX_RIVER_MYSQL_USER}"
+      BLOGX_RIVER_MYSQL_PASSWORD: "${BLOGX_RIVER_MYSQL_PASSWORD}"
+      BLOGX_RIVER_INDEX: "${BLOGX_RIVER_INDEX}"
+      BLOGX_IMAGE_REF_RIVER_ENABLED: "${BLOGX_IMAGE_REF_RIVER_ENABLED}"
+      BLOGX_IMAGE_REF_RIVER_SERVER_ID: "${BLOGX_IMAGE_REF_RIVER_SERVER_ID}"
+      BLOGX_IMAGE_REF_RIVER_SCHEMA: "${BLOGX_IMAGE_REF_RIVER_SCHEMA}"
+      BLOGX_IMAGE_REF_RIVER_MYSQL_ADDR: "mysql-master:3306"
+      BLOGX_IMAGE_REF_RIVER_MYSQL_USER: "${BLOGX_IMAGE_REF_RIVER_MYSQL_USER}"
+      BLOGX_IMAGE_REF_RIVER_MYSQL_PASSWORD: "${BLOGX_IMAGE_REF_RIVER_MYSQL_PASSWORD}"
+      BLOGX_UPLOAD_SIZE_MB: "${BLOGX_UPLOAD_SIZE_MB}"
+      BLOGX_UPLOAD_DIR: "${BLOGX_UPLOAD_DIR}"
+      BLOGX_SMTP_HOST: "${BLOGX_SMTP_HOST}"
+      BLOGX_SMTP_PORT: "${BLOGX_SMTP_PORT}"
+      BLOGX_SMTP_USERNAME: "${BLOGX_SMTP_USERNAME}"
+      BLOGX_SMTP_AUTH_CODE: "${BLOGX_SMTP_AUTH_CODE}"
+      BLOGX_SMTP_FROM_NAME: "${BLOGX_SMTP_FROM_NAME}"
+      BLOGX_SMTP_SSL: "${BLOGX_SMTP_SSL}"
+      BLOGX_SMTP_TLS: "${BLOGX_SMTP_TLS}"
+      BLOGX_QQ_APP_ID: "${BLOGX_QQ_APP_ID}"
+      BLOGX_QQ_APP_KEY: "${BLOGX_QQ_APP_KEY}"
+      BLOGX_QQ_REDIRECT: "${BLOGX_QQ_REDIRECT}"
+      BLOGX_QINIU_ENABLED: "${BLOGX_QINIU_ENABLED}"
+      BLOGX_QINIU_ACCESS_KEY: "${BLOGX_QINIU_ACCESS_KEY}"
+      BLOGX_QINIU_SECRET_KEY: "${BLOGX_QINIU_SECRET_KEY}"
+      BLOGX_QINIU_BUCKET: "${BLOGX_QINIU_BUCKET}"
+      BLOGX_QINIU_DOMAIN: "${BLOGX_QINIU_DOMAIN}"
+      BLOGX_QINIU_REGION: "${BLOGX_QINIU_REGION}"
+      BLOGX_QINIU_PREFIX: "${BLOGX_QINIU_PREFIX}"
+      BLOGX_QINIU_MAX_SIZE_MB: "${BLOGX_QINIU_MAX_SIZE_MB}"
+      BLOGX_QINIU_TOKEN_EXPIRY_SEC: "${BLOGX_QINIU_TOKEN_EXPIRY_SEC}"
+      BLOGX_QINIU_CALLBACK_URL: "${BLOGX_QINIU_CALLBACK_URL}"
+      BLOGX_SITE_MODE: "${BLOGX_SITE_MODE}"
+      BLOGX_LOGIN_QQ_ENABLED: "${BLOGX_LOGIN_QQ_ENABLED}"
+      BLOGX_LOGIN_USERNAME_PASSWORD_ENABLED: "${BLOGX_LOGIN_USERNAME_PASSWORD_ENABLED}"
+      BLOGX_LOGIN_EMAIL_ENABLED: "${BLOGX_LOGIN_EMAIL_ENABLED}"
+      BLOGX_LOGIN_CAPTCHA_ENABLED: "${BLOGX_LOGIN_CAPTCHA_ENABLED}"
+      BLOGX_EMAIL_CODE_TIMEOUT_MIN: "${BLOGX_EMAIL_CODE_TIMEOUT_MIN}"
+      BLOGX_LOGIN_FAIL_WINDOW_MIN: "${BLOGX_LOGIN_FAIL_WINDOW_MIN}"
+      BLOGX_LOGIN_FAIL_USER_MAX: "${BLOGX_LOGIN_FAIL_USER_MAX}"
+      BLOGX_LOGIN_FAIL_IP_MAX: "${BLOGX_LOGIN_FAIL_IP_MAX}"
+      BLOGX_EMAIL_SEND_WINDOW_SEC: "${BLOGX_EMAIL_SEND_WINDOW_SEC}"
+      BLOGX_EMAIL_SEND_PER_EMAIL_MAX: "${BLOGX_EMAIL_SEND_PER_EMAIL_MAX}"
+      BLOGX_EMAIL_SEND_PER_IP_MAX: "${BLOGX_EMAIL_SEND_PER_IP_MAX}"
+      BLOGX_ARTICLE_SKIP_EXAMINING: "${BLOGX_ARTICLE_SKIP_EXAMINING}"
+      BLOGX_COMMENT_SKIP_EXAMINING: "${BLOGX_COMMENT_SKIP_EXAMINING}"
+      BLOGX_AI_ENABLED: "${BLOGX_AI_ENABLED}"
+      BLOGX_AI_SECRET: "${BLOGX_AI_SECRET}"
+      BLOGX_AI_BASE_URL: "${BLOGX_AI_BASE_URL}"
+      BLOGX_AI_CHAT_MODEL: "${BLOGX_AI_CHAT_MODEL}"
+      BLOGX_AI_REASON_MODEL: "${BLOGX_AI_REASON_MODEL}"
+      BLOGX_AI_TIMEOUT_SEC: "${BLOGX_AI_TIMEOUT_SEC}"
+      BLOGX_AI_MAX_INPUT_CHARS: "${BLOGX_AI_MAX_INPUT_CHARS}"
+      BLOGX_AI_TEMPERATURE: "${BLOGX_AI_TEMPERATURE}"
+      BLOGX_AI_DAILY_QUOTA: "${BLOGX_AI_DAILY_QUOTA}"
     depends_on:
       mysql-master:
         condition: service_healthy
@@ -315,8 +418,8 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./blog_server/settings.yaml:/app/settings.yaml
-      - ./blog_server/site_default_settings.yaml:/app/site_default_settings.yaml
+      - ./blog_server/site_default_settings.yaml:/app/site_default_settings.yaml:ro
+      - ./blog_server/settings.yaml:/app/settings.yaml:ro
       - ./blog_server/uploads:/app/uploads
       - ./blog_server/logs:/app/logs
       - ./blog_server/var:/app/var
@@ -324,7 +427,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -q -O /dev/null http://127.0.0.1:8080/api/site/ai_info || exit 1",
+          "wget -q -O /dev/null http://127.0.0.1:$${BLOGX_APP_PORT}/api/site/ai_info || exit 1",
         ]
       interval: 100s
       timeout: 5s
@@ -334,7 +437,7 @@ services:
       [
         "/bin/sh",
         "-c",
-        "until wget -q --header=\"$$ES_WAIT_AUTH_HEADER\" -O /dev/null \"$$ES_WAIT_URL\"; do echo '等待 ES 完整启动...'; sleep 3; done; exec /app/main",
+        'AUTH_HEADER="Authorization: Basic $(printf ''elastic:%s'' "$$BLOGX_ES_PASSWORD" | base64 | tr -d ''\n'')"; until wget -q --header="$$AUTH_HEADER" -O /dev/null "http://es:9200/_cluster/health?wait_for_status=yellow&timeout=5s"; do echo ''等待 ES 完整启动...''; sleep 3; done; exec /app/main',
       ]
     networks:
       blogx_network:
